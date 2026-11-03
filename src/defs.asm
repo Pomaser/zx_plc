@@ -60,6 +60,9 @@ CMD_KEYS        EQU 14
 CMD_IL_INS      EQU 15
 CMD_IL_DEL      EQU 16
 CMD_SYMBOLS     EQU 17
+CMD_VIEW_SYM    EQU 18
+CMD_VIEW_ADDR   EQU 19
+CMD_REDRAW      EQU 20
 
 ; ---- key codes ----------------------------------------------
 K_EDIT      EQU 7

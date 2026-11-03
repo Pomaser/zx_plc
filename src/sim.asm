@@ -145,7 +145,11 @@ scr_run:
         cp CMD_STEP
         jr z,.mc
         cp CMD_RESET
+        jr z,.mc
+        cp CMD_REDRAW
         jr nz,.exit
+        call sim_draw_list
+        jp .loop
 .mc:    call sim_cmd
         jp .loop
 .exit:  push af

@@ -4,6 +4,8 @@
 
 ; ---- screen_begin: clears the screen and draws the menu bar
 screen_begin:
+        ld hl,0
+        ld (st_left),hl
         ld a,ATTR_NORMAL
         ld (cur_attr),a
         call scr_cls

@@ -26,13 +26,23 @@ status_draw:
         xor a
         dec e
         jr nz,.cl
-        ld a,ST_ROW
-        ld (pt_row),a
-        ld a,1
-        ld (pt_down),a
-        ; left: "POU: name (lang)"
+        xor a
+        ld (st_llast),a         ; force both parts to be drawn
+        ld (st_last),a
+        call status_left
+        jp status_right
+
+; ---- status_left: left part (cells 0-17): st_left text if set (comment of
+;      the current element), else "POU: name (lang)"; redrawn only on change
+status_left:
         ld de,st_buf
-        ld hl,txt_st_pou
+        ld hl,(st_left)
+        ld a,h
+        or l
+        jr z,.pou
+        call put_str
+        jr .term
+.pou:   ld hl,txt_st_pou
         call put_str
         ld a,(cur_pou)
         call pou_entry
@@ -45,16 +55,56 @@ status_draw:
         ld a,')'
         ld (de),a
         inc de
+.term:  xor a
+        ld (de),a
+        ld hl,st_buf
+        ld de,st_llast
+        call str_eq
+        ret z
+        ld hl,st_buf
+        ld de,st_llast
+        call put_str
         xor a
         ld (de),a
+        ld c,0
+        ld b,ST_RCOL
+        call st_clear
         ld a,4
+        jr st_print
+
+; st_clear: C = first cell, B = cells -> clears pixel lines 1-7 of the bar
+st_clear:
+        push bc
+        ld b,ST_ROW
+        call pix_addr
+        pop bc
+        inc h
+        ld e,7
+.cl:    push hl
+        push bc
+        xor a
+.z:     ld (hl),a
+        inc l
+        djnz .z
+        pop bc
+        pop hl
+        inc h
+        dec e
+        jr nz,.cl
+        ret
+
+; st_print: A = x (left) -> prints st_buf one line lower
+st_print:
         ld (pt_x),a
+        ld a,ST_ROW
+        ld (pt_row),a
+        ld a,1
+        ld (pt_down),a
         ld hl,st_buf
         call pt_puts
         xor a
         ld (pt_down),a
-        ld (st_last),a          ; force the right part to be drawn
-        ; fall through
+        ret
 
 ; ---- status_right: redraws only the right part of the status bar (free
 ;      memory, or st_right text if set) and only when the text changed
@@ -127,6 +177,8 @@ txt_st_pou:  db "POU: ",0
 txt_st_open: db " (",0
 txt_st_free: db "Free ",0
 txt_st_b:    db " B",0
-st_buf:      ds 24
+st_buf:      ds 34
 st_last:     ds 24
+st_llast:    ds 34
+st_left:     dw 0             ; text for the left part (0 = POU info)
 st_right:    dw 0             ; text for the right part (0 = free memory)

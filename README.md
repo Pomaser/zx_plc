@@ -17,7 +17,7 @@ or `make test PYTHON=/path/to/python`. The `.scratch/` folder is ignored by Git.
 
 ## Controls (status: phase 1)
 
-The top menu bar (`File  POU  Edit  Run  Help`) uses a proportional 6x8 font, black on white;
+The top menu bar (`File  POU  Edit  View  Run  Help`) uses a proportional 6x8 font, black on white;
 the selection is shown by inversion and the bar is separated from the content by a line. Each title opens a drop-down submenu.
 The bottom status bar shows the current POU (left) and free project memory (right).
 Messages, questions, name input and language choice appear in popup windows.
@@ -36,6 +36,7 @@ Keys are read in the interrupt into an 8-key queue, so typing ahead is not lost.
 | File | New project, Load..., Save... |
 | POU | Manage, New..., Rename..., Language..., Delete |
 | Edit | Edit POU, Symbols, Insert line, Delete line |
+| View | Symbols, Addresses (how operands are shown in the IL editor and the simulation) |
 | Run | Run/Stop, Step, Reset |
 | Help | Controls, About |
 
@@ -66,7 +67,8 @@ a symbolic name (max. 8 chars, identifier, dark blue) and a comment (max. 30 cha
 works like the IL editor (SPACE jumps from the name to the comment, ENTER/UP/DOWN store the row).
 
 Symbols can be typed in IL instead of addresses (`LD Start`); the program stores the address and the
-editor and the simulation show the symbol, so renaming a symbol changes it everywhere. Names must be unique
+editor and the simulation show the symbol, so renaming a symbol changes it everywhere (View > Addresses shows
+the addresses instead). In the IL editor the status bar shows the comment of the operand on the current line. Names must be unique
 and must not clash with addresses, keywords, FB instances, IL instructions or POU names.
 
 ## Simulation (Run)

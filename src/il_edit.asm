@@ -335,10 +335,16 @@ il_editor:
         call il_draw_cur
         call menu_handle
         jp z,.loop
-        cp CMD_IL_INS
+        cp CMD_REDRAW
+        jr nz,.m1
+        call il_load
+        jp .full
+.m1:    cp CMD_IL_INS
         jr z,.mins
         cp CMD_IL_DEL
         jr z,.mdel
+        ld hl,0
+        ld (st_left),hl
         ret
 .mins:  ld de,(il_cur)
         call il_ins_empty
@@ -646,6 +652,9 @@ il_split:
 ; ---- il_sym_subst: HL = operand text -> replaced by the symbol name if it
 ;      is a single I/Q/M operand that has a symbol
 il_sym_subst:
+        ld a,(view_sym)
+        or a
+        ret z                   ; View > Addresses
         ld (ss_buf),hl
         ld a,(hl)
         or a
@@ -675,8 +684,78 @@ il_sym_subst:
 
 ss_buf: dw 0
 
-; ---- il_load: loads line il_cur into the edit buffer, cursor at the end
+; ---- il_load: loads line il_cur into the edit buffer, cursor at the end,
+;      and shows the comment of its operand in the status bar
 il_load:
+        call il_load_buf
+        jp il_show_comment
+
+; ---- il_show_comment: comment of the edited operand (I/Q/M symbol) -> status bar
+il_show_comment:
+        ld hl,0
+        ld (st_left),hl
+        ld a,(ed_field)
+        cp F_COMM
+        jr z,.show
+        ld hl,ed_o
+        ld a,(hl)
+        or a
+        jr z,.show
+        call op_parse
+        jr c,.show
+        ld b,a
+        ld a,(hl)
+        or a
+        jr nz,.show
+        ld a,b
+        and AR_MASK
+        cp AR_I
+        jr z,.ok
+        cp AR_Q
+        jr z,.ok
+        cp AR_M
+        jr nz,.show
+.ok:    ld a,b
+        call sym_find_addr
+        jr c,.show
+        ; comment = record text after the name
+        ld e,(hl)
+        ld d,0
+        push hl
+        add hl,de
+        ld (sy_end),hl
+        pop hl
+        inc hl
+        inc hl
+        inc hl
+.n:     ld a,(hl)
+        inc hl
+        or a
+        jr nz,.n
+        ld de,il_cmt
+.c:     push hl
+        ld bc,(sy_end)
+        or a
+        sbc hl,bc
+        pop hl
+        jr nc,.e
+        ld a,(hl)
+        ld (de),a
+        inc hl
+        inc de
+        jr .c
+.e:     xor a
+        ld (de),a
+        ld a,(il_cmt)
+        or a
+        jr z,.show
+        ld hl,il_cmt
+        ld (st_left),hl
+.show:  jp status_left
+
+il_cmt: ds SYM_CMAX+1
+
+il_load_buf:
         ld hl,ed_m
         ld (sp_m),hl
         ld hl,ed_o

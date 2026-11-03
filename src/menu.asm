@@ -6,7 +6,7 @@
 ; A drop-down / popup window is a cell aligned box; the cells it
 ; covers are saved to win_save and restored when it closes.
 ; ============================================================
-MENU_N      EQU 5           ; number of top items
+MENU_N      EQU 6           ; number of top items
 MENU_X0     EQU 4           ; x of the first title
 MENU_GAP    EQU 10          ; gap between titles
 ATTR_MENU   EQU 0x38        ; black ink, white paper
@@ -17,11 +17,13 @@ menu_top:
         dw mt_file, mi_file
         dw mt_pou,  mi_pou
         dw mt_edit, mi_edit
+        dw mt_view, mi_view
         dw mt_run,  mi_run
         dw mt_help, mi_help
 mt_file: db "File",0
 mt_pou:  db "POU",0
 mt_edit: db "Edit",0
+mt_view: db "View",0
 mt_run:  db "Run",0
 mt_help: db "Help",0
 
@@ -44,6 +46,10 @@ mi_edit:
         db CMD_SYMBOLS,'S',"Symbols",0
         db CMD_IL_INS,'I',"Insert line",0
         db CMD_IL_DEL,'D',"Delete line",0
+        db 0
+mi_view:
+        db CMD_VIEW_SYM, 'S',"Symbols",0
+        db CMD_VIEW_ADDR,'A',"Addresses",0
         db 0
 mi_run:
         db CMD_RUN,  'R',"Run/Stop",0
@@ -423,6 +429,7 @@ menu_run:
         jp menu_inv_title
 
 menu_sel:  db 0
+view_sym:  db 1             ; 1 = show symbols, 0 = show addresses
 drop_list: dw 0
 drop_n:    db 0
 drop_sel:  db 0
@@ -840,6 +847,17 @@ menu_handle:
         jr z,.todo
         cp CMD_NEW
         jr z,.new
+        cp CMD_VIEW_SYM
+        jr z,.vsym
+        cp CMD_VIEW_ADDR
+        jr z,.vadr
+        or a
+        ret
+.vsym:  ld a,1
+        jr .view
+.vadr:  xor a
+.view:  ld (view_sym),a
+        ld a,CMD_REDRAW         ; the screen redraws itself
         or a
         ret
 .about: ld hl,txt_about
