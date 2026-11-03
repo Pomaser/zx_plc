@@ -50,7 +50,8 @@ Opened by ENTER on an IL POU (or Edit > Edit POU).
 * Type the instruction (lower case is fine) and press SPACE: a known mnemonic is converted to upper case
   and the cursor jumps to the operand column. Instructions are dark blue, operands black.
 * `//` at the start of a line makes a comment line (dark green). `NAME:` makes a label line.
-* ENTER stores the line (validated and normalised to the IEC form, e.g. `i0.3` -> `%IX0.3`) and opens a
+* ENTER stores the line (validated and normalised to the IEC form, e.g. `i0.3` -> `%IX0.3`); at the very
+  start of a line it moves the line down (empty line above), otherwise it opens a
   new line below; UP/DOWN store and move; DELETE on an empty line removes it.
 * Edit menu: Insert line, Delete line. Errors are shown in a popup and the cursor stays on the line.
 

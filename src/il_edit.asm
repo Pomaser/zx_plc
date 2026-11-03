@@ -231,7 +231,21 @@ il_editor:
         jp .loop
 
         ; ---- ENTER: store the line, open a new one below
-.enter: call il_commit
+.enter: ; cursor at the very start of a non-empty line -> the line moves down
+        xor a
+        ld (il_atstart),a
+        ld a,(ed_pos)
+        or a
+        jr nz,.e0
+        ld a,(ed_field)
+        cp F_OPER
+        jr z,.e0
+        call ed_kind
+        cp K_EMPTY
+        jr z,.e0
+        ld a,1
+        ld (il_atstart),a
+.e0:    call il_commit
         jp c,.loop
         ld hl,(il_n)
         ld de,IL_MAXLN
@@ -242,7 +256,29 @@ il_editor:
         call ui_error
         jp .loop
 .e1:    ld de,(il_cur)
-        inc de
+        ld a,(il_atstart)
+        or a
+        jr z,.e2
+        call il_ins_empty       ; empty line above, cursor stays with the text
+        jp c,.loop
+        ld hl,(il_cur)
+        inc hl
+        ld (il_cur),hl
+        call il_load
+        ld a,(ed_field)
+        cp F_COMM
+        jr z,.e3
+        ld a,F_MNEM
+        ld (ed_field),a
+.e3:    xor a
+        ld (ed_pos),a
+        call il_fix_top
+        jp nz,.full
+        call il_row_cur
+        dec a
+        call il_redraw_from
+        jp .loop
+.e2:    inc de
         call il_ins_empty
         jp c,.loop
         ld hl,(il_cur)
@@ -1021,6 +1057,7 @@ il_end:    dw 0
 il_oldrow: db 0
 il_oldln:  dw 0
 il_ch:     db 0
+il_atstart: db 0
 il_blink:  db 0
 il_cur_on: db 0
 ilt_len:   db 0
