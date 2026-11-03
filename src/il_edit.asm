@@ -1088,6 +1088,71 @@ il_key:
         pop af
         ret
 
+; ---- il_load_text: HL = text lines (0-terminated, list ends with 0xFF),
+;      A = slot -> replaces the POU body. "//..." comment, "" empty line,
+;      "NAME:" label, else instruction "MNEM<TAB>operand".
+il_load_text:
+        ld (lt_slot),a
+        ld (lt_ptr),hl
+        call pou_body
+        ld de,0
+        ld a,(lt_slot)
+        call pou_delete
+.l:     ld hl,(lt_ptr)
+        ld a,(hl)
+        cp 0xFF
+        ret z
+        call strlen
+        ld c,a
+        add a,2
+        ld (lt_len),a
+        ld b,K_EMPTY
+        ld a,c
+        or a
+        jr z,.k
+        ld b,K_COMM
+        ld a,(hl)
+        cp '/'
+        jr z,.k
+        ld b,K_INSTR
+        dec c
+        ld e,c
+        ld d,0
+        add hl,de
+        ld a,(hl)
+        cp ':'
+        jr nz,.k
+        ld b,K_LABEL
+.k:     ld a,b
+        ld (lt_kind),a
+        ld a,(lt_slot)
+        call pou_body           ; append at the end
+        ld d,b
+        ld e,c
+        ld a,(lt_len)
+        ld c,a
+        ld b,0
+        ld a,(lt_slot)
+        call pou_insert
+        ret c
+        ld a,(lt_len)
+        ld (hl),a
+        inc hl
+        ld a,(lt_kind)
+        ld (hl),a
+        inc hl
+        ex de,hl
+        ld hl,(lt_ptr)
+        call put_str
+        inc hl
+        ld (lt_ptr),hl
+        jr .l
+
+lt_slot: db 0
+lt_kind: db 0
+lt_len:  db 0
+lt_ptr:  dw 0
+
 err_il_mem:   db "Out of memory",0
 err_il_lines: db "Max. 999 lines",0
 il_nothing:   db 0

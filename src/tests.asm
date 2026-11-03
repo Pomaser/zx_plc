@@ -353,7 +353,7 @@ vm_tests:
         ; program 1: latch with reset
         ld hl,t_prog1
         xor a
-        call t_prog
+        call il_load_text
         call il_compile
         call t_nc
         call vm_reset
@@ -377,13 +377,13 @@ vm_tests:
         ; program 2: arithmetic, compare, "(", jump, CTU, POU call
         ld hl,t_prog2
         xor a
-        call t_prog
+        call il_load_text
         ld hl,t_motor
         ld a,LANG_IL
         call pou_add            ; slot 1 "MOTOR"
         ld hl,t_prog3
         ld a,1
-        call t_prog
+        call il_load_text
         call il_compile
         call t_nc
         call vm_reset
@@ -443,7 +443,7 @@ vm_tests:
         ; compile error: unknown label
         ld hl,t_prog4
         xor a
-        call t_prog
+        call il_load_text
         call il_compile
         ccf
         call t_nc
@@ -478,59 +478,6 @@ t_word: ld a,(hl)
         sbc hl,de
         jp t_check
 
-; ---- t_prog: HL = lines (list ends with 0xFF), A = slot -> POU body
-t_prog: ld (t_slot),a
-        ld (t_ptr),hl
-        call pou_body
-        ld de,0
-        ld a,(t_slot)
-        call pou_delete
-.l:     ld hl,(t_ptr)
-        ld a,(hl)
-        cp 0xFF
-        ret z
-        call strlen
-        ld c,a
-        add a,2
-        ld (t_len),a
-        ; label if the last char is ':'
-        ld b,K_INSTR
-        dec c
-        ld e,c
-        ld d,0
-        add hl,de
-        ld a,(hl)
-        cp ':'
-        jr nz,.k
-        ld b,K_LABEL
-.k:     ld a,b
-        ld (t_kind),a
-        ld a,(t_slot)
-        call pou_body           ; BC = length = insert at the end
-        ld d,b
-        ld e,c
-        ld a,(t_len)
-        ld c,a
-        ld b,0
-        ld a,(t_slot)
-        call pou_insert
-        ld a,(t_len)
-        ld (hl),a
-        inc hl
-        ld a,(t_kind)
-        ld (hl),a
-        inc hl
-        ex de,hl
-        ld hl,(t_ptr)
-        call put_str
-        inc hl
-        ld (t_ptr),hl
-        jr .l
-
-t_slot: db 0
-t_kind: db 0
-t_len:  db 0
-t_ptr:  dw 0
 
 t_prog1:
         db "LD",9,"%IX0.0",0

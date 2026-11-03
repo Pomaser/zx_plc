@@ -28,6 +28,11 @@ START:
     ENDIF
         ld a,LANG_IL            ; default language of MAIN
         call proj_new
+    IFNDEF NODEMO
+        ld hl,demo_main         ; test program
+        xor a
+        call il_load_text
+    ENDIF
         ld a,SCR_POU
         ld (cur_screen),a
 main_loop:
@@ -113,6 +118,9 @@ frames: dw 0
         INCLUDE "src/il_comp.asm"
         INCLUDE "src/vm.asm"
         INCLUDE "src/sim.asm"
+    IFNDEF NODEMO
+        INCLUDE "src/demo.asm"
+    ENDIF
     IFDEF TEST
         INCLUDE "src/tests.asm"
     ENDIF
