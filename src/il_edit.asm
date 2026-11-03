@@ -112,7 +112,10 @@ il_editor:
 .ins:   ld a,(il_ch)
         call ed_insert
         call c,beep
-.redraw:
+.redraw:                        ; text part only (no flicker of the line number)
+        call il_draw_cur_text
+        jp .loop
+.redrawf:                       ; whole row incl. inverted line number
         call il_draw_cur
         jp .loop
 
@@ -157,7 +160,7 @@ il_editor:
         jr z,.l0
         dec a
         ld (ed_pos),a
-        jr .redraw
+        jp .loop                ; only the cursor moves
 .l0:    ld a,(ed_field)
         cp F_OPER
         jp nz,.loop
@@ -176,7 +179,7 @@ il_editor:
         jp nc,.loop
         inc a
         ld (ed_pos),a
-        jp .redraw
+        jp .loop
 
         ; ---- DELETE (backspace)
 .del:   ld a,(ed_pos)
@@ -324,7 +327,7 @@ il_editor:
         ld b,a
         ld de,(il_oldln)
         call il_draw_row
-        jp .redraw
+        jp .redrawf
 
         ; ---- menu
 .menu:  call il_commit
@@ -372,7 +375,7 @@ il_editor:
         ld (ed_pos),a
         ld (ed_field),a
         call il_commit
-        jp .redraw
+        jp .redrawf
 
 ; ============================================================
 ; line storage
@@ -752,8 +755,14 @@ ed_insert:
         ld a,(ei_x)
         add a,c
         jr c,.wide
-        cp IL_X_MAX
-        jr nc,.wide
+        ld c,a
+        ld a,(ed_field)         ; mnemonic must end before the operand column
+        cp F_MNEM
+        ld a,IL_X_OPER-2
+        jr z,.lim
+        ld a,IL_X_MAX
+.lim:   cp c
+        jr c,.wide
         ld hl,ed_pos
         inc (hl)
         or a
@@ -844,6 +853,9 @@ il_redraw_from:
         jr .l
 
 ; ---- il_draw_cur: redraws the current line
+il_draw_cur_text:
+        ld a,1
+        ld (dr_text),a
 il_draw_cur:
         call il_row_cur
         ld b,a
@@ -912,6 +924,9 @@ il_draw_row:
         ld d,24
         call scr_fill_attr
         ; pixels
+        ld a,(dr_text)
+        or a
+        jp nz,.tclr
         ld a,(dr_row)
         ld b,a
         call pt_clear_row
@@ -944,7 +959,7 @@ il_draw_row:
         add a,IL_NUM_PITCH
         ld (dr_dx),a
         djnz .dg
-        ld a,IL_X_MNEM
+.text:  ld a,IL_X_MNEM
         ld (pt_x),a
         ld a,(dr_kind)
         cp K_COMM
@@ -958,7 +973,14 @@ il_draw_row:
         ld (pt_x),a
         ld hl,(dr_o)
         call pt_puts
-.cur:   ld hl,(il_cur)
+.cur:   ld a,(dr_text)
+        or a
+        jr z,.cur2
+        xor a                   ; text-only redraw: line number untouched
+        ld (dr_text),a
+        ld (il_cur_on),a
+        ret
+.cur2:  ld hl,(il_cur)
         ld de,(dr_line)
         or a
         sbc hl,de
@@ -973,6 +995,27 @@ il_draw_row:
         xor a
         ld (il_cur_on),a
         ret
+
+; clears the text cells 3-31 of row dr_row and draws the text (current line)
+il_draw_row.tclr:
+        ld a,(dr_row)
+        ld b,a
+        ld c,3
+        call pix_addr
+        ld e,8
+.l:     push hl
+        ld b,29
+        xor a
+.z:     ld (hl),a
+        inc l
+        djnz .z
+        pop hl
+        inc h
+        dec e
+        jr nz,.l
+        ld a,(dr_row)
+        ld (pt_row),a
+        jp il_draw_row.text
 
 ; ---- dec3: HL = 0..999 -> 3 digits with leading zeros + 0 at (DE)
 dec3:
@@ -1085,6 +1128,7 @@ dr_o:      dw 0
 dr_c:      dw 0
 dr_num:    ds 6
 dr_dx:     db 0
+dr_text:   db 0
 rf_row:    db 0
 cm_kind:   db 0
 cm_addr:   dw 0
