@@ -446,6 +446,8 @@ cp_fail:
 
 ; ---- cp_operand: HL = operand text -> NC: cp_mode/cp_arg/cp_arg3, HL past it
 cp_operand:
+        xor a
+        ld (cp_istime),a
         call op_parse
         jr c,.bad
         ld (cp_ohl),hl
@@ -487,7 +489,7 @@ cp_operand:
         ld a,(hl)
         ld (cp_arg3),a
         ld a,VM_MB
-        jr .done
+        jp .done
 .m:     ld a,(cp_oidx)
         ld e,a
         rrca
@@ -558,7 +560,12 @@ cp_operand:
         ld d,0
         add hl,de
         ld (cp_arg),hl
-        ld a,VM_MW
+        ld a,(cp_oidx)          ; PT / ET of TON, TOF, TP are TIME values
+        cp FBT_CTU*FB_PER_TYPE
+        jr nc,.nt
+        ld a,1
+        ld (cp_istime),a
+.nt:    ld a,VM_MW
 .done:  ld (cp_mode),a
         ld hl,(cp_ohl)
         or a
@@ -648,6 +655,7 @@ cp_darg3: db 0
 cp_ohl:   dw 0
 cp_oarea: db 0
 cp_oidx:  db 0
+cp_istime: db 0           ; 1 = last operand is a TIME value
 cp_after: dw 0
 cp_carea: db 0
 cp_cidx:  db 0

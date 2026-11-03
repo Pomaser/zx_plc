@@ -392,7 +392,12 @@ sim_mon_desc:
         cp VM_MW
         ret nz
 .ok:    call sim_desc_addr
+        ld a,(cp_istime)
+        rrca
+        rrca                    ; bit 6: TIME value
+        ld b,a
         ld a,(cp_mode)
+        or b
         or 0x80                 ; bit 7: value must be drawn
         ld (hl),a
         inc hl
@@ -434,7 +439,7 @@ sim_update:
         ; current value -> DE
         ld l,(ix+1)
         ld h,(ix+2)
-        and 0x7F
+        and 0x3F
         cp VM_MB
         jr nz,.w
         ld a,(ix+3)
@@ -532,13 +537,13 @@ sim_draw_val:
         ld d,32-SIM_VCOL
         ld e,ATTR_NORMAL
         ld a,(ix+0)
-        and 0x7F
+        and 0x3F
         cp VM_MB
         jr nz,.at
         ld e,ATTR_BOOL
 .at:    call scr_fill_attr
         ld a,(ix+0)
-        and 0x7F
+        and 0x3F
         cp VM_MB
         jr nz,.int
         ld hl,kw_false
@@ -559,8 +564,14 @@ sim_draw_val:
 .int:   ld l,(ix+4)
         ld h,(ix+5)
         ld de,sm_num
+        bit 6,(ix+0)
+        jr nz,.time
         call itoa16
-        ld hl,sm_num
+        jr .num
+.time:  ld a,AR_KT              ; "T#1s260ms"
+        ld b,0
+        call op_format
+.num:   ld hl,sm_num
 .p:     ld a,SIM_X_VAL
         jp pt_puts_r
 
@@ -585,5 +596,5 @@ sm_lq:      db 0
 sm_top:     dw 0
 sm_lastf:   dw 0
 sm_savecur: dw 0
-sm_num:     ds 8
+sm_num:     ds 16
 sm_msg:     ds 64
