@@ -11,6 +11,7 @@
 IL_ROW0   EQU 1
 IL_ROWS   EQU 22
 IL_X_NUM  EQU 21            ; right edge of the line number
+IL_NUM_PITCH EQU 5          ; fixed digit pitch of line numbers
 IL_X_SEP  EQU 23
 IL_X_MNEM EQU 28
 IL_X_OPER EQU 64            ; = cell 8
@@ -894,9 +895,19 @@ il_draw_row:
         inc hl
         ld de,dr_num
         call dec3
-        ld hl,dr_num
-        ld a,IL_X_NUM
-        call pt_puts_r
+        ld hl,dr_num            ; fixed pitch: each digit in its own slot
+        ld a,IL_X_NUM-3*IL_NUM_PITCH
+        ld (dr_dx),a
+        ld b,3
+.dg:    ld a,(dr_dx)
+        ld (pt_x),a
+        ld a,(hl)
+        call pt_putc
+        inc hl
+        ld a,(dr_dx)
+        add a,IL_NUM_PITCH
+        ld (dr_dx),a
+        djnz .dg
         ld a,IL_X_MNEM
         ld (pt_x),a
         ld a,(dr_kind)
@@ -1036,6 +1047,7 @@ dr_m:      dw 0
 dr_o:      dw 0
 dr_c:      dw 0
 dr_num:    ds 6
+dr_dx:     db 0
 rf_row:    db 0
 cm_kind:   db 0
 cm_addr:   dw 0
