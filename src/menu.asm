@@ -10,7 +10,7 @@ MENU_N      EQU 6           ; number of top items
 MENU_X0     EQU 4           ; x of the first title
 MENU_GAP    EQU 10          ; gap between titles
 ATTR_MENU   EQU 0x38        ; black ink, white paper
-WIN_MAXC    EQU 32*20       ; max cells of a saved window
+WIN_MAXC    EQU 200         ; max cells of a saved window (largest popup: 175)
 
 ; ---- top items: title, hotkey, submenu
 menu_top:

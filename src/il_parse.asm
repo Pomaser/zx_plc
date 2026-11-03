@@ -478,7 +478,6 @@ il_paren:  db 0
 il_mid:    db 0
 il_mclass: db 0
 il_err:    dw 0
-il_out:    ds 64
 ilc_op:    dw 0
 ilc_dst:   dw 0
 ilc_tab:   dw 0

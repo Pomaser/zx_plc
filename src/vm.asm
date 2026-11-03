@@ -24,6 +24,19 @@ RT_PSTK   EQU RT_LBL+320            ; "(" stack: 8 x 4 bytes
 RT_CSTK   EQU RT_PSTK+32            ; call stack: 8 x 2 bytes
 RT_MON    EQU RT_CSTK+16            ; monitor cache (sim.asm)
 RT_FREE   EQU RT_MON+18*6
+; work buffers (not part of the code image)
+rec_buf   EQU RT_FREE           ; 72  line record being built
+il_out    EQU rec_buf+72        ; 64  output of il_check
+cp_text   EQU il_out+64         ; 64  compiler: current line
+rd_m      EQU cp_text+64        ; 11  row drawing: mnemonic / name
+rd_o      EQU rd_m+11           ; 64  row drawing: operand / address
+rd_c      EQU rd_o+64           ; 64  row drawing: comment
+popup_buf EQU rd_c+64           ; 80  popup text
+st_buf    EQU popup_buf+80      ; 60  status bar text
+st_last   EQU st_buf+60         ; 24  status bar: last right text
+st_llast  EQU st_last+24        ; 60  status bar: last left text
+RT_END    EQU st_llast+60
+        ASSERT RT_END <= IM2_JP
 
 VM_MB     EQU 1
 VM_MW     EQU 2

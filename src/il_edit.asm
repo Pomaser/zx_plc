@@ -1318,9 +1318,6 @@ ei_len:    db 0
 ei_max:    db 0
 ei_xmax:   db 0
 ed_mode:   db 0             ; 0 = IL editor, 1 = symbol editor
-rd_m:      ds ED_MLEN+1
-rd_o:      ds 64
-rd_c:      ds 64
 sp_m:      dw 0
 sp_o:      dw 0
 sp_c:      dw 0
@@ -1338,4 +1335,3 @@ rf_row:    db 0
 cm_kind:   db 0
 cm_addr:   dw 0
 cm_off:    dw 0
-rec_buf:   ds 72

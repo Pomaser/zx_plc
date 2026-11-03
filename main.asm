@@ -132,7 +132,7 @@ frames: dw 0
 
         INCLUDE "src/font6.asm"
 
-win_save: ds 9*24*12        ; cells saved under a popup window
+win_save: ds 9*WIN_MAXC     ; cells saved under a popup window
 CODE_END:
         DISPLAY "Code end: ",/H,CODE_END," (limit ",/H,PROJ,"), free: ",/D,PROJ-CODE_END
         ASSERT CODE_END <= PROJ

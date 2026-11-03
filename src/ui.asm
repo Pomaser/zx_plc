@@ -95,7 +95,6 @@ txt_lang_q:
         db "F",PT_TAB,"FBD - Function Block Diagram",0
         db 0
 
-popup_buf: ds 80
 
 ; ---- ui_title: HL = title text -> row 2 in the proportional font, dark blue
 UI_TITLE_ROW EQU 2

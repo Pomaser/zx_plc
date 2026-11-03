@@ -664,4 +664,3 @@ cp_csize: db 0
 cp_mptr:  dw 0
 cp_name8: ds 8
 cp_mbuf:  ds 16
-cp_text:  ds 64
