@@ -2,16 +2,16 @@
 ; sym_edit.asm - symbol editor (Edit > Symbols)
 ; ============================================================
 ; Free list: one row per symbol record (sorted by address) plus an
-; empty row at the end for a new entry. Row fields: address (cells
-; 0-4, bright white, current row inverted), name (dark blue, x=44),
-; comment (dark green, x=96). SPACE moves to the next field.
+; empty row at the end for a new entry. Row: line number (cells 0-2,
+; bright white, current row inverted), separator, name (dark blue,
+; x=28), address (black, x=80), comment (dark green, x=120).
+; SPACE moves name -> address -> comment.
 ; Uses the IL editor machinery (il_cur/il_top/il_n, cursor, fields):
 ;   F_OPER = address, F_MNEM = name, F_COMM = comment.
 ; ============================================================
-SY_X_ADDR EQU 4
-SY_X_SEP  EQU 39
-SY_X_NAME EQU 44
-SY_X_COMM EQU 96
+SY_X_NAME EQU 28            ; cells 3-9
+SY_X_ADDR EQU 80            ; cells 10-14
+SY_X_COMM EQU 120           ; cells 15-31
 
 scr_sym:
         call screen_begin
@@ -61,10 +61,10 @@ scr_sym:
         cp ' '
         jr nz,.ins
         ld a,(ed_field)
-        cp F_OPER
-        jr z,.toname
         cp F_MNEM
-        jr z,.tocomm
+        jp z,.toaddr
+        cp F_OPER
+        jp z,.tocomm
         ld a,' '
 .ins:   call ed_insert
         jr c,.beep
@@ -76,11 +76,12 @@ scr_sym:
 .beep:  call beep
         jr .loop
 .toname:
-        ld a,(ed_o)
-        or a
-        jr z,.loop
         ld a,F_MNEM
         ld hl,ed_m
+        jr .tofield
+.toaddr:
+        ld a,F_OPER
+        ld hl,ed_o
         jr .tofield
 .tocomm:
         ld a,F_COMM
@@ -95,15 +96,13 @@ scr_sym:
         jr z,.back
         dec a
         ld (ed_pos),a
-        jr .loop
+        jp .loop
 .back:  ld a,(ed_field)         ; previous field
         cp F_COMM
-        jr z,.toname
-        cp F_MNEM
-        jp nz,.loop
-        ld a,F_OPER
-        ld hl,ed_o
-        jr .tofield
+        jp z,.toaddr
+        cp F_OPER
+        jp z,.toname
+        jp .loop
 .right: call ed_field_info
         call strlen
         ld b,a
@@ -114,10 +113,10 @@ scr_sym:
         ld (ed_pos),a
         jp .loop
 .fwd:   ld a,(ed_field)         ; next field
-        cp F_OPER
-        jr z,.toname
         cp F_MNEM
-        jr z,.tocomm
+        jp z,.toaddr
+        cp F_OPER
+        jp z,.tocomm
         jp .loop
 .del:   ld a,(ed_pos)
         or a
@@ -321,7 +320,7 @@ sy_load:
         ld (ed_pos),a
         ld (sy_mod),a
         ld (sy_dirty),a
-        ld a,F_OPER
+        ld a,F_MNEM
         ld (ed_field),a
         ld hl,ed_m
         ld (sp_m),hl
@@ -335,12 +334,6 @@ sy_load:
         call sy_rec_text
         ld a,F_COMM
         ld hl,ed_c
-        ld b,(hl)
-        inc b
-        dec b
-        jr nz,.set
-        ld a,F_MNEM
-        ld hl,ed_m
         ld b,(hl)
         inc b
         dec b
@@ -536,9 +529,6 @@ sy_redraw_all:
 
 ; sy_draw_edit: after editing a field (address field -> whole row)
 sy_draw_edit:
-        ld a,(ed_field)
-        cp F_OPER
-        jr z,sy_draw_cur
         ld a,1
         ld (dr_text),a
 sy_draw_cur:
@@ -588,17 +578,22 @@ sy_draw_row:
 .attr:  ld a,(dr_row)
         ld b,a
         ld c,0
-        ld de,0x0500+ATTR_LNUM
+        ld de,0x0300+ATTR_LNUM
         call scr_fill_attr
         ld a,(dr_row)
         ld b,a
-        ld c,5
+        ld c,3
         ld de,0x0700+ATTR_MNEM
         call scr_fill_attr
         ld a,(dr_row)
         ld b,a
-        ld c,12
-        ld de,0x1400+ATTR_COMMENT
+        ld c,10
+        ld de,0x0500+ATTR_NORMAL
+        call scr_fill_attr
+        ld a,(dr_row)
+        ld b,a
+        ld c,15
+        ld de,0x1100+ATTR_COMMENT
         call scr_fill_attr
         ld a,(dr_row)
         ld (pt_row),a
@@ -606,12 +601,12 @@ sy_draw_row:
         ld a,(dr_text)
         or a
         jr z,.full
-        ; text-only: clear cells 5-31
-        ld c,5
+        ; text-only: clear cells 3-31
+        ld c,3
         call pix_addr
         ld e,8
 .cl:    push hl
-        ld b,27
+        ld b,29
         xor a
 .z:     ld (hl),a
         inc l
@@ -624,18 +619,38 @@ sy_draw_row:
 .full:  call pt_clear_row
         ld a,(dr_row)
         ld b,a
-        ld c,SY_X_SEP
+        ld c,IL_X_SEP
         ld d,1
         ld hl,0x0008
         ld e,PX_SET
         call px_span
-        ld a,SY_X_ADDR
+        ld a,(dr_kind)
+        cp K_NONE
+        ret z
+        ld hl,(dr_line)         ; line number, fixed pitch
+        inc hl
+        ld de,dr_num
+        call dec3
+        ld hl,dr_num
+        ld a,IL_X_NUM-3*IL_NUM_PITCH
+        ld (dr_dx),a
+        ld b,3
+.dg:    ld a,(dr_dx)
         ld (pt_x),a
-        ld hl,(dr_o)
-        call pt_puts
+        ld a,(hl)
+        call pt_putc
+        inc hl
+        ld a,(dr_dx)
+        add a,IL_NUM_PITCH
+        ld (dr_dx),a
+        djnz .dg
 .text:  ld a,SY_X_NAME
         ld (pt_x),a
         ld hl,(dr_m)
+        call pt_puts
+        ld a,SY_X_ADDR
+        ld (pt_x),a
+        ld hl,(dr_o)
         call pt_puts
         ld a,SY_X_COMM
         ld (pt_x),a
@@ -656,7 +671,7 @@ sy_draw_row:
         ld a,(dr_row)
         ld b,a
         ld c,0
-        ld d,SY_X_SEP
+        ld d,IL_X_SEP
         ld hl,0x0008
         ld e,PX_XOR
         call px_span
