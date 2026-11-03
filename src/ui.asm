@@ -140,13 +140,16 @@ lang_name:
         ret
 lang_names: db "IL LD FBD"
 
-; ---- ui_input: line editor
-;   HL = buffer (holds initial 0-terminated text), B = row, C = column,
+; ---- ui_input: line editor in the proportional font
+;   HL = buffer (holds initial 0-terminated text), B = char row, C = x (px),
 ;   D = max length, E = flags (bit0 = convert to upper case)
 ;   output: NC = ENTER, C = cancelled
 ui_input:
         ld (in_buf),hl
-        ld (in_col),bc
+        ld a,b
+        ld (in_row),a
+        ld a,c
+        ld (in_x),a
         ld a,d
         ld (in_max),a
         ld a,e
@@ -155,28 +158,38 @@ ui_input:
         ld (in_len),a
         ld (in_pos),a
 .redraw:
-        ld bc,(in_col)
-        ld (cur_col),bc
-        ld a,ATTR_MENU
-        ld (cur_attr),a
-        ld hl,(in_buf)
-        ld a,(in_len)
-        ld b,a
-        call scr_putsn
-        ld a,(in_len)
-        ld b,a
+        ; clear the field, underline it, draw the text
         ld a,(in_max)
-        inc a
-        sub b
         ld b,a
-        call scr_spaces
-        ld bc,(in_col)
-        ld a,(in_pos)
-        add a,c
+        add a,a
+        add a,b
+        add a,a                 ; max * 6
+        add a,2
+        ld d,a
+        ld a,(in_x)
+        dec a
         ld c,a
-        call attr_addr
-        ld (hl),ATTR_CURSOR
-.key:   call kb_wait
+        ld a,(in_row)
+        ld b,a
+        push bc
+        push de
+        ld hl,0x0008
+        ld e,PX_CLR
+        call px_span
+        pop de
+        pop bc
+        ld hl,0x0701
+        ld e,PX_SET
+        call px_span
+        ld a,(in_row)
+        ld (pt_row),a
+        ld a,(in_x)
+        ld (pt_x),a
+        ld hl,(in_buf)
+        call pt_puts
+        xor a
+        ld (in_con),a
+.key:   call in_getkey
         cp K_ENTER
         jp z,.ok
         cp K_BREAK
@@ -210,20 +223,20 @@ ui_input:
         ld a,(in_len)
         ld e,a
         ld d,0
-        add hl,de           ; HL = &buf[len]
+        add hl,de               ; HL = &buf[len]
         ld d,h
         ld e,l
-        inc de              ; DE = &buf[len+1]
+        inc de                  ; DE = &buf[len+1]
         ld a,(in_pos)
         neg
-        add a,b             ; len-pos
+        add a,b                 ; len-pos
         inc a
         push bc
         ld c,a
         ld b,0
         lddr
         pop bc
-        inc hl              ; &buf[pos]
+        inc hl                  ; &buf[pos]
         ld (hl),c
         ld hl,in_len
         inc (hl)
@@ -235,16 +248,16 @@ ui_input:
         jr z,.key
         dec a
         ld (in_pos),a
-        jp .redraw
+        jr .key
 .right: ld a,(in_pos)
         ld b,a
         ld a,(in_len)
         cp b
-        jp z,.key
+        jr z,.key
         ld a,b
         inc a
         ld (in_pos),a
-        jp .redraw
+        jp .key
 .del:   ld a,(in_pos)
         or a
         jp z,.key
@@ -255,11 +268,11 @@ ui_input:
         ld d,0
         add hl,de
         ld d,h
-        ld e,l              ; DE = &buf[pos]
-        inc hl              ; HL = &buf[pos+1]
+        ld e,l                  ; DE = &buf[pos]
+        inc hl                  ; HL = &buf[pos+1]
         ld b,a
         ld a,(in_len)
-        sub b               ; len-pos (incl. terminating 0)
+        sub b                   ; len-pos (incl. terminating 0)
         ld c,a
         ld b,0
         ldir
@@ -267,18 +280,66 @@ ui_input:
         dec (hl)
         jp .redraw
 .ok:    or a
-        jr .end
+        ret
 .cancel:
         scf
-.end:   push af
-        ld a,ATTR_NORMAL
-        ld (cur_attr),a
+        ret
+
+; in_getkey: waits for a key with a blinking 1 px cursor
+in_getkey:
+        ld a,(in_con)
+        or a
+        call z,in_cursor
+        ld a,(frames)
+        and 16
+        ld (in_blink),a
+.w:     call kb_get
+        or a
+        jr nz,.got
+        halt
+        ld a,(frames)
+        and 16
+        ld b,a
+        ld a,(in_blink)
+        cp b
+        jr z,.w
+        ld a,b
+        ld (in_blink),a
+        call in_cursor
+        jr .w
+.got:   push af
+        ld a,(in_con)
+        or a
+        call nz,in_cursor
         pop af
         ret
 
+; in_cursor: XORs the cursor bar
+in_cursor:
+        ld hl,(in_buf)
+        ld a,(in_pos)
+        call pt_width_n
+        ld b,a
+        ld a,(in_x)
+        add a,b
+        dec a
+        ld c,a
+        ld a,(in_row)
+        ld b,a
+        ld d,1
+        ld hl,0x0007            ; keep the underline
+        ld e,PX_XOR
+        call px_span
+        ld a,(in_con)
+        xor 1
+        ld (in_con),a
+        ret
+
 in_buf:   dw 0
-in_col:   db 0
+in_x:     db 0
 in_row:   db 0
+in_con:   db 0
+in_blink: db 0
 in_max:   db 0
 in_flags: db 0
 in_len:   db 0

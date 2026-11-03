@@ -146,8 +146,8 @@ input_pou_name:
         ld a,(win_r)
         add a,2
         ld b,a
-        ld a,(win_c)
-        inc a
+        ld a,(win_bx)
+        add a,8                 ; same x as the popup text
         ld c,a
         ld hl,name_buf
         ld de,0x0801
