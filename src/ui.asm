@@ -1,8 +1,8 @@
 ; ============================================================
-; ui.asm - menu, nápovědy, chybová hlášení, vstup řádku
+; ui.asm - menu, hints, error messages, line input
 ; ============================================================
 
-; ---- ui_draw_bar: A = zvýrazněná položka (0-3 / 0xFF), E = atribut zvýraznění
+; ---- ui_draw_bar: A = highlighted item (0-3 / 0xFF), E = highlight attribute
 ui_draw_bar:
         ld (bar_hl),a
         push de
@@ -31,7 +31,7 @@ bar_text: db " POU  EDIT  RUN  FILE     ZX-PLC",0
 bar_pos:  db 0,5, 5,6, 11,5, 16,6
 bar_hl:   db 0
 
-; ---- screen_begin: smaže obrazovku a vykreslí lištu s aktuální obrazovkou
+; ---- screen_begin: clears the screen and draws the bar with the current screen
 screen_begin:
         ld a,ATTR_NORMAL
         ld (cur_attr),a
@@ -40,7 +40,7 @@ screen_begin:
         ld e,ATTR_BAR_CUR
         jp ui_draw_bar
 
-; ---- ui_menu: výběr v liště. A = zvolená obrazovka nebo 0xFF
+; ---- ui_menu: selection in the bar. A = chosen screen or 0xFF
 ui_menu:
         ld a,(cur_screen)
         ld (menu_sel),a
@@ -97,7 +97,7 @@ ui_menu:
 menu_keys: db "PERF"
 menu_sel:  db 0
 
-; ---- menu_switch: otevře menu; NZ + A = nová obrazovka, Z = zůstat
+; ---- menu_switch: opens the menu; NZ + A = new screen, Z = stay
 menu_switch:
         call ui_menu
         cp 0xFF
@@ -108,14 +108,14 @@ menu_switch:
         ld a,b
         ret
 
-; ---- ui_hints: HL = text nápovědy pro řádky 22-23 (uloží se pro obnovu)
+; ---- ui_hints: HL = hint text for rows 22-23 (stored for restore)
 ui_hints:
         ld (hint_ptr),hl
 ui_hints_tmp:
         push hl
         ld a,ATTR_HINT
         ld (cur_attr),a
-        ld bc,0x1602        ; řádek 22, 2 řádky
+        ld bc,0x1602        ; row 22, 2 rows
         call scr_clear_rows
         ld bc,0x1600
         ld (cur_col),bc
@@ -133,7 +133,7 @@ hint_ptr: dw hint_none
 hint_none: db 0
 hint_menu: db " MENU  LEFT/RIGHT:select ENTER:ok",SC_AT,23,0," P/E/R/F hotkeys   BREAK cancel",0
 
-; ---- ui_error: HL = text chyby, pípne, čeká na klávesu, obnoví nápovědu
+; ---- ui_error: HL = error text, beeps, waits for a key, restores hints
 ui_error:
         push hl
         ld a,ATTR_ERR
@@ -158,7 +158,7 @@ ui_error:
 
 txt_press_key: db "(press any key)",0
 
-; ---- ui_confirm: HL = otázka; Z = ano (Y), NZ = ne
+; ---- ui_confirm: HL = question; Z = yes (Y), NZ = no
 ui_confirm:
         push hl
         ld a,ATTR_INPUT
@@ -188,7 +188,7 @@ ui_confirm:
 
 txt_yn: db " (Y/N)",0
 
-; ---- ui_choose_lang: A = jazyk (0-2), carry = zrušeno
+; ---- ui_choose_lang: A = language (0-2), carry = cancelled
 ui_choose_lang:
         ld a,ATTR_INPUT
         ld (cur_attr),a
@@ -227,7 +227,7 @@ ui_choose_lang:
 
 txt_lang_q: db "Language?",SC_AT,23,1,"I=IL  L=LD  F=FBD  BREAK=cancel",0
 
-; ---- lang_name: A = jazyk -> HL = 3-znakový název
+; ---- lang_name: A = language -> HL = 3-char name
 lang_name:
         ld l,a
         add a,a
@@ -239,10 +239,10 @@ lang_name:
         ret
 lang_names: db "IL LD FBD"
 
-; ---- ui_input: editace řádku
-;   HL = buffer (obsahuje počáteční text, ukončený 0), B = řádek, C = sloupec,
-;   D = max. délka, E = příznaky (bit0 = převod na velká písmena)
-;   výstup: NC = ENTER, C = zrušeno
+; ---- ui_input: line editor
+;   HL = buffer (holds initial 0-terminated text), B = row, C = column,
+;   D = max length, E = flags (bit0 = convert to upper case)
+;   output: NC = ENTER, C = cancelled
 ui_input:
         ld (in_buf),hl
         ld (in_col),bc
@@ -304,7 +304,7 @@ ui_input:
         ld a,(in_max)
         cp b
         jr z,.key
-        ; posun buf[pos..len] o 1 doprava
+        ; shift buf[pos..len] right by 1
         ld hl,(in_buf)
         ld a,(in_len)
         ld e,a
@@ -358,7 +358,7 @@ ui_input:
         inc hl              ; HL = &buf[pos+1]
         ld b,a
         ld a,(in_len)
-        sub b               ; len-pos (vč. koncové 0)
+        sub b               ; len-pos (incl. terminating 0)
         ld c,a
         ld b,0
         ldir

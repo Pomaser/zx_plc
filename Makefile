@@ -1,5 +1,5 @@
 # ZX-PLC build
-# PYTHON musí mít balíček "z80" (pip install z80) pro headless testy
+# PYTHON must have the "z80" package (pip install z80) for headless tests
 PYTHON ?= python3
 SRC := main.asm $(wildcard src/*.asm)
 
@@ -11,7 +11,7 @@ zxplc.sna: $(SRC)
 zxplc_test.sna: $(SRC)
 	sjasmplus --nologo --fullpath -DTEST main.asm
 
-# spustí testovací build headless a ověří výsledek (TEST_RES = 0x5B00)
+# run the test build headless and check the result (TEST_RES = 0x5B00)
 test: zxplc_test.sna
 	@$(PYTHON) tools/zxrun.py zxplc_test.sna -f 100 --peek 5B00:3 | tee .test.out
 	@grep -q "^.. 00 A5" .test.out && echo "TESTS OK" || (echo "TESTS FAILED"; exit 1)

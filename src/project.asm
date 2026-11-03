@@ -1,14 +1,14 @@
 ; ============================================================
-; project.asm - formát projektu a správa POU
+; project.asm - project format and POU management
 ; ============================================================
-; Projekt (PROJ):
-;   +0  "ZXPLC"  +5 verze  +6 počet POU  +8 délka projektu (word)
-;   +16 tabulka 8 slotů POU po 16 B (jméno 8, jazyk, příznaky, délka těla)
-;   +144 těla POU za sebou v pořadí slotů (volný slot má délku 0)
-; Slot je stabilní identifikátor POU (odkazy volání = číslo slotu).
+; Project (PROJ):
+;   +0  "ZXPLC"  +5 version  +6 POU count  +8 project length (word)
+;   +16 table of 8 POU slots, 16 B each (name 8, language, flags, body length)
+;   +144 POU bodies in slot order (a free slot has length 0)
+; A slot is a stable POU identifier (call references = slot number).
 ; ============================================================
 
-; ---- proj_new: A = jazyk MAIN
+; ---- proj_new: A = language of MAIN
 proj_new:
         push af
         ld hl,PROJ
@@ -38,7 +38,7 @@ proj_new:
 proj_sig:  db "ZXPLC"
 name_main: db "MAIN    "
 
-; ---- pou_entry: A = slot -> HL = položka tabulky (ničí A)
+; ---- pou_entry: A = slot -> HL = table entry (destroys A)
 pou_entry:
         add a,a
         add a,a
@@ -52,7 +52,7 @@ pou_entry:
         pop de
         ret
 
-; ---- pou_used: A = slot -> NZ pokud je slot obsazený (zachová A)
+; ---- pou_used: A = slot -> NZ if the slot is used (preserves A)
 pou_used:
         push hl
         push af
@@ -63,7 +63,7 @@ pou_used:
         pop hl
         ret
 
-; ---- pou_lang: A = slot -> A = jazyk
+; ---- pou_lang: A = slot -> A = language
 pou_lang:
         push hl
         call pou_entry
@@ -74,7 +74,7 @@ pou_lang:
         pop hl
         ret
 
-; ---- pou_body: A = slot -> HL = začátek těla, BC = délka
+; ---- pou_body: A = slot -> HL = body start, BC = length
 pou_body:
         push de
         push ix
@@ -98,7 +98,7 @@ pou_body:
         pop de
         ret
 
-; ---- proj_end: HL = adresa za koncem dat projektu (zachová BC, DE)
+; ---- proj_end: HL = address past the end of project data (preserves BC, DE)
 proj_end:
         push de
         ld hl,(PROJ+P_LEN)
@@ -107,7 +107,7 @@ proj_end:
         pop de
         ret
 
-; ---- proj_free: HL = volné bajty
+; ---- proj_free: HL = free bytes
 proj_free:
         call proj_end
         ex de,hl
@@ -116,7 +116,7 @@ proj_free:
         sbc hl,de
         ret
 
-; ---- pou_add_len: A = slot, BC = přírůstek délky (signed) -> upraví PE_LEN i P_LEN
+; ---- pou_add_len: A = slot, BC = length delta (signed) -> updates PE_LEN and P_LEN
 pou_add_len:
         call pou_entry
         ld de,PE_LEN
@@ -135,8 +135,8 @@ pou_add_len:
         ld (PROJ+P_LEN),hl
         ret
 
-; ---- pou_insert: A = slot, DE = offset v těle, BC = počet bajtů
-;      vytvoří mezeru, HL = adresa mezery; C = nedostatek paměti
+; ---- pou_insert: A = slot, DE = offset in body, BC = byte count
+;      creates a gap, HL = gap address; C = out of memory
 pou_insert:
         ld (pt_slot),a
         ld (pt_off),de
@@ -151,15 +151,15 @@ pou_insert:
         ld de,(pt_off)
         add hl,de
         ld (pt_addr),hl
-        ex de,hl            ; DE = místo vložení
+        ex de,hl            ; DE = insertion point
         call proj_end
         or a
-        sbc hl,de           ; HL = bajty k posunu
+        sbc hl,de           ; HL = bytes to move
         ld b,h
         ld c,l
         ld hl,(pt_cnt)
         add hl,de
-        ex de,hl            ; DE = cíl, HL = zdroj
+        ex de,hl            ; DE = dest, HL = source
         call memmove
         ld a,(pt_slot)
         ld bc,(pt_cnt)
@@ -168,7 +168,7 @@ pou_insert:
         or a
         ret
 
-; ---- pou_delete: A = slot, DE = offset v těle, BC = počet bajtů k odstranění
+; ---- pou_delete: A = slot, DE = offset in body, BC = number of bytes to remove
 pou_delete:
         ld (pt_slot),a
         ld (pt_off),de
@@ -180,14 +180,14 @@ pou_delete:
         call pou_body
         ld de,(pt_off)
         add hl,de
-        ld (pt_addr),hl     ; cíl
+        ld (pt_addr),hl     ; dest
         ld de,(pt_cnt)
-        add hl,de           ; zdroj = cíl + cnt
+        add hl,de           ; source = dest + cnt
         push hl
         ex de,hl
         call proj_end
         or a
-        sbc hl,de           ; počet = konec - zdroj
+        sbc hl,de           ; count = end - source
         ld b,h
         ld c,l
         pop hl
@@ -205,7 +205,7 @@ pt_off:  dw 0
 pt_cnt:  dw 0
 pt_addr: dw 0
 
-; ---- pou_add: HL = jméno (8 znaků), A = jazyk -> A = slot, C = plno
+; ---- pou_add: HL = name (8 chars), A = language -> A = slot, C = full
 pou_add:
         ld (pt_lang),a
         ld (pt_name),hl
@@ -225,7 +225,7 @@ pou_add:
         ex de,hl
         ld hl,(pt_name)
         ld bc,8
-        ldir                ; jméno
+        ldir                ; name
         ld a,(pt_lang)
         ld (de),a
         ld hl,PROJ+P_NPOU
@@ -237,10 +237,10 @@ pou_add:
 pt_lang: db 0
 pt_name: dw 0
 
-; ---- pou_remove: A = slot (>0) - smaže tělo i položku
+; ---- pou_remove: A = slot (>0) - deletes body and entry
 pou_remove:
         push af
-        call pou_body       ; BC = délka
+        call pou_body       ; BC = length
         pop af
         push af
         ld de,0
@@ -254,7 +254,7 @@ pou_remove:
         dec (hl)
         ret
 
-; ---- pou_find: HL = jméno (8 znaků) -> A = slot, NC = nalezeno
+; ---- pou_find: HL = name (8 chars) -> A = slot, NC = found
 pou_find:
         ld b,0
 .lp:    ld a,b
@@ -288,7 +288,7 @@ pou_find:
         or a
         ret
 
-; ---- pou_next / pou_prev: A = slot -> A = další/předchozí obsazený, C = není
+; ---- pou_next / pou_prev: A = slot -> A = next/previous used slot, C = none
 pou_next:
         ld b,a
 .l:     inc b
@@ -314,7 +314,7 @@ pou_prev:
         or a
         ret
 
-; ---- name_pad: HL = text ukončený 0 (max 8) -> name8 (doplněno mezerami)
+; ---- name_pad: HL = 0-terminated text (max 8) -> name8 (space padded)
 name_pad:
         ld de,name8
         ld b,8
@@ -332,7 +332,7 @@ name_pad:
         djnz .s
         ret
 
-; ---- name_unpad: HL = jméno 8 znaků -> DE buffer, ukončeno 0 (bez mezer)
+; ---- name_unpad: HL = 8-char name -> DE buffer, 0-terminated (no spaces)
 name_unpad:
         ld b,8
 .l:     ld a,(hl)

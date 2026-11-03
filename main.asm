@@ -1,9 +1,9 @@
 ; ============================================================
-; ZX-PLC - editor a simulátor PLC (IEC 61131-3: IL, LD, FBD)
+; ZX-PLC - PLC editor and simulator (IEC 61131-3: IL, LD, FBD)
 ; ZX Spectrum 48K, Z80 assembler (sjasmplus)
 ; ============================================================
-; Sestavení:   sjasmplus main.asm            -> zxplc.sna
-; Testy:       sjasmplus -DTEST main.asm     -> zxplc_test.sna
+; Build:       sjasmplus main.asm            -> zxplc.sna
+; Tests:       sjasmplus -DTEST main.asm     -> zxplc_test.sna
 ; ============================================================
 
         DEVICE ZXSPECTRUM48
@@ -43,7 +43,7 @@ screen_tab:
 
 cur_screen: db SCR_POU
 
-; ---- přerušení IM2: jen čítač snímků
+; ---- IM2 interrupt: frame counter only
 im2_init:
         ld hl,IM2_TAB
         ld bc,257

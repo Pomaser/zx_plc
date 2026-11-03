@@ -1,17 +1,17 @@
 ; ============================================================
-; screen.asm - výstup na obrazovku (32x24 znaků, ROM font)
+; screen.asm - screen output (32x24 chars, ROM font)
 ; ============================================================
-; Řídicí kódy v řetězcích pro scr_puts:
-;   0          konec
+; Control codes in strings for scr_puts:
+;   0          end
 ;   1,row,col  AT
-;   2,attr     nastavit atribut
-; Znaky 128+ = vlastní grafika (udg_gfx)
+;   2,attr     set attribute
+; Chars 128+ = custom graphics (udg_gfx)
 ; ============================================================
 SC_END  EQU 0
 SC_AT   EQU 1
 SC_ATTR EQU 2
 
-; ---- scr_cls: smaže celou obrazovku atributem cur_attr
+; ---- scr_cls: clears the whole screen with attribute cur_attr
 scr_cls:
         ld hl,0x4000
         ld de,0x4001
@@ -28,12 +28,12 @@ scr_cls:
         ld (cur_col),bc
         ret
 
-; ---- scr_at: B=řádek, C=sloupec
+; ---- scr_at: B=row, C=column
 scr_at:
         ld (cur_col),bc
         ret
 
-; ---- attr_addr: B=řádek, C=sloupec -> HL adresa atributu (ničí A)
+; ---- attr_addr: B=row, C=column -> HL attribute address (destroys A)
 attr_addr:
         ld a,b
         rrca
@@ -49,7 +49,7 @@ attr_addr:
         ld l,a
         ret
 
-; ---- pix_addr: B=řádek, C=sloupec -> HL adresa 1. mikrořádku (ničí A)
+; ---- pix_addr: B=row, C=column -> HL address of the 1st pixel line (destroys A)
 pix_addr:
         ld a,b
         and 0x18
@@ -64,7 +64,7 @@ pix_addr:
         ld l,a
         ret
 
-; ---- scr_putc: A=znak na pozici kurzoru, posune kurzor. Zachová BC,DE,HL
+; ---- scr_putc: A=char at cursor position, advances cursor. Preserves BC,DE,HL
 scr_putc:
         push hl
         push de
@@ -80,11 +80,11 @@ scr_putc:
         jr .go
 .udg:   ld de,udg_gfx-128*8
 .go:    add hl,de
-        ex de,hl            ; DE = glyf
-        ld bc,(cur_col)     ; C=sloupec, B=řádek
+        ex de,hl            ; DE = glyph
+        ld bc,(cur_col)     ; C=column, B=row
         ld a,b
         cp 24
-        jr nc,.done         ; mimo obrazovku - ignorovat
+        jr nc,.done         ; off screen - ignore
         call pix_addr
         ld b,8
 .lp:    ld a,(de)
@@ -113,7 +113,7 @@ scr_putc:
         pop hl
         ret
 
-; ---- scr_puts: HL=řetězec s řídicími kódy, HL na konci za 0
+; ---- scr_puts: HL=string with control codes, on exit HL points past the 0
 scr_puts:
         ld a,(hl)
         inc hl
@@ -136,7 +136,7 @@ scr_puts:
         ld (cur_attr),a
         jr scr_puts
 
-; ---- scr_putsn: HL=text, B=počet znaků (bez řídicích kódů)
+; ---- scr_putsn: HL=text, B=char count (no control codes)
 scr_putsn:
         ld a,b
         or a
@@ -147,7 +147,7 @@ scr_putsn:
         djnz .l
         ret
 
-; ---- scr_spaces: B mezer
+; ---- scr_spaces: B spaces
 scr_spaces:
         ld a,b
         or a
@@ -157,7 +157,7 @@ scr_spaces:
         djnz .l
         ret
 
-; ---- scr_fill_attr: B=řádek, C=sloupec, D=délka, E=atribut
+; ---- scr_fill_attr: B=row, C=column, D=length, E=attribute
 scr_fill_attr:
         call attr_addr
 .l:     ld (hl),e
@@ -166,7 +166,7 @@ scr_fill_attr:
         jr nz,.l
         ret
 
-; ---- scr_clear_rows: B=první řádek, C=počet; atribut cur_attr
+; ---- scr_clear_rows: B=first row, C=count; attribute cur_attr
 scr_clear_rows:
 .row:   push bc
         ld c,0
@@ -197,14 +197,14 @@ scr_clear_rows:
         jr nz,.row
         ret
 
-; ---- scr_num: HL=číslo (signed) vytiskne
+; ---- scr_num: prints HL (signed)
 scr_num:
         ld de,num_buf
         call itoa16
         ld hl,num_buf
         jp scr_puts
 
-; ---- scr_unum_r: HL=číslo (unsigned) zarovnané vpravo na šířku B
+; ---- scr_unum_r: HL (unsigned) right aligned to width B
 scr_unum_r:
         push bc
         ld de,num_buf
@@ -222,13 +222,13 @@ scr_unum_r:
 .np:    ld hl,num_buf
         jp scr_puts
 
-; ---- vlastní grafika (znaky 128+) - doplní se ve fázi LD/FBD
+; ---- custom graphics (chars 128+) - extended in the LD/FBD phases
 udg_gfx:
-        ; 128: plný blok
+        ; 128: full block
         db 0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF
-        ; 129: LED vypnuto (kroužek)
+        ; 129: LED off (ring)
         db 0x00,0x3C,0x42,0x42,0x42,0x42,0x3C,0x00
-        ; 130: LED zapnuto (plný kruh)
+        ; 130: LED on (filled circle)
         db 0x00,0x3C,0x7E,0x7E,0x7E,0x7E,0x3C,0x00
 
 cur_col:  db 0

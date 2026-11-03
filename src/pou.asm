@@ -1,5 +1,5 @@
 ; ============================================================
-; pou.asm - obrazovka správy POU
+; pou.asm - POU management screen
 ; ============================================================
 POU_LIST_ROW EQU 5
 
@@ -125,8 +125,8 @@ scr_pou:
         ld (hl),b
         jp .redraw
 
-; ---- input_pou_name: A = vlastní slot (0xFF = nová) ; name_buf = počáteční text
-;      NC: name8 = platné jméno, C = zrušeno
+; ---- input_pou_name: A = own slot (0xFF = new) ; name_buf = initial text
+;      NC: name8 = valid name, C = cancelled
 input_pou_name:
         ld (ipn_slot),a
 .again: ld a,ATTR_INPUT
@@ -145,7 +145,7 @@ input_pou_name:
         call ui_hints_restore
         pop af
         ret c
-        ; kontrola znaků
+        ; check characters
         ld hl,name_buf
         ld a,(hl)
         call is_alpha
@@ -163,7 +163,7 @@ input_pou_name:
 .bad:   ld hl,err_bad_name
         call ui_error
         jr .again
-.chkok: ; nesmí být operand (adresa, FB, klíčové slovo)
+.chkok: ; must not be an operand (address, FB, keyword)
         ld hl,name_buf
         call op_parse
         jr c,.notop
@@ -175,11 +175,11 @@ input_pou_name:
         jr .again
 .dup:   ld a,(ipn_slot)
         cp c
-        jr z,.notop2        ; vlastní jméno (přejmenování beze změny)
+        jr z,.notop2        ; own name (rename without change)
         ld hl,err_name_used
         call ui_error
         jr .again
-.notop: ; jméno IL instrukce je také rezervované - doplní se ve fázi 2
+.notop: ; IL instruction names are reserved too - added in phase 2
 .notop2:
         ld hl,name_buf
         call name_pad
@@ -260,7 +260,7 @@ pou_draw_list:
         ld a,b
         cp MAX_POU
         jr c,.row
-        ; volná paměť
+        ; free memory
         ld a,ATTR_NORMAL
         ld (cur_attr),a
         ld bc,(POU_LIST_ROW+MAX_POU+1)*256+1

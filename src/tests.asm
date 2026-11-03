@@ -1,7 +1,7 @@
 ; ============================================================
-; tests.asm - automatické testy (sestavení s -DTEST)
-; Výsledek: TEST_RES+0 = počet OK, +1 = počet chyb, +2 = 0xA5 hotovo
-; Border zelený = vše OK, červený = chyba. Chybné případy se vypíší.
+; tests.asm - automated tests (build with -DTEST)
+; Result: TEST_RES+0 = passed, +1 = failed, +2 = 0xA5 done
+; Green border = all OK, red = failure. Failing cases are printed.
 ; ============================================================
 run_tests:
         ld a,LANG_IL
@@ -15,7 +15,7 @@ run_tests:
         ld (TEST_RES+2),a
         ld bc,0x0200
         ld (cur_col),bc
-        ; ---- testy operandů
+        ; ---- operand tests
         ld hl,op_cases
 .lp:    ld a,(hl)
         cp 0xFF
@@ -86,9 +86,9 @@ run_tests:
 .next:  ld hl,(t_next)
         jp .lp
 
-        ; ---- testy projektu
+        ; ---- project tests
 .proj:  call proj_tests
-        ; ---- výsledek
+        ; ---- result
         ld bc,0x0000
         ld (cur_col),bc
         ld hl,t_pass
@@ -114,7 +114,7 @@ run_tests:
 .halt:  halt
         jr .halt
 
-; ověření jedné podmínky: Z = OK
+; check one condition: Z = OK
 t_check:
         ld hl,TEST_RES
         jr z,.ok
@@ -123,7 +123,7 @@ t_check:
         ret
 
 proj_tests:
-        ; MAIN = 0, MOTOR = 1 ; vložit 10 B do MAIN, 5 B do MOTOR
+        ; MAIN = 0, MOTOR = 1 ; insert 10 B into MAIN, 5 B into MOTOR
         ld a,0
         ld de,0
         ld bc,10
@@ -138,7 +138,7 @@ proj_tests:
         ld a,0x22
         ld bc,5
         call memset_hl_keep
-        ; tělo MOTOR musí začínat na POU_BODIES+10
+        ; MOTOR body must start at POU_BODIES+10
         ld a,1
         call pou_body
         ld de,POU_BODIES+10
@@ -148,7 +148,7 @@ proj_tests:
         ld a,(POU_BODIES+10)
         cp 0x22
         call t_check
-        ; vložit 3 B doprostřed MAIN -> MOTOR se posune
+        ; insert 3 B into the middle of MAIN -> MOTOR moves
         xor a
         ld de,4
         ld bc,3
@@ -167,7 +167,7 @@ proj_tests:
         or a
         sbc hl,de
         call t_check
-        ; smazat 3 B z MAIN
+        ; delete 3 B from MAIN
         xor a
         ld de,4
         ld bc,3
@@ -175,7 +175,7 @@ proj_tests:
         ld a,(POU_BODIES+10)
         cp 0x22
         call t_check
-        ; smazat MOTOR
+        ; delete MOTOR
         ld a,1
         call pou_remove
         ld hl,(PROJ+P_LEN)
@@ -201,7 +201,7 @@ skipstr:
         jr nz,skipstr
         ret
 
-; strcmp: HL, DE -> Z pokud stejné
+; strcmp: HL, DE -> Z if equal
 strcmp:
         ld a,(de)
         cp (hl)
@@ -223,7 +223,7 @@ t_idx:     db 0
 t_val:     dw 0
 t_buf:     ds 32
 
-; vstup, očekávaný výstup ("" = chyba, "~" = krátký styl)
+; input, expected output ("" = error, "~" = short style)
 op_cases:
         db "%IX0.3",0,"%IX0.3",0
         db "%IX0.7",0,"~I0.7",0
@@ -260,7 +260,7 @@ op_cases:
         db "RS2.R1",0,"RS2.R1",0
         db "MAIN",0,"MAIN",0
         db "MOTOR",0,"MOTOR",0
-        ; chyby
+        ; errors
         db "%IX0.8",0,0
         db "%IX1.0",0,0
         db "M64",0,0

@@ -1,15 +1,15 @@
 ; ============================================================
-; operand.asm - parser a formátovač operandů IEC 61131-3
+; operand.asm - IEC 61131-3 operand parser and formatter
 ; ============================================================
-; Přijímá:  %IX0.n %I0.n I0.n | %QX0.n %Q0.n Q0.n | %MXn %Mn Mn | %MWn MWn
-;           TRUE FALSE | celé číslo -32768..32767 | T#..  TIME#.. (h? ne; m, s, ms)
-;           TON0..TON3, TOF, TP, CTU, CTD, R_TRIG, F_TRIG, SR, RS (+ .člen)
-;           jméno POU
+; Accepts:  %IX0.n %I0.n I0.n | %QX0.n %Q0.n Q0.n | %MXn %Mn Mn | %MWn MWn
+;           TRUE FALSE | integer -32768..32767 | T#..  TIME#.. (units m, s, ms)
+;           TON0..TON3, TOF, TP, CTU, CTD, R_TRIG, F_TRIG, SR, RS (+ .member)
+;           POU name
 ; ============================================================
 OP_TOKMAX EQU 31
 
-; ---- op_parse: HL = text -> NC: A = area, C = index, DE = hodnota, HL za operandem
-;                             C: chyba (HL nedefinováno)
+; ---- op_parse: HL = text -> NC: A = area, C = index, DE = value, HL past operand
+;                             C: error (HL undefined)
 op_parse:
         call op_gettok
         ret c
@@ -29,7 +29,7 @@ op_parse:
         jp z,.num
         call is_digit
         jp nc,.num
-        ; klíčová slova
+        ; keywords
         ld de,kw_true
         call tok_eq
         jr nz,.nt
@@ -48,7 +48,7 @@ op_parse:
         ld de,kw_time
         call str_prefix
         jp z,.time
-        ; zkrácené tvary
+        ; short forms
         ld hl,.fb
         ld (op_fail),hl
         ld hl,op_tok
@@ -80,7 +80,7 @@ op_parse:
         jp c,.fb
         jp .ioaddr
 
-        ; ---- přímé adresy %
+        ; ---- direct addresses %
 .direct:
         inc hl
         ld a,(hl)
@@ -154,7 +154,7 @@ op_parse:
         ld a,(op_area)
         jp op_ok
 
-        ; ---- číslo
+        ; ---- number
 .num:   ld a,(hl)
         cp '-'
         push af
@@ -184,7 +184,7 @@ op_parse:
 .nerr:  pop af
         jp op_err
 
-        ; ---- čas: HL za '#'
+        ; ---- time: HL past '#'
 .time:  ld a,(hl)
         or a
         jp z,op_err
@@ -202,7 +202,7 @@ op_parse:
         ld a,(hl)
         cp 'S'
         jr z,.tms
-        ; minuty: max 21
+        ; minutes: max 21
         ld a,d
         or a
         jp nz,op_err
@@ -211,7 +211,7 @@ op_parse:
         jp nc,op_err
         ld bc,3000
         jr .tmul
-.ts:    ; sekundy: max 1310
+.ts:    ; seconds: max 1310
         push hl
         ld hl,1310
         or a
@@ -245,7 +245,7 @@ op_parse:
         ld c,0
         jp op_ok
 
-        ; ---- instance a členy FB
+        ; ---- FB instances and members
 .fb:    ld hl,.pou
         ld (op_fail),hl
         ld de,fb_names
@@ -275,7 +275,7 @@ op_parse:
         add a,a
         add a,a
         add a,c
-        ld c,a              ; index instance
+        ld c,a              ; instance index
         inc hl
         ld a,(hl)
         or a
@@ -286,7 +286,7 @@ op_parse:
         jp nz,.pou
         inc hl
         ld (op_ptr),hl
-        ; tabulka členů typu B: fb_members + B*20
+        ; member table of type B: fb_members + B*20
         ld a,b
         add a,a
         add a,a
@@ -330,7 +330,7 @@ op_parse:
         or AR_FBM
         jp op_ok
 
-        ; ---- jméno POU
+        ; ---- POU name
 .pou:   ld hl,op_tok
         call strlen
         cp 9
@@ -353,7 +353,7 @@ op_ok:  ld de,(op_val)
         or a
         ret
 
-; ---- op_gettok: HL = text -> op_tok (velká písmena), HL za tokenem, A = délka, C = moc dlouhé
+; ---- op_gettok: HL = text -> op_tok (upper case), HL past token, A = length, C = too long
 op_gettok:
         ld a,(hl)
         cp ' '
@@ -401,7 +401,7 @@ op_gettok:
         or a
         ret
 
-; ---- parse_uint: HL = text -> DE = hodnota, HL za číslicemi; C = žádná číslice / přetečení
+; ---- parse_uint: HL = text -> DE = value, HL past digits; C = no digit / overflow
 parse_uint:
         ld de,0
         ld a,(hl)
@@ -439,7 +439,7 @@ parse_uint:
 .end:   or a
         ret
 
-; ---- str_prefix: HL = text, DE = vzor (0) -> Z: text začíná vzorem, HL za ním; NZ: HL beze změny
+; ---- str_prefix: HL = text, DE = pattern (0) -> Z: text starts with pattern, HL past it; NZ: HL unchanged
 str_prefix:
         push hl
 .l:     ld a,(de)
@@ -452,12 +452,12 @@ str_prefix:
         jr .l
 .yes:   inc sp
         inc sp
-        ret                 ; Z z "or a"
+        ret                 ; Z from "or a"
 .no:    pop hl
-        or a                ; A = znak vzoru != 0 -> NZ
+        or a                ; A = pattern char != 0 -> NZ
         ret
 
-; ---- tok_eq: DE = slovo -> Z pokud op_tok == slovo
+; ---- tok_eq: DE = word -> Z if op_tok == word
 tok_eq:
         ld hl,op_tok
         call str_prefix
@@ -466,8 +466,8 @@ tok_eq:
         or a
         ret
 
-; ---- op_format: A = area, C = index, HL = hodnota, DE = cíl, B = styl (0 IEC, 1 krátký)
-;      výstup: DE ukazuje na koncovou 0
+; ---- op_format: A = area, C = index, HL = value, DE = dest, B = style (0 IEC, 1 short)
+;      output: DE points to the terminating 0
 op_format:
         ld (op_area),a
         ld (op_val),hl
@@ -530,11 +530,11 @@ op_format:
         ld hl,(op_val)
         push de
         ld de,50
-        call div16u         ; HL = s, DE = zbytek tiků
+        call div16u         ; HL = s, DE = remaining ticks
         ld (op_ms),de
         ex de,hl
         pop hl
-        ex de,hl            ; HL = s, DE = cíl
+        ex de,hl            ; HL = s, DE = dest
         ld a,h
         or l
         jr z,.nosec
@@ -579,14 +579,14 @@ op_format:
         ld a,(op_idx)
         rrca
         rrca
-        and 0x3F            ; typ
+        and 0x3F            ; type
         ld l,a
         add a,a
         add a,a
         ld h,a
         add a,a
         add a,a
-        add a,h             ; typ*20
+        add a,h             ; type*20
         ld l,a
         ld h,0
         ld bc,fb_members
@@ -594,7 +594,7 @@ op_format:
         ld a,(op_area)
         rrca
         rrca
-        and 0x1C            ; člen*4
+        and 0x1C            ; member*4
         add a,l
         ld l,a
         jr nc,.m1
@@ -605,7 +605,7 @@ op_format:
         call pou_used_hl
         jp z,.f_none
         jp name_unpad
-; tiskne jméno typu + číslo instance
+; writes type name + instance number
 .fbname:
         ld a,(op_idx)
         rrca
@@ -615,7 +615,7 @@ op_format:
         add a,a
         add a,a
         add a,a
-        sub l               ; typ*7
+        sub l               ; type*7
         ld l,a
         ld h,0
         ld bc,fb_names
@@ -627,7 +627,7 @@ op_format:
         ld (de),a
         inc de
         ret
-; vybere HL (IEC) nebo BC (krátký) podle stylu
+; selects HL (IEC) or BC (short) by style
 .style: ld a,(op_style)
         or a
         ret z
@@ -638,13 +638,13 @@ op_format:
         ld (de),a
         ret
 
-; pou_used_hl: HL = položka -> NZ pokud obsazená
+; pou_used_hl: HL = entry -> NZ if used
 pou_used_hl:
         ld a,(hl)
         or a
         ret
 
-; ---- put_str: HL = řetězec (0) -> zkopíruje na DE (bez 0), DE posune
+; ---- put_str: HL = string (0) -> copied to DE (without 0), DE advanced
 put_str:
         ld a,(hl)
         or a
@@ -669,7 +669,7 @@ s_sh_m:   db "M",0
 s_sh_mw:  db "MW",0
 s_sh_s:   db "S",0
 
-; jména typů FB, záznamy po 7 B
+; FB type names, 7-byte records
 FBT_TON    EQU 0
 FBT_TOF    EQU 1
 FBT_TP     EQU 2
@@ -689,7 +689,7 @@ fb_names:
         db "F_TRIG",0
         db "SR",0,0,0,0,0
         db "RS",0,0,0,0,0
-; členy: 5 záznamů po 4 B na typ
+; members: 5 records of 4 B per type
 fb_members:
         db "IN",0,0, "PT",0,0, "Q",0,0,0, "ET",0,0, 0,0,0,0     ; TON
         db "IN",0,0, "PT",0,0, "Q",0,0,0, "ET",0,0, 0,0,0,0     ; TOF

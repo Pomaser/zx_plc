@@ -1,8 +1,8 @@
 ; ============================================================
-; util.asm - obecné pomocné rutiny
+; util.asm - general helper routines
 ; ============================================================
 
-; ---- utoa16: HL (unsigned) -> text na (DE), DE ukazuje na koncovou 0
+; ---- utoa16: HL (unsigned) -> text at (DE), DE points to the terminating 0
 utoa16:
         xor a
         ld (u_flag),a
@@ -40,7 +40,7 @@ utoa16:
         ld (u_flag),a
         ret
 
-; ---- itoa16: HL (signed) -> text na (DE)
+; ---- itoa16: HL (signed) -> text at (DE)
 itoa16:
         bit 7,h
         jr z,utoa16
@@ -60,7 +60,7 @@ neg_hl:
         ld h,a
         ret
 
-; ---- mul16: HL = HL*DE (dolních 16 bitů), ničí A,BC,DE
+; ---- mul16: HL = HL*DE (low 16 bits), destroys A,BC,DE
 mul16:
         ld b,h
         ld c,l
@@ -75,7 +75,7 @@ mul16:
         jr nz,.l
         ret
 
-; ---- div16u: HL = HL/DE, DE = zbytek; DE=0 -> carry. ničí A,BC
+; ---- div16u: HL = HL/DE, DE = remainder; DE=0 -> carry. destroys A,BC
 div16u:
         ld a,d
         or e
@@ -96,13 +96,13 @@ div16u:
         jr .n
 .f:     add hl,de
 .n:     djnz .l
-        ex de,hl            ; DE = zbytek
+        ex de,hl            ; DE = remainder
         ld h,a
-        ld l,c              ; HL = podíl
+        ld l,c              ; HL = quotient
         or a
         ret
 
-; ---- memmove: HL=src, DE=dst, BC=délka (bezpečné při překryvu)
+; ---- memmove: HL=src, DE=dst, BC=length (overlap safe)
 memmove:
         ld a,b
         or c
@@ -111,7 +111,7 @@ memmove:
         or a
         sbc hl,de
         pop hl
-        jr c,.back          ; src < dst -> kopírovat od konce
+        jr c,.back          ; src < dst -> copy from the end
         ldir
         ret
 .back:  add hl,bc
@@ -123,7 +123,7 @@ memmove:
         lddr
         ret
 
-; ---- memset: HL=adresa, BC=délka (>0), A=hodnota
+; ---- memset: HL=address, BC=length (>0), A=value
 memset:
         ld (hl),a
         dec bc
@@ -136,7 +136,7 @@ memset:
         ldir
         ret
 
-; ---- strlen: HL -> A = délka (max 255)
+; ---- strlen: HL -> A = length (max 255)
 strlen:
         push hl
         ld b,0
@@ -159,7 +159,7 @@ to_upper:
         sub 32
         ret
 
-; ---- is_digit: A -> NC pokud '0'..'9'
+; ---- is_digit: A -> NC if '0'..'9'
 is_digit:
         cp '0'
         ret c
@@ -167,7 +167,7 @@ is_digit:
         ccf
         ret
 
-; ---- is_alpha: A -> NC pokud 'A'..'Z'
+; ---- is_alpha: A -> NC if 'A'..'Z'
 is_alpha:
         cp 'A'
         ret c
@@ -175,10 +175,10 @@ is_alpha:
         ccf
         ret
 
-; ---- jp_hl: nepřímé volání
+; ---- jp_hl: indirect call
 jp_hl:  jp (hl)
 
-; ---- jump_table: A=index, HL=tabulka adres -> skok
+; ---- jump_table: A=index, HL=address table -> jump
 jump_table:
         add a,a
         add a,l
@@ -191,7 +191,7 @@ jump_table:
         ld l,a
         jp (hl)
 
-; ---- beep: krátké pípnutí
+; ---- beep: short beep
 beep:
         push bc
         ld c,60

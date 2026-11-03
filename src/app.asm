@@ -1,8 +1,8 @@
 ; ============================================================
-; app.asm - obrazovky EDIT, RUN, FILE (fáze 1: zástupné)
+; app.asm - EDIT, RUN, FILE screens (phase 1: placeholders)
 ; ============================================================
 
-; ---- obrazovka EDIT: přepne na editor podle jazyka aktuální POU
+; ---- EDIT screen: opens the editor for the current POU language
 scr_edit:
         call screen_begin
         ld bc,0x0201
@@ -47,7 +47,7 @@ placeholder_loop:
         ret nz
         jr .key
 
-; ---- obrazovka FILE
+; ---- FILE screen
 scr_file:
         call screen_begin
         ld hl,txt_file

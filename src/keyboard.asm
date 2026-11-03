@@ -1,10 +1,10 @@
 ; ============================================================
-; keyboard.asm - vlastní čtení klávesnice s autorepeatem
+; keyboard.asm - custom keyboard driver with autorepeat
 ; ============================================================
-KB_DELAY  EQU 18            ; snímků do prvního opakování
-KB_RATE   EQU 3             ; snímků mezi opakováními
+KB_DELAY  EQU 18            ; frames before first repeat
+KB_RATE   EQU 3             ; frames between repeats
 
-; ---- kb_scan: E = index klávesy (řádek*5+bit) nebo 0xFF, D = bit0 CS, bit1 SS
+; ---- kb_scan: E = key index (row*5+bit) or 0xFF, D = bit0 CS, bit1 SS
 kb_scan:
         ld de,0x00FF
         ld bc,0xFEFE
@@ -43,7 +43,7 @@ kb_scan:
         jr c,.row
         ret
 
-; ---- kb_read: A = kód stisknuté klávesy nebo 0
+; ---- kb_read: A = code of the pressed key or 0
 kb_read:
         call kb_scan
         ld a,e
@@ -65,7 +65,7 @@ kb_read:
 .none:  xor a
         ret
 
-; ---- kb_poll: volat 1x za snímek. A = nová klávesa (s autorepeatem) nebo 0
+; ---- kb_poll: call once per frame. A = new key (with autorepeat) or 0
 kb_poll:
         call kb_read
         or a
@@ -91,7 +91,7 @@ kb_poll:
 .no:    xor a
         ret
 
-; ---- kb_wait: čeká na klávesu (HALT), A = kód
+; ---- kb_wait: waits for a key (HALT), A = code
 kb_wait:
         halt
         call kb_poll
@@ -99,7 +99,7 @@ kb_wait:
         jr z,kb_wait
         ret
 
-; ---- kb_release: čeká až nebude nic stisknuto
+; ---- kb_release: waits until no key is pressed
 kb_release:
         halt
         call kb_read
@@ -111,7 +111,7 @@ kb_release:
 kb_last: db 0
 kb_cnt:  db 0
 
-; řádky: CS Z X C V | A S D F G | Q W E R T | 1 2 3 4 5
+; rows:  CS Z X C V | A S D F G | Q W E R T | 1 2 3 4 5
 ;        0 9 8 7 6 | P O I U Y | EN L K J H | SP SS M N B
 kt_norm:
         db 0,'z','x','c','v'

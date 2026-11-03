@@ -1,53 +1,53 @@
 # ZX-PLC
 
-Editor a simulátor PLC programů podle IEC 61131-3 (IL, LD, FBD) pro **ZX Spectrum 48K**,
-napsaný v assembleru Z80. Program se nenahrává do žádného skutečného PLC, spouští se v simulaci.
-Projekty jde ukládat na kazetu.
+A PLC program editor and simulator following IEC 61131-3 (IL, LD, FBD) for the **ZX Spectrum 48K**,
+written in Z80 assembler. Programs are not downloaded to any real PLC; they run in a built-in simulation.
+Projects can be saved to tape.
 
-## Sestavení
+## Building
 
 ```
-make            # -> zxplc.sna  (spustit ve Fuse: make run)
-make test       # testovací build + headless běh (vyžaduje Python balíček z80)
+make            # -> zxplc.sna  (run in Fuse: make run)
+make test       # test build + headless run (requires the Python package z80)
 ```
 
-Vyžaduje `sjasmplus` (≥ 1.18). Headless testy: `pip install z80`, pak `make test PYTHON=/cesta/k/python`.
+Requires `sjasmplus` (>= 1.18). Headless tests: `pip install z80`, then `make test PYTHON=/path/to/python`.
 
-## Ovládání (stav: fáze 1)
+## Controls (status: phase 1)
 
-| Klávesa | Funkce |
+| Key | Function |
 |---|---|
-| BREAK (CS+SPACE) nebo EDIT (CS+1) | horní menu (POU / EDIT / RUN / FILE), ←/→ výběr, ENTER |
-| ↑ ↓ (CS+7 / CS+6) | pohyb v seznamu POU |
-| ENTER / E | otevřít POU v editoru |
-| N / R / D / L | nová POU / přejmenovat / smazat / změnit jazyk (jen prázdná POU) |
+| BREAK (CS+SPACE) or EDIT (CS+1) | top menu (POU / EDIT / RUN / FILE), LEFT/RIGHT select, ENTER |
+| UP / DOWN (CS+7 / CS+6) | move in the POU list |
+| ENTER / E | open the POU in the editor |
+| N / R / D / L | new POU / rename / delete / change language (empty POU only) |
 
-* `MAIN` existuje vždy a jako jediná se volá scan‑cyklem; ostatní POU se volají z MAIN.
-* Max. 8 POU, jméno max. 8 znaků (A–Z, 0–9, _), nesmí kolidovat s adresou ani FB instancí.
+* `MAIN` always exists and is the only POU called by the scan cycle; other POUs are called from MAIN.
+* Max. 8 POUs, name max. 8 chars (A-Z, 0-9, _), must not clash with an address or FB instance.
 
-## Operandy
+## Operands
 
-| Oblast | IEC | Krátce | Rozsah |
+| Area | IEC | Short | Range |
 |---|---|---|---|
-| Vstupy | `%IX0.0` | `I0.0` | 0.0–0.7 |
-| Výstupy | `%QX0.0` | `Q0.0` | 0.0–0.7 |
-| Bitová paměť | `%MX5` | `M5` | 0–63 |
-| Slova INT | `%MW3` | `MW3` | 0–15 |
-| Konstanty | `TRUE`, `FALSE`, `-123`, `T#1s500ms`, `T#2m` | | |
-| FB instance | `TON0`…`TON3`, `TOF`, `TP`, `CTU`, `CTD`, `R_TRIG`, `F_TRIG`, `SR`, `RS` | | |
-| Členy FB | `TON0.Q`, `CTU1.CV`, `R_TRIG2.CLK` … | | |
+| Inputs | `%IX0.0` | `I0.0` | 0.0-0.7 |
+| Outputs | `%QX0.0` | `Q0.0` | 0.0-0.7 |
+| Bit memory | `%MX5` | `M5` | 0-63 |
+| INT words | `%MW3` | `MW3` | 0-15 |
+| Constants | `TRUE`, `FALSE`, `-123`, `T#1s500ms`, `T#2m` | | |
+| FB instances | `TON0`...`TON3`, `TOF`, `TP`, `CTU`, `CTD`, `R_TRIG`, `F_TRIG`, `SR`, `RS` | | |
+| FB members | `TON0.Q`, `CTU1.CV`, `R_TRIG2.CLK` ... | | |
 
-Časová báze je 20 ms (1 snímek).
+The time base is 20 ms (one frame).
 
-## Struktura
+## Structure
 
-* `main.asm` – vstupní bod, přerušení, přepínání obrazovek
-* `src/` – moduly (screen, keyboard, ui, project, operand, pou, app, tests)
-* `tools/zxrun.py` – headless emulátor pro testy a screenshoty, `tools/fixjr.py` – převod JR mimo rozsah na JP
+* `main.asm` - entry point, interrupts, screen switching
+* `src/` - modules (screen, keyboard, ui, project, operand, pou, app, tests)
+* `tools/zxrun.py` - headless emulator for tests and screenshots, `tools/fixjr.py` - converts out-of-range JR to JP
 
-## Mapa paměti
+## Memory map
 
 ```
-6000–BFFF  kód      C000–EFFF  projekt (ukládá se na kazetu)
-F000–F7FF  bytekód  F800–FDFC  runtime   FDFD–FF00  IM2
+6000-BFFF  code      C000-EFFF  project (saved to tape)
+F000-F7FF  bytecode  F800-FDFC  runtime   FDFD-FF00  IM2
 ```

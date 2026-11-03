@@ -75,7 +75,7 @@ class Spectrum:
         # interrupt
         if m.iff1:
             if m.halted:
-                m.halted = 0          # PC již ukazuje za HALT
+                m.halted = 0          # PC already points past HALT
             m.iff1 = m.iff2 = 0
             m.sp = (m.sp - 2) & 0xFFFF
             m.memory[m.sp] = m.pc & 0xFF
