@@ -153,6 +153,8 @@ scr_run:
 .mc:    call sim_cmd
         jp .loop
 .exit:  push af
+        xor a
+        ld (sm_run),a           ; the simulation stops when leaving the screen
         ld hl,(sm_savecur)
         ld (il_cur),hl
         ld hl,0
