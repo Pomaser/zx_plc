@@ -26,7 +26,7 @@ START:
     IFDEF TEST
         jp run_tests
     ENDIF
-        ld a,LANG_LD
+        ld a,LANG_IL            ; default language of MAIN
         call proj_new
         ld a,SCR_POU
         ld (cur_screen),a
