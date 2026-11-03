@@ -3,7 +3,7 @@
 ; (build with -DNODEMO to start with an empty project)
 ; ============================================================
 demo_main:
-        db "// Sstart motor",0
+        db "// Start motor",0
         db "LD",9,"%IX0.0",0
         db "ST",9,"%QX0.0",0
         db 0
