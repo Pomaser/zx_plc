@@ -243,9 +243,12 @@ menu_open_drop:
         ld c,a                  ; x0 = 256 - width
 .fit:   ld b,1                  ; row 1
         ld a,(drop_n)
-        ld d,a                  ; rows
+        inc a
+        ld d,a                  ; rows: items + 1 for the bottom gap and frame
         xor a
         ld (win_top),a          ; the bar separator is the top edge
+        ld a,2
+        ld (win_bot),a          ; extra row: line 0 = gap, line 1 = frame
         call win_open_px
         ; labels
         ld hl,(drop_list)
@@ -279,14 +282,7 @@ menu_inv_item:
         jr nz,.nf
         inc h                   ; first item: skip top frame line
         dec l
-.nf:    ld a,(drop_n)
-        dec a
-        ld e,a
-        ld a,(drop_sel)
-        cp e
-        jr nz,.nl
-        dec l                   ; last item: skip bottom frame line
-.nl:    ld a,(win_bx)
+.nf:    ld a,(win_bx)
         inc a
         ld c,a
         ld a,(win_bw)
@@ -514,7 +510,7 @@ win_open_px:
         ld c,a
         ld a,(win_bw)
         ld d,a
-        ld hl,0x0008
+        call win_lines          ; HL = 0, lines used in row B
         ld e,PX_CLR
         call px_span
         pop de
@@ -542,7 +538,10 @@ win_open_px:
         push de
         push hl
         ld b,l
-        ld hl,0x0701            ; bottom line
+        ld a,(win_bot)
+        dec a
+        ld h,a                  ; last used line of the last row
+        ld l,1
         ld e,PX_SET
         call px_span
         pop hl
@@ -554,7 +553,7 @@ win_open_px:
         push bc
         push de
         ld d,1
-        ld hl,0x0008
+        call win_lines
         ld e,PX_SET
         push bc
         call px_span
@@ -566,7 +565,7 @@ win_open_px:
         dec a
         ld c,a
         ld d,1
-        ld hl,0x0008
+        call win_lines
         ld e,PX_SET
         call px_span
         pop de
@@ -575,6 +574,22 @@ win_open_px:
         pop af
         dec a
         jr nz,.vl
+        ld a,8
+        ld (win_bot),a          ; default for the next window
+        ret
+
+; win_lines: B = char row -> H = 0, L = lines used (win_bot in the last row, else 8)
+win_lines:
+        ld a,(win_r)
+        ld l,a
+        ld a,(win_rows)
+        add a,l
+        dec a
+        cp b
+        ld hl,0x0008
+        ret nz
+        ld a,(win_bot)
+        ld l,a
         ret
 
 ; win_geom: B = first row, C = x0, D = width px, L = last row
@@ -635,6 +650,7 @@ win_r:    db 0
 win_cols: db 0
 win_rows: db 0
 win_top:  db 1             ; 0 = window without top frame line
+win_bot:  db 8             ; pixel lines used in the last row
 win_bx:   db 0             ; box x (px)
 win_bw:   db 0             ; box width (px)
 

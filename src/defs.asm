@@ -66,6 +66,8 @@ K_DEL       EQU 12
 K_ENTER     EQU 13
 K_BREAK     EQU 27
 
+BORDER      EQU 7           ; white border
+
 ; ---- attributes ----------------------------------------------
 ATTR_NORMAL  EQU 0x38       ; black on white
 ATTR_SEL     EQU 0x68

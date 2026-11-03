@@ -195,11 +195,11 @@ jump_table:
 beep:
         push bc
         ld c,60
-.l:     ld a,0x10
+.l:     ld a,0x10+BORDER
         out (0xFE),a
         ld b,90
 .d1:    djnz .d1
-        xor a
+        ld a,BORDER
         out (0xFE),a
         ld b,90
 .d2:    djnz .d2

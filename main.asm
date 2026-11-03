@@ -17,7 +17,7 @@ START:
         ld sp,STACK_TOP
         ld iy,0x5C3A
         call im2_init
-        xor a
+        ld a,BORDER
         out (0xFE),a
         ld a,ATTR_NORMAL
         ld (cur_attr),a
