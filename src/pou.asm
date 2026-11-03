@@ -7,8 +7,6 @@ scr_pou:
         call screen_begin
         ld hl,txt_pou_title
         call scr_puts
-        ld hl,hint_pou
-        call ui_hints
         call pou_draw_list
         ld hl,pou_pending       ; command requested from another screen
         ld a,(hl)
@@ -143,20 +141,19 @@ scr_pou:
 ;      NC: name8 = valid name, C = cancelled
 input_pou_name:
         ld (ipn_slot),a
-.again: ld a,ATTR_INPUT
-        ld (cur_attr),a
-        ld bc,0x1602
-        call scr_clear_rows
-        ld bc,0x1601
-        ld (cur_col),bc
-        ld hl,txt_name_q
-        call scr_puts
+.again: ld hl,txt_name_q
+        call popup_open
+        ld a,(win_r)
+        add a,2
+        ld b,a
+        ld a,(win_c)
+        inc a
+        ld c,a
         ld hl,name_buf
-        ld bc,0x1707
         ld de,0x0801
         call ui_input
         push af
-        call ui_hints_restore
+        call win_close
         pop af
         ret c
         ; check characters
@@ -275,28 +272,13 @@ pou_draw_list:
         ld a,b
         cp MAX_POU
         jr c,.row
-        ; free memory
-        ld a,ATTR_NORMAL
-        ld (cur_attr),a
-        ld bc,(POU_LIST_ROW+MAX_POU+1)*256+1
-        ld (cur_col),bc
-        ld hl,txt_free
-        call scr_puts
-        call proj_free
-        ld b,6
-        call scr_unum_r
-        ld hl,txt_bytes
-        jp scr_puts
+        jp status_draw
 
 txt_pou_title:
         db SC_AT,2,1,SC_ATTR,ATTR_TITLE,"PROGRAM ORGANIZATION UNITS",SC_ATTR,ATTR_NORMAL,0
 txt_pou_hdr:
         db "#   NAME       LANG    SIZE",0
-txt_free:  db "Free memory:",0
-txt_bytes: db " bytes",0
-hint_pou:
-        db " ENTER:edit  N:new  R:rename",SC_AT,23,0," D:delete L:language BREAK:menu",0
-txt_name_q:    db "POU name (A-Z,0-9,_):",0
+txt_name_q:    db "POU name (A-Z, 0-9, _):",0," ",0," ",0,0
 txt_del_q:     db "Delete selected POU?",0
 err_pou_full:  db "Max. 8 POUs",0
 err_main_ren:  db "MAIN cannot be renamed",0

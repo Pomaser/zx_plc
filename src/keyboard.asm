@@ -65,8 +65,11 @@ kb_read:
 .none:  xor a
         ret
 
-; ---- kb_poll: call once per frame. A = new key (with autorepeat) or 0
+; ---- kb_poll: edge detection + autorepeat, called once per frame from the ISR.
+;      A = new key or repeat (kb_rep = 1) or 0
 kb_poll:
+        xor a
+        ld (kb_rep),a
         call kb_read
         or a
         jr nz,.some
@@ -86,28 +89,83 @@ kb_poll:
         dec (hl)
         jr nz,.no
         ld (hl),KB_RATE
+        ld a,1
+        ld (kb_rep),a
         ld a,b
         ret
 .no:    xor a
         ret
 
-; ---- kb_wait: waits for a key (HALT), A = code
-kb_wait:
-        halt
+; ---- kb_isr: polls the keyboard and queues the key (all registers kept by caller)
+;      a repeat is queued only when the queue is empty (no run-on after release)
+kb_isr:
         call kb_poll
         or a
-        jr z,kb_wait
+        ret z
+        ld c,a
+        ld a,(kb_head)
+        ld b,a
+        ld a,(kb_tail)
+        ld e,a
+        cp b
+        jr z,.put               ; empty queue
+        ld a,(kb_rep)
+        or a
+        ret nz                  ; drop repeats while keys are waiting
+.put:   ld a,e
+        inc a
+        and KB_QLEN-1
+        cp b
+        ret z                   ; queue full
+        ld d,0
+        ld hl,kb_q
+        add hl,de
+        ld (hl),c
+        ld (kb_tail),a
         ret
 
-; ---- kb_release: waits until no key is pressed
-kb_release:
+; ---- kb_get: A = next queued key or 0
+kb_get:
+        ld a,(kb_tail)
+        ld b,a
+        ld a,(kb_head)
+        cp b
+        jr z,.none
+        ld e,a
+        ld d,0
+        ld hl,kb_q
+        add hl,de
+        inc a
+        and KB_QLEN-1
+        ld (kb_head),a
+        ld a,(hl)
+        ret
+.none:  xor a
+        ret
+
+; ---- kb_wait: waits for a queued key, A = code
+kb_wait:
+        call kb_get
+        or a
+        ret nz
+        halt
+        jr kb_wait
+
+; ---- kb_flush: waits until no key is held, then empties the queue
+kb_flush:
         halt
         call kb_read
         or a
-        jr nz,kb_release
-        ld (kb_last),a
+        jr nz,kb_flush
+        ld (kb_head),a
+        ld (kb_tail),a
         ret
 
+KB_QLEN EQU 8
+kb_q:    ds KB_QLEN
+kb_head: db 0
+kb_tail: db 0
+kb_rep:  db 0
 kb_last: db 0
 kb_cnt:  db 0
 

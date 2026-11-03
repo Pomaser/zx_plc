@@ -1,5 +1,5 @@
 ; ============================================================
-; ui.asm - menu, hints, error messages, line input
+; ui.asm - screen setup, popup dialogs, line input
 ; ============================================================
 
 ; ---- screen_begin: clears the screen and draws the menu bar
@@ -7,70 +7,33 @@ screen_begin:
         ld a,ATTR_NORMAL
         ld (cur_attr),a
         call scr_cls
-        jp menu_draw_bar
+        call menu_draw_bar
+        jp status_draw
 
-; ---- ui_hints: HL = hint text for rows 22-23 (stored for restore)
-ui_hints:
-        ld (hint_ptr),hl
-ui_hints_tmp:
-        push hl
-        ld a,ATTR_HINT
-        ld (cur_attr),a
-        ld bc,0x1602        ; row 22, 2 rows
-        call scr_clear_rows
-        ld bc,0x1600
-        ld (cur_col),bc
-        pop hl
-        call scr_puts
-        ld a,ATTR_NORMAL
-        ld (cur_attr),a
-        ret
-
-ui_hints_restore:
-        ld hl,(hint_ptr)
-        jr ui_hints_tmp
-
-hint_ptr: dw hint_none
-hint_none: db 0
-
-; ---- ui_error: HL = error text, beeps, waits for a key, restores hints
+; ---- ui_error: HL = error text; popup + beep, any key closes it
 ui_error:
-        push hl
-        ld a,ATTR_ERR
-        ld (cur_attr),a
-        ld bc,0x1602
-        call scr_clear_rows
-        ld bc,0x1601
-        ld (cur_col),bc
-        pop hl
-        call scr_puts
-        ld bc,0x1701
-        ld (cur_col),bc
-        ld hl,txt_press_key
-        call scr_puts
+        ld de,popup_buf
+        call put_str
+        xor a
+        ld (de),a
+        inc de
+        ld (de),a
         call beep
-        call kb_release
-        call kb_wait
-        call ui_hints_restore
-        ld a,ATTR_NORMAL
-        ld (cur_attr),a
-        ret
-
-txt_press_key: db "(press any key)",0
+        ld hl,popup_buf
+        jp msg_box
 
 ; ---- ui_confirm: HL = question; Z = yes (Y), NZ = no
 ui_confirm:
-        push hl
-        ld a,ATTR_INPUT
-        ld (cur_attr),a
-        ld bc,0x1602
-        call scr_clear_rows
-        ld bc,0x1601
-        ld (cur_col),bc
-        pop hl
-        call scr_puts
+        ld de,popup_buf
+        call put_str
+        xor a
+        ld (de),a
+        inc de
         ld hl,txt_yn
-        call scr_puts
+        ld bc,txt_yn_end-txt_yn
+        ldir
+        ld hl,popup_buf
+        call popup_open
 .k:     call kb_wait
         call to_upper
         cp 'Y'
@@ -79,25 +42,22 @@ ui_confirm:
         jr z,.done
         cp K_BREAK
         jr z,.done
+        cp K_EDIT
+        jr z,.done
         jr .k
 .done:  push af
-        call ui_hints_restore
+        call win_close
         pop af
         cp 'Y'
         ret
 
-txt_yn: db " (Y/N)",0
+txt_yn: db " ",0,"Y = yes",PT_TAB,"N = no",0,0
+txt_yn_end:
 
 ; ---- ui_choose_lang: A = language (0-2), carry = cancelled
 ui_choose_lang:
-        ld a,ATTR_INPUT
-        ld (cur_attr),a
-        ld bc,0x1602
-        call scr_clear_rows
-        ld bc,0x1601
-        ld (cur_col),bc
         ld hl,txt_lang_q
-        call scr_puts
+        call popup_open
 .k:     call kb_wait
         cp K_BREAK
         jr z,.cancel
@@ -115,17 +75,25 @@ ui_choose_lang:
         jr z,.ok
         jr .k
 .ok:    push bc
-        call ui_hints_restore
+        call win_close
         pop bc
         ld a,b
         or a
         ret
 .cancel:
-        call ui_hints_restore
+        call win_close
         scf
         ret
 
-txt_lang_q: db "Language?",SC_AT,23,1,"I=IL  L=LD  F=FBD  BREAK=cancel",0
+txt_lang_q:
+        db "Choose language:",0
+        db " ",0
+        db "I",PT_TAB,"IL - Instruction List",0
+        db "L",PT_TAB,"LD - Ladder Diagram",0
+        db "F",PT_TAB,"FBD - Function Block Diagram",0
+        db 0
+
+popup_buf: ds 80
 
 ; ---- lang_name: A = language -> HL = 3-char name
 lang_name:
@@ -156,7 +124,7 @@ ui_input:
 .redraw:
         ld bc,(in_col)
         ld (cur_col),bc
-        ld a,ATTR_INPUT
+        ld a,ATTR_MENU
         ld (cur_attr),a
         ld hl,(in_buf)
         ld a,(in_len)

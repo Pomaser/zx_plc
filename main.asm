@@ -31,7 +31,6 @@ START:
         ld a,SCR_POU
         ld (cur_screen),a
 main_loop:
-        call kb_release
         ld a,(cur_screen)
         ld hl,screen_tab
         call .disp              ; screen returns a command in A
@@ -64,7 +63,7 @@ cmd_target:
 
 cur_screen: db SCR_POU
 
-; ---- IM2 interrupt: frame counter only
+; ---- IM2 interrupt: frame counter and keyboard queue
 im2_init:
         ld hl,IM2_TAB
         ld bc,257
@@ -81,11 +80,16 @@ im2_init:
         ret
 
 isr:    push af
+        push bc
+        push de
         push hl
         ld hl,(frames)
         inc hl
         ld (frames),hl
+        call kb_isr
         pop hl
+        pop de
+        pop bc
         pop af
         ei
         reti
@@ -98,6 +102,7 @@ frames: dw 0
         INCLUDE "src/ui.asm"
         INCLUDE "src/ptext.asm"
         INCLUDE "src/menu.asm"
+        INCLUDE "src/status.asm"
         INCLUDE "src/project.asm"
         INCLUDE "src/operand.asm"
         INCLUDE "src/pou.asm"

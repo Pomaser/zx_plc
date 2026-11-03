@@ -71,9 +71,6 @@ BORDER      EQU 7           ; white border
 ; ---- attributes ----------------------------------------------
 ATTR_NORMAL  EQU 0x38       ; black on white
 ATTR_SEL     EQU 0x68
-ATTR_HINT    EQU 0x0F       ; white on blue
-ATTR_ERR     EQU 0x57       ; white on red, bright
-ATTR_INPUT   EQU 0x70       ; black on yellow, bright
 ATTR_CURSOR  EQU 0x87       ; flashing, white on black
 ATTR_TITLE   EQU 0x39       ; blue on white
 

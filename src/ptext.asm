@@ -4,7 +4,8 @@
 ; pt_x   = pixel x (0-255), pt_row = character row (0-23)
 ; Text is ORed into the screen (background must be cleared first).
 ; Char 9 (TAB) moves pt_x to pt_tab.
-; pt_skip > 0 draws the glyph shifted up by that many lines.
+; pt_skip > 0 draws the glyph shifted up by that many lines,
+; pt_down = 1 draws it one line lower.
 ; ============================================================
 PT_TAB  EQU 9
 
@@ -17,7 +18,7 @@ pt_putc:
         jr nz,.nt
         ld a,(pt_tab)
         ld (pt_x),a
-        jr .done
+        jp .done
 .nt:    sub 32
         jr c,.done
         cp 95
@@ -57,10 +58,16 @@ pt_putc:
         ld a,(pt_row)
         ld b,a
         call pix_addr
+        ld a,(pt_down)          ; shift down: start one line lower
+        add a,h
+        ld h,a
+        ld a,(pt_down)
+        ld b,a
         ld a,(pt_skip)
+        add a,b
         neg
         add a,8
-        ld b,a                  ; lines to draw = 8 - pt_skip
+        ld b,a                  ; lines to draw = 8 - pt_skip - pt_down
 .line:  push bc
         push hl
         ld hl,(pt_gp)
@@ -170,17 +177,21 @@ px_span:
         ld a,d
 .n1:    ld (ps_n),a             ; n = min(8-off, remaining)
         ; mask = (0xFF >> off) xor (0xFF >> (off+n))
-        ld b,e
-        call .shr
-        ld (ps_m1),a
+        push hl
+        ld hl,shr_tab
+        ld a,e
+        add a,l
+        ld l,a
+        ld b,(hl)               ; 0xFF >> off
         ld a,(ps_n)
         add a,e
-        ld b,a
-        call .shr
-        ld b,a
-        ld a,(ps_m1)
+        ld hl,shr_tab
+        add a,l
+        ld l,a
+        ld a,(hl)               ; 0xFF >> (off+n)
         xor b
         ld (ps_mask),a
+        pop hl
         ; address
         push bc
         push de
@@ -230,18 +241,15 @@ px_span:
         ld d,a
         jr nz,.seg
         ret
-; A = 0xFF >> B (B = 0..8)
-.shr:   ld a,0xFF
-        inc b
-.sl:    dec b
-        ret z
-        srl a
-        jr .sl
 
+; 0xFF >> n for n = 0..8 (must not cross a 256 byte page)
+        ALIGN 16
+shr_tab:  db 0xFF,0x7F,0x3F,0x1F,0x0F,0x07,0x03,0x01,0x00
 pt_x:     db 0
 pt_row:   db 0
 pt_tab:   db 0
 pt_skip:  db 0             ; glyph lines skipped at the top
+pt_down:  db 0             ; 1 = glyph drawn one line lower (last line dropped)
 pt_sh:    db 0
 pt_gp:    dw 0
 ps_line:                        ; L = count, H = first line (ld (ps_line),hl)
@@ -250,5 +258,4 @@ ps_first: db 0
 ps_op:    db 0
 ps_row:   db 0
 ps_n:     db 0
-ps_m1:    db 0
 ps_mask:  db 0

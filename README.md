@@ -19,6 +19,9 @@ or `make test PYTHON=/path/to/python`. The `.scratch/` folder is ignored by Git.
 
 The top menu bar (`File  POU  Edit  Run  Help`) uses a proportional 6x8 font, black on white;
 the selection is shown by inversion and the bar is separated from the content by a line. Each title opens a drop-down submenu.
+The bottom status bar shows the current POU (left) and free project memory (right).
+Messages, questions, name input and language choice appear in popup windows.
+Keys are read in the interrupt into an 8-key queue, so typing ahead is not lost.
 
 | Key | Function |
 |---|---|
@@ -56,7 +59,7 @@ The time base is 20 ms (one frame).
 ## Structure
 
 * `main.asm` - entry point, interrupts, screen switching
-* `src/` - modules (screen, keyboard, ui, ptext, menu, project, operand, pou, app, tests)
+* `src/` - modules (screen, keyboard, ui, ptext, menu, status, project, operand, pou, app, tests)
 * `src/font6.asm` - generated from `tools/font6.txt` by `tools/mkfont.py` (edit the .txt, then run the script)
 * `tools/zxrun.py` - headless emulator for tests and screenshots, `tools/fixjr.py` - converts out-of-range JR to JP
 

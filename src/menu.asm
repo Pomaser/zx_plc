@@ -409,12 +409,10 @@ menu_run:
 .e2:    ld a,(hl)
         push af
         call .close
-        call kb_release
         pop af
         ret
 .cancel:
         call .close
-        call kb_release
         xor a
         ret
 .close: call win_close
@@ -492,6 +490,16 @@ win_open_px:
         jr nz,.px
         pop bc
         push bc
+        call win_inner          ; fully inside the box -> clear it now
+        jr nc,.keep
+        call pix_addr
+        ld d,8
+.cz:    ld (hl),0
+        inc h
+        dec d
+        jr nz,.cz
+.keep:  pop bc
+        push bc
         call attr_addr
         ld a,(hl)
         ld (ix+0),a
@@ -505,19 +513,43 @@ win_open_px:
         pop bc
         push bc
         push de
-        ; clear the box pixels of this row
+        ; clear the box pixels in the partially covered edge cells
         ld a,(win_bx)
         ld c,a
-        ld a,(win_bw)
+        and 7
+        jr z,.nle
+        neg
+        add a,8                 ; pixels up to the cell boundary
         ld d,a
-        call win_lines          ; HL = 0, lines used in row B
+        ld a,(win_bw)
+        cp d
+        jr nc,.lw
+        ld d,a
+.lw:    call win_lines
+        ld e,PX_CLR
+        push bc
+        call px_span
+        pop bc
+.nle:   ld a,(win_bx)
+        ld d,a
+        ld a,(win_bw)
+        add a,d                 ; x end (exclusive), 0 = 256
+        ld d,a
+        and 7
+        jr z,.nre
+        ld e,a                  ; pixels in the last cell
+        ld a,d
+        and 0xF8
+        ld c,a
+        ld d,e
+        call win_lines
         ld e,PX_CLR
         call px_span
-        pop de
+.nre:   pop de
         pop bc
         inc b
         dec d
-        jr nz,.row
+        jp nz,.row
         ; frame
         call win_geom           ; B=row0 C=x0 D=width L=last row
         ld a,(win_top)
@@ -592,6 +624,44 @@ win_lines:
         ld l,a
         ret
 
+; win_inner: B = row, C = col -> carry if the cell lies fully inside the box
+;            (all 8 lines used and both cell edges inside [bx, bx+bw)); keeps BC, DE
+win_inner:
+        push de
+        push hl
+        call win_lines
+        ld a,l
+        pop hl
+        cp 8
+        jr nz,.no
+        ld a,c
+        add a,a
+        add a,a
+        add a,a                 ; cell x
+        ld e,a
+        ld a,(win_bx)
+        dec a
+        cp e
+        jr c,.l_ok              ; bx <= cell x  (bx-1 < x)
+        ld a,(win_bx)
+        or a
+        jr nz,.no
+.l_ok:  ld a,(win_bx)
+        ld d,a
+        ld a,(win_bw)
+        add a,d                 ; end (0 = 256)
+        jr z,.yes
+        sub 8
+        jr c,.no
+        cp e
+        jr c,.no                ; end-8 < x -> cell sticks out
+.yes:   pop de
+        scf
+        ret
+.no:    pop de
+        or a
+        ret
+
 ; win_geom: B = first row, C = x0, D = width px, L = last row
 win_geom:
         ld a,(win_r)
@@ -657,6 +727,14 @@ win_bw:   db 0             ; box width (px)
 ; ---- msg_box: HL = lines (each 0-terminated, list ends with an empty line)
 ;      shows a centred popup and waits for a key
 msg_box:
+        call popup_open
+        call kb_wait
+        call win_close
+        ret
+
+; ---- popup_open: HL = lines -> opens a centred window and draws the lines
+;      (one empty margin row above and below the text)
+popup_open:
         ld (mb_text),hl
         ld bc,0                 ; B = lines, C = max width
 .cnt:   ld a,(hl)
@@ -713,10 +791,7 @@ msg_box:
         inc a
         ld (pt_row),a
         jr .ln
-.wait:  call kb_release
-        call kb_wait
-        call win_close
-        jp kb_release
+.wait:  ret
 
 MB_TAB  EQU 64
 

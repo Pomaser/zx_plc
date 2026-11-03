@@ -26,16 +26,12 @@ scr_edit:
         ld (cur_attr),a
         ld hl,txt_todo_edit
         call scr_puts
-        ld hl,hint_back
-        call ui_hints
         jr placeholder_loop
 
 scr_run:
         call screen_begin
         ld hl,txt_todo_run
         call scr_puts
-        ld hl,hint_back
-        call ui_hints
 placeholder_loop:
 .key:   call kb_wait
         cp K_BREAK
@@ -51,4 +47,3 @@ txt_edit:      db "EDIT: ",0
 txt_todo_edit: db SC_AT,5,1,"Editor for this language",SC_AT,6,1,"is not implemented yet.",0
 txt_todo_run:  db SC_AT,2,1,SC_ATTR,ATTR_TITLE,"SIMULATION",SC_ATTR,ATTR_NORMAL
                db SC_AT,5,1,"Not implemented yet.",0
-hint_back:     db " BREAK: menu",0
