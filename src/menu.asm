@@ -41,6 +41,7 @@ mi_pou:
         db 0
 mi_edit:
         db CMD_EDIT,  'E',"Edit POU",0
+        db CMD_SYMBOLS,'S',"Symbols",0
         db CMD_IL_INS,'I',"Insert line",0
         db CMD_IL_DEL,'D',"Delete line",0
         db 0

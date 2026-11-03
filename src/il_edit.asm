@@ -636,7 +636,44 @@ il_split:
 .end:   xor a
         ld (de),a
 .done:  ld a,(sp_kind)
+        cp K_INSTR
+        ret nz
+        ld hl,(sp_o)            ; show the symbol instead of the address
+        call il_sym_subst
+        ld a,K_INSTR
         ret
+
+; ---- il_sym_subst: HL = operand text -> replaced by the symbol name if it
+;      is a single I/Q/M operand that has a symbol
+il_sym_subst:
+        ld (ss_buf),hl
+        ld a,(hl)
+        or a
+        ret z
+        call op_parse
+        ret c
+        ld b,a
+        ld a,(hl)
+        or a
+        ret nz                  ; more than one operand (e.g. FB call)
+        ld a,b
+        and AR_MASK
+        cp AR_I
+        jr z,.ok
+        cp AR_Q
+        jr z,.ok
+        cp AR_M
+        ret nz
+.ok:    ld a,b
+        call sym_name_of
+        ret c
+        ld de,(ss_buf)
+        call put_str
+        xor a
+        ld (de),a
+        ret
+
+ss_buf: dw 0
 
 ; ---- il_load: loads line il_cur into the edit buffer, cursor at the end
 il_load:
@@ -698,8 +735,12 @@ ed_kind:
         ld a,K_INSTR
         ret
 
-; ---- ed_field_info: HL = active buffer, B = max length, C = x of the field
+; ---- ed_field_info: HL = active buffer, B = max length, C = x of the field,
+;      D = max x of the text
 ed_field_info:
+        ld a,(ed_mode)
+        or a
+        jr nz,.sym
         ld a,(ed_field)
         cp F_OPER
         jr z,.o
@@ -707,12 +748,26 @@ ed_field_info:
         jr z,.c
         ld hl,ed_m
         ld bc,ED_MLEN*256+IL_X_MNEM
+        ld d,IL_X_OPER-2
         ret
 .o:     ld hl,ed_o
         ld bc,ED_OLEN*256+IL_X_OPER
+        ld d,IL_X_MAX
         ret
 .c:     ld hl,ed_c
         ld bc,ED_CLEN*256+IL_X_MNEM
+        ld d,IL_X_MAX
+        ret
+.sym:   ld a,(ed_field)         ; symbol editor: name / comment
+        cp F_COMM
+        jr z,.sc
+        ld hl,ed_m
+        ld bc,SYM_NMAX*256+SY_X_NAME
+        ld d,SY_X_COMM-2
+        ret
+.sc:    ld hl,ed_c
+        ld bc,SYM_CMAX*256+SY_X_COMM
+        ld d,IL_X_MAX
         ret
 
 ; ---- ed_insert: A = char -> inserted at ed_pos; C = full / too wide
@@ -721,6 +776,8 @@ ed_insert:
         call ed_field_info
         ld a,c
         ld (ei_x),a
+        ld a,d
+        ld (ei_xmax),a
         ld a,b
         ld (ei_max),a
         call strlen             ; (destroys B)
@@ -756,12 +813,8 @@ ed_insert:
         add a,c
         jr c,.wide
         ld c,a
-        ld a,(ed_field)         ; mnemonic must end before the operand column
-        cp F_MNEM
-        ld a,IL_X_OPER-2
-        jr z,.lim
-        ld a,IL_X_MAX
-.lim:   cp c
+        ld a,(ei_xmax)          ; text must end before the next column
+        cp c
         jr c,.wide
         ld hl,ed_pos
         inc (hl)
@@ -1178,6 +1231,8 @@ ei_ch:     db 0
 ei_x:      db 0
 ei_len:    db 0
 ei_max:    db 0
+ei_xmax:   db 0
+ed_mode:   db 0             ; 0 = IL editor, 1 = symbol editor
 rd_m:      ds ED_MLEN+1
 rd_o:      ds 64
 rd_c:      ds 64

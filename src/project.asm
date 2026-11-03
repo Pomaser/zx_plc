@@ -3,8 +3,9 @@
 ; ============================================================
 ; Project (PROJ):
 ;   +0  "ZXPLC"  +5 version  +6 POU count  +8 project length (word)
-;   +16 table of 8 POU slots, 16 B each (name 8, language, flags, body length)
-;   +144 POU bodies in slot order (a free slot has length 0)
+;   +16 table of 8 POU slots + hidden slot 8 (symbol table), 16 B each
+;       (name 8, language, flags, body length)
+;   +160 bodies in slot order (a free slot has length 0)
 ; A slot is a stable POU identifier (call references = slot number).
 ; ============================================================
 

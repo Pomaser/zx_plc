@@ -27,7 +27,8 @@ PE_NAME     EQU 0           ; 8 chars, space padded; first byte 0 = free slot
 PE_LANG     EQU 8
 PE_FLAGS    EQU 9
 PE_LEN      EQU 10          ; word: body length
-POU_BODIES  EQU POU_TAB+MAX_POU*POU_ESIZE
+SYM_SLOT    EQU MAX_POU     ; hidden 9th slot: symbol table
+POU_BODIES  EQU POU_TAB+(MAX_POU+1)*POU_ESIZE
 HDR_LEN     EQU POU_BODIES-PROJ
 
 LANG_IL     EQU 0
@@ -38,6 +39,7 @@ LANG_FBD    EQU 2
 SCR_POU     EQU 0
 SCR_EDIT    EQU 1
 SCR_RUN     EQU 2
+SCR_SYM     EQU 3
 
 ; ---- menu commands ------------------------------------------
 CMD_NONE        EQU 0
@@ -57,6 +59,7 @@ CMD_RESET       EQU 13
 CMD_KEYS        EQU 14
 CMD_IL_INS      EQU 15
 CMD_IL_DEL      EQU 16
+CMD_SYMBOLS     EQU 17
 
 ; ---- key codes ----------------------------------------------
 K_EDIT      EQU 7

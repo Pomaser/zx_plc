@@ -91,6 +91,7 @@ run_tests:
         call ptext_tests
         call il_tests
         call vm_tests
+        call sym_tests
         ; ---- result
         ld bc,0x0000
         ld (cur_col),bc
@@ -530,6 +531,101 @@ t_prog3:
 t_prog4:
         db "JMP",9,"NOWHERE",0
         db 0xFF
+
+; ---- symbol table
+sym_tests:
+        ld a,AR_Q
+        ld c,0
+        ld hl,t_sym_motor
+        ld de,t_sym_mcomm
+        call sym_store
+        call t_nc
+        ld a,AR_I
+        ld c,0
+        ld hl,t_sym_start
+        ld de,cp_empty
+        call sym_store
+        call t_nc
+        ; name lookup (any case)
+        ld hl,t_sym_motl
+        call op_parse
+        ld (t_area),a
+        ld a,c
+        ld (t_idx),a
+        call t_nc
+        ld a,(t_area)
+        cp AR_Q
+        call t_check
+        ld a,(t_idx)
+        or a
+        call t_check
+        ; IL accepts the symbol, stores the address
+        ld hl,t_ld
+        ld de,t_sym_startl
+        call il_check
+        call t_nc
+        ld hl,il_out
+        ld de,t_sym_ldout
+        call strcmp
+        call t_check
+        ; address shown as the symbol
+        ld hl,t_sym_qx
+        ld de,t_buf
+        call put_str
+        xor a
+        ld (de),a
+        ld hl,t_buf
+        call il_sym_subst
+        ld hl,t_buf
+        ld de,t_sym_motor
+        call strcmp
+        call t_check
+        ; validation: own name ok, used / reserved / invalid rejected
+        ld hl,t_sym_start
+        ld a,AR_I
+        ld c,0
+        call sym_validate
+        call t_nc
+        ld hl,t_sym_start
+        ld a,AR_I
+        ld c,1
+        call sym_validate
+        ccf
+        call t_nc
+        ld hl,t_sym_ton
+        ld a,AR_M
+        ld c,0
+        call sym_validate
+        ccf
+        call t_nc
+        ld hl,t_sym_bad
+        ld a,AR_M
+        ld c,0
+        call sym_validate
+        ccf
+        call t_nc
+        ; delete: empty name and comment
+        ld a,AR_I
+        ld c,0
+        ld hl,cp_empty
+        ld de,cp_empty
+        call sym_store
+        ld a,AR_I
+        ld c,0
+        call sym_find_addr
+        ccf
+        jp t_nc
+
+t_ld:         db "ld",0
+t_sym_motor:  db "Motor1",0
+t_sym_motl:   db "motor1",0
+t_sym_mcomm:  db "Conveyor drive",0
+t_sym_start:  db "Start",0
+t_sym_startl: db "start",0
+t_sym_ldout:  db "LD",9,"%IX0.0",0
+t_sym_qx:     db "%QX0.0",0
+t_sym_ton:    db "TON0",0
+t_sym_bad:    db "1abc",0
 
 memset_hl_keep:
         push hl

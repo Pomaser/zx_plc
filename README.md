@@ -35,7 +35,7 @@ Keys are read in the interrupt into an 8-key queue, so typing ahead is not lost.
 |---|---|
 | File | New project, Load..., Save... |
 | POU | Manage, New..., Rename..., Language..., Delete |
-| Edit | Edit POU, Insert line, Delete line |
+| Edit | Edit POU, Symbols, Insert line, Delete line |
 | Run | Run/Stop, Step, Reset |
 | Help | Controls, About |
 
@@ -58,6 +58,16 @@ Opened by ENTER on an IL POU (or Edit > Edit POU).
 Supported instructions: `LD LDN ST STN S R AND ANDN OR ORN XOR XORN NOT ADD SUB MUL DIV MOD
 GT GE EQ NE LE LT JMP JMPC JMPCN CAL CALC CALCN RET RETC RETCN )`, with the `(` modifier where IEC allows
 it (`AND(`, `ADD(` ...). FB calls: `CAL TON0(IN:=%IX0.0, PT:=T#2s)`; POU calls: `CAL PUMP`.
+
+## Symbols
+
+Edit > Symbols opens a fixed list of all addresses (%IX0.0-0.7, %QX0.0-0.7, %MX0-63). Each address can get
+a symbolic name (max. 8 chars, identifier, dark blue) and a comment (max. 30 chars, dark green); the editor
+works like the IL editor (SPACE jumps from the name to the comment, ENTER/UP/DOWN store the row).
+
+Symbols can be typed in IL instead of addresses (`LD Start`); the program stores the address and the
+editor and the simulation show the symbol, so renaming a symbol changes it everywhere. Names must be unique
+and must not clash with addresses, keywords, FB instances, IL instructions or POU names.
 
 ## Simulation (Run)
 
@@ -92,7 +102,7 @@ The time base is 20 ms (one frame).
 
 * `main.asm` - entry point, interrupts, screen switching
 * `src/` - modules (screen, keyboard, ui, ptext, menu, status, project, operand, pou, app, il_parse, il_edit,
-  il_comp (IL -> bytecode), vm (interpreter + standard FBs), sim (Run screen), tests)
+  il_comp (IL -> bytecode), vm (interpreter + standard FBs), sim (Run screen), symbols, sym_edit, tests)
 * `src/font6.asm` - generated from `tools/font6.txt` by `tools/mkfont.py` (edit the .txt, then run the script)
 * `tools/zxrun.py` - headless emulator for tests and screenshots, `tools/fixjr.py` - converts out-of-range JR to JP
 

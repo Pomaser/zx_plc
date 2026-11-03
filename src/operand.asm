@@ -4,7 +4,7 @@
 ; Accepts:  %IX0.n %I0.n I0.n | %QX0.n %Q0.n Q0.n | %MXn %Mn Mn | %MWn MWn
 ;           TRUE FALSE | integer -32768..32767 | T#..  TIME#.. (units m, s, ms)
 ;           TON0..TON3, TOF, TP, CTU, CTD, R_TRIG, F_TRIG, SR, RS (+ .member)
-;           POU name
+;           symbol name, POU name
 ; ============================================================
 OP_TOKMAX EQU 31
 
@@ -330,8 +330,11 @@ op_parse:
         or AR_FBM
         jp op_ok
 
-        ; ---- POU name
+        ; ---- symbol, then POU name
 .pou:   ld hl,op_tok
+        call sym_find_name
+        jp nc,op_ok
+        ld hl,op_tok
         call strlen
         cp 9
         jp nc,op_err

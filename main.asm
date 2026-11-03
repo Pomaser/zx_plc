@@ -44,7 +44,7 @@ main_loop:
 .disp:  jp jump_table
 
 screen_tab:
-        dw scr_pou, scr_edit, scr_run
+        dw scr_pou, scr_edit, scr_run, scr_sym
 
 ; ---- cmd_target: A = command -> selects the screen to show next
 cmd_target:
@@ -55,6 +55,9 @@ cmd_target:
         cp CMD_EDIT
         jr c,.pou
         ld b,SCR_EDIT
+        jr z,.set
+        cp CMD_SYMBOLS
+        ld b,SCR_SYM
         jr z,.set
         cp CMD_KEYS
         ret nc
@@ -118,6 +121,8 @@ frames: dw 0
         INCLUDE "src/il_comp.asm"
         INCLUDE "src/vm.asm"
         INCLUDE "src/sim.asm"
+        INCLUDE "src/symbols.asm"
+        INCLUDE "src/sym_edit.asm"
     IFNDEF NODEMO
         INCLUDE "src/demo.asm"
     ENDIF
