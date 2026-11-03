@@ -4,6 +4,7 @@
 ; pt_x   = pixel x (0-255), pt_row = character row (0-23)
 ; Text is ORed into the screen (background must be cleared first).
 ; Char 9 (TAB) moves pt_x to pt_tab.
+; pt_skip > 0 draws the glyph shifted up by that many lines.
 ; ============================================================
 PT_TAB  EQU 9
 
@@ -33,6 +34,10 @@ pt_putc:
         add hl,hl
         ld de,font6_g
         add hl,de
+        ld a,(pt_skip)          ; skip top glyph lines (shift text up)
+        ld e,a
+        ld d,0
+        add hl,de
         ld (pt_gp),hl
         ld a,(pt_x)
         ld e,a
@@ -52,7 +57,10 @@ pt_putc:
         ld a,(pt_row)
         ld b,a
         call pix_addr
-        ld b,8
+        ld a,(pt_skip)
+        neg
+        add a,8
+        ld b,a                  ; lines to draw = 8 - pt_skip
 .line:  push bc
         push hl
         ld hl,(pt_gp)
@@ -233,6 +241,7 @@ px_span:
 pt_x:     db 0
 pt_row:   db 0
 pt_tab:   db 0
+pt_skip:  db 0             ; glyph lines skipped at the top
 pt_sh:    db 0
 pt_gp:    dw 0
 ps_line:                        ; L = count, H = first line (ld (ps_line),hl)

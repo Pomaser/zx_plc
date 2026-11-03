@@ -25,7 +25,7 @@ mt_edit: db "Edit",0
 mt_run:  db "Run",0
 mt_help: db "Help",0
 
-; submenu items: command, hotkey (upper case), label, 0 ; list ends with 0
+; submenu items: command, hotkey (upper case, not shown), label, 0 ; list ends with 0
 ; (the last label of a list must not use descenders - it touches the frame)
 mi_file:
         db CMD_NEW,  'N',"New project",0
@@ -104,33 +104,27 @@ menu_draw_bar:
         jr nz,.cl
         xor a
         ld (pt_row),a
+        inc a
+        ld (pt_skip),a          ; text 1 px up: glyph line 1 -> screen line 0
         ld b,0
 .t:     push bc
         ld a,b
         call menu_title_xy      ; HL = title, A = x
         ld (pt_x),a
-        push hl
         call pt_puts
-        pop hl
-        ; underline the first letter
-        pop bc
-        push bc
-        ld a,b
-        call menu_title_xy      ; HL = title, A = x
-        ld c,a
-        ld a,(hl)
-        call pt_charw
-        dec a
-        ld d,a
-        ld b,0
-        ld hl,0x0701
-        ld e,PX_SET
-        call px_span
         pop bc
         inc b
         ld a,b
         cp MENU_N
         jr c,.t
+        xor a
+        ld (pt_skip),a
+        ; separator line (line 6 stays empty as a 1 px gap)
+        ld hl,0x4700
+        ld b,32
+.sep:   ld (hl),0xFF
+        inc l
+        djnz .sep
         ret
 
 ; A = item -> HL = title string, A = x (preserves BC)
@@ -169,7 +163,7 @@ menu_inv_title:
         add a,5
         ld d,a
         ld b,0
-        ld hl,0x0008
+        ld hl,0x0007
         ld e,PX_XOR
         jp px_span
 
@@ -252,6 +246,8 @@ menu_open_drop:
 .fit:   ld b,1                  ; row 1
         ld a,(drop_n)
         ld d,a                  ; rows
+        xor a
+        ld (win_top),a          ; the bar separator is the top edge
         call win_open
         ; labels
         ld hl,(drop_list)
@@ -261,8 +257,6 @@ menu_open_drop:
         or a
         ret z
         inc hl
-        ld a,(hl)               ; hotkey
-        ld (drop_hk),a
         inc hl
         ld a,(win_c)
         add a,a
@@ -270,49 +264,11 @@ menu_open_drop:
         add a,a
         add a,4
         ld (pt_x),a
-        push hl
         call pt_puts
-        pop de
-        push hl
-        ex de,hl
-        call underline_hotkey
-        pop hl
         ld a,(pt_row)
         inc a
         ld (pt_row),a
         jr .lab
-
-; ---- underline_hotkey: HL = label drawn at x = win_c*8+4 on pt_row, drop_hk = key
-underline_hotkey:
-        ld a,(win_c)
-        add a,a
-        add a,a
-        add a,a
-        add a,4
-        ld c,a
-.l:     ld a,(hl)
-        or a
-        ret z
-        call to_upper
-        ld b,a
-        ld a,(drop_hk)
-        cp b
-        jr z,.found
-        ld a,(hl)
-        call pt_charw
-        add a,c
-        ld c,a
-        inc hl
-        jr .l
-.found: ld a,(hl)
-        call pt_charw
-        dec a
-        ld d,a
-        ld a,(pt_row)
-        ld b,a
-        ld hl,0x0701
-        ld e,PX_SET
-        jp px_span
 
 ; ---- menu_inv_item: inverts row of item drop_sel in the open drop-down
 menu_inv_item:
@@ -484,7 +440,6 @@ menu_sel:  db 0
 drop_list: dw 0
 drop_n:    db 0
 drop_sel:  db 0
-drop_hk:   db 0
 
 ; ---- win_open: B = row, C = col, D = rows, E = cols
 ;      saves covered cells, clears them (white paper), draws a 1 px frame
@@ -531,6 +486,9 @@ win_open:
         jr nz,.row
         ; frame
         call win_geom           ; B=row0 C=x0 D=width L=last row
+        ld a,(win_top)
+        or a
+        jr z,.notop
         push bc
         push de
         push hl
@@ -540,6 +498,8 @@ win_open:
         pop hl
         pop de
         pop bc
+.notop: ld a,1
+        ld (win_top),a          ; default for the next window
         push bc
         push de
         push hl
@@ -642,6 +602,7 @@ win_c:    db 0
 win_r:    db 0
 win_cols: db 0
 win_rows: db 0
+win_top:  db 1             ; 0 = window without top frame line
 
 ; ---- msg_box: HL = lines (each 0-terminated, list ends with an empty line)
 ;      shows a centred popup and waits for a key

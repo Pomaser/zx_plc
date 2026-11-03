@@ -16,7 +16,7 @@ Requires `sjasmplus` (>= 1.18). Headless tests: `pip install z80`, then `make te
 ## Controls (status: phase 1)
 
 The top menu bar (`File  POU  Edit  Run  Help`) uses a proportional 6x8 font, black on white;
-the selection is shown by inversion. Each title opens a drop-down submenu.
+the selection is shown by inversion and the bar is separated from the content by a line. Each title opens a drop-down submenu.
 
 | Key | Function |
 |---|---|
@@ -24,7 +24,7 @@ the selection is shown by inversion. Each title opens a drop-down submenu.
 | LEFT / RIGHT (CS+5 / CS+8) | previous / next submenu |
 | UP / DOWN (CS+7 / CS+6) | move in a submenu or in the POU list |
 | ENTER | execute the item / open the selected POU in the editor |
-| letters | underlined hotkeys in the menu; N / R / D / L in the POU list |
+| letters | first letter of a title or item (hotkey); N / R / D / L in the POU list |
 
 | Menu | Items |
 |---|---|
