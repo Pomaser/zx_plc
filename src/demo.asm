@@ -10,7 +10,7 @@ demo_main:
         db "// Set timer",0
         db "LD",9,"%QX0.0",0
         db "ST",9,"TON1.IN",0
-        db "LD",9,"200",0
+        db "LD",9,"T#4s",0
         db "ST",9,"TON1.PT",0
         db "CAL",9,"TON1",0
         db 0
@@ -20,5 +20,5 @@ demo_main:
         db 0
         db "// Current time",0
         db "LD",9,"TON1.ET",0
-        db "ST",9,"%MX1",0
+        db "ST",9,"%MW1",0
         db 0xFF
