@@ -92,6 +92,7 @@ cp_lines:
         pop hl
         sub 2
         ld b,a
+        ld (cp_tlen),a
         inc hl
         ld a,(hl)
         ld (cp_kind),a
@@ -210,33 +211,38 @@ cp_find_label:
         scf
         ret
 
-; ---- cp_instr: compiles cp_text "MNEM[<TAB>operand]"
+; ---- cp_instr: compiles the binary instruction in cp_text ([op][operand...])
 cp_instr:
         ld hl,cp_text
-        ld de,cp_empty
-.t:     ld a,(hl)
-        or a
-        jr z,.te
-        cp IL_TAB
-        jr z,.tab
-        inc hl
-        jr .t
-.tab:   ld (hl),0
-        inc hl
-        ex de,hl
-.te:    ld (cp_opnd),de
-        ld hl,cp_text
-        call il_mnem_find
-        ld hl,err_il_unknown
-        jp c,cp_fail
-        ld a,(il_mid)
+        ld e,0                  ; end of the instruction (for parameters)
+        ld a,(cp_tlen)
+        ld e,a
+        ld d,0
+        add hl,de
+        ld (cp_tend),hl
+        ld a,(cp_text)
+        ld (cp_opb),a
+        and 0x3F
+        ld (il_mid),a
         ld e,a
         ld d,0
         ld hl,cp_optab
         add hl,de
         ld a,(hl)
         ld (cp_op),a
-        ld a,(il_mclass)
+        ld a,e                  ; class: il_mnems[id*7 + 6]
+        add a,a
+        add a,a
+        add a,a
+        sub e
+        add a,6
+        ld e,a
+        ld hl,il_mnems
+        add hl,de
+        ld a,(hl)
+        and 0x7F
+        ld (cp_class),a
+        ld a,(cp_opb)
         bit 7,a
         jr z,.np
         ; "OP(" [operand]: push the operation, the operand starts a new CR
@@ -249,23 +255,23 @@ cp_instr:
         ld a,OP_PUSH
         call cp_emit
         ret c
-        ld hl,(cp_opnd)
-        ld a,(hl)
-        or a
-        ret z
-        call cp_operand
+        ld a,(cp_tlen)
+        cp 2
+        ret c                   ; no operand
+        ld hl,cp_text+1
+        call cp_operand_rec
         ret c
         ld a,OP_LD
         jp cp_emit
-.np:    and 0x7F
+.np:    ld a,(cp_class)
         cp IC_NONE
         jr z,.none
         cp IC_LABEL
         jr z,.label
         cp IC_CALL
         jp z,cp_call
-        ld hl,(cp_opnd)
-        call cp_operand
+        ld hl,cp_text+1
+        call cp_operand_rec
         ret c
         ld a,(cp_op)
         jp cp_emit
@@ -276,7 +282,7 @@ cp_instr:
         ld a,(cp_pass)
         cp 2
         jr nz,.lemit
-        ld hl,(cp_opnd)
+        ld hl,cp_text+2         ; [AR_LBL][name...0]
         call cp_find_label
         ld hl,err_cp_nolbl
         jp c,cp_fail
@@ -287,32 +293,24 @@ cp_instr:
         ld a,(cp_op)
         jp cp_emit
 
-; ---- cp_call: CAL / CALC / CALCN
+; ---- cp_call: CAL / CALC / CALCN, binary [area][index][member][operand]...
 cp_call:
-        ld hl,(cp_opnd)
-        call op_parse
-        jp c,cp_badcall
-        ld (cp_after),hl
+        ld a,(cp_text+1)
         ld (cp_carea),a
-        ld a,c
+        ld a,(cp_text+2)
         ld (cp_cidx),a
-        ; size of the call sequence: 5 + 10 per parameter
+        ; number of parameters
+        ld hl,cp_text+3
         ld b,0
-        ld a,(cp_carea)
-        and AR_MASK
-        cp AR_FBI
-        jr nz,.sz
-        ld a,(hl)
-        cp '('
-        jr nz,.sz
+.cnt:   call cp_more
+        jr nc,.sz
         inc b
-.cnt:   inc hl
-        ld a,(hl)
-        or a
-        jr z,.sz
-        cp ','
-        jr nz,.cnt
-        inc b
+        inc hl                  ; member
+        call cp_opsize
+        add a,l
+        ld l,a
+        jr nc,.cnt
+        inc h
         jr .cnt
 .sz:    ld a,b
         ld (cp_npar),a
@@ -347,7 +345,6 @@ cp_call:
         ret c
 .uncond:
         ld a,(cp_carea)
-        and AR_MASK
         cp AR_POU
         jr nz,.fb
         ld a,(cp_cidx)
@@ -356,39 +353,23 @@ cp_call:
         jp cp_emit0m
 .fb:    cp AR_FBI
         jp nz,cp_badcall
-        ; instance name "TON0." for member operands
+        ld hl,cp_text+3
+.par:   call cp_more
+        jr nc,.callfb
+        ld a,(hl)               ; member -> destination operand
+        inc hl
+        push hl
+        rlca
+        rlca
+        rlca
+        rlca
+        or AR_FBM
+        ld b,a
         ld a,(cp_cidx)
         ld c,a
-        ld a,AR_FBI
-        ld de,cp_mbuf
-        ld hl,0
-        ld b,0
-        call op_format
-        ld a,'.'
-        ld (de),a
-        inc de
-        ld (cp_mptr),de
-        ld a,(cp_npar)
-        or a
-        jr z,.callfb
-        ld hl,(cp_after)
-        inc hl                  ; skip "("
-.par:   call skip_sp
-        ld de,(cp_mptr)
-.mn:    ld a,(hl)
-        cp ':'
-        jr z,.mne
-        ld (de),a
-        inc hl
-        inc de
-        jr .mn
-.mne:   xor a
-        ld (de),a
-        inc hl
-        inc hl                  ; skip ":="
-        push hl
-        ld hl,cp_mbuf
-        call cp_operand         ; destination member
+        ld a,b
+        ld de,0
+        call cp_operand_av
         pop hl
         ret c
         ld de,(cp_arg)
@@ -397,7 +378,7 @@ cp_call:
         ld (cp_darg3),a
         ld a,(cp_mode)
         ld (cp_dmode),a
-        call cp_operand         ; source value
+        call cp_operand_rec     ; source value
         ret c
         ld (cp_after),hl
         ld a,OP_LDT
@@ -413,11 +394,7 @@ cp_call:
         call cp_emit
         ret c
         ld hl,(cp_after)
-        call skip_sp
-        ld a,(hl)
-        inc hl
-        cp ','
-        jr z,.par
+        jr .par
 .callfb:
         ld a,(cp_cidx)
         ld l,a
@@ -437,6 +414,53 @@ cp_call:
         ld a,OP_CALFB
         jp cp_emit
 
+; cp_more: C if HL < cp_tend
+cp_more:
+        push hl
+        push de
+        ld de,(cp_tend)
+        or a
+        sbc hl,de
+        pop de
+        pop hl
+        ret
+
+; cp_opsize: HL = binary operand -> A = its size (2 or 3)
+cp_opsize:
+        ld a,(hl)
+        and AR_MASK
+        cp AR_K16
+        jr z,.three
+        cp AR_KT
+        jr z,.three
+        ld a,2
+        ret
+.three: ld a,3
+        ret
+
+; ---- cp_operand_rec: HL = binary operand -> NC: cp_mode/cp_arg/cp_arg3, HL past it
+cp_operand_rec:
+        ld a,(hl)
+        inc hl
+        ld b,a
+        and AR_MASK
+        cp AR_K16
+        jr z,.val
+        cp AR_KT
+        jr z,.val
+        ld c,(hl)
+        inc hl
+        ld de,0
+        jr .go
+.val:   ld e,(hl)
+        inc hl
+        ld d,(hl)
+        inc hl
+        ld c,0
+.go:    ld (cp_ohl),hl
+        ld a,b
+        jr cp_operand_core
+
 cp_badcall:
         ld hl,err_il_call
 cp_fail:
@@ -446,11 +470,19 @@ cp_fail:
 
 ; ---- cp_operand: HL = operand text -> NC: cp_mode/cp_arg/cp_arg3, HL past it
 cp_operand:
+        call op_parse
+        jr c,cp_operand_core.bad
+        ld (cp_ohl),hl
+        jr cp_operand_core
+; cp_operand_av: A = area, C = index, DE = value (no text)
+cp_operand_av:
+        ld hl,0
+        ld (cp_ohl),hl
+cp_operand_core:
+        push af
         xor a
         ld (cp_istime),a
-        call op_parse
-        jr c,.bad
-        ld (cp_ohl),hl
+        pop af
         ld (cp_arg),de
         ld (cp_oarea),a
         ld a,c
@@ -660,6 +692,10 @@ cp_after: dw 0
 cp_carea: db 0
 cp_cidx:  db 0
 cp_npar:  db 0
+cp_tlen:  db 0
+cp_tend:  dw 0
+cp_opb:   db 0
+cp_class: db 0
 cp_csize: db 0
 cp_mptr:  dw 0
 cp_name8: ds 8

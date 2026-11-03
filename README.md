@@ -56,6 +56,9 @@ Opened by ENTER on an IL POU (or Edit > Edit POU).
   new line below; UP/DOWN store and move; DELETE on an empty line removes it.
 * Edit menu: Insert line, Delete line. Errors are shown in a popup and the cursor stays on the line.
 
+Instruction lines are stored in binary form (instruction code + 2-3 bytes per operand, FB call parameters
+included), comments and labels as text; the editor turns them back into text for display.
+
 Supported instructions: `LD LDN ST STN S R AND ANDN OR ORN XOR XORN NOT ADD SUB MUL DIV MOD
 GT GE EQ NE LE LT JMP JMPC JMPCN CAL CALC CALCN RET RETC RETCN )`, with the `(` modifier where IEC allows
 it (`AND(`, `ADD(` ...). FB calls: `CAL TON0(IN:=%IX0.0, PT:=T#2s)`; POU calls: `CAL PUMP`.

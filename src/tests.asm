@@ -285,9 +285,13 @@ il_tests:
         jr .chk
 .lab:   ld hl,(t_val)
         call il_check_label
-.chk:   jr c,.err
+        jr c,.err
         ld hl,il_out
-        ld de,(t_exp)
+        jr .cmp
+.chk:   jr c,.err
+        call t_detok            ; binary -> "MNEM<TAB>OPERAND"
+        ld hl,t_buf
+.cmp:   ld de,(t_exp)
         call strcmp
         jr .res
 .err:   ld hl,(t_exp)
@@ -376,12 +380,13 @@ vm_tests:
         and 1
         call t_check            ; reset
         ; program 2: arithmetic, compare, "(", jump, CTU, POU call
+        ld hl,t_motor
+        ld a,LANG_IL
+        call pou_add            ; slot 1 "MOTOR" (must exist before CAL MOTOR)
         ld hl,t_prog2
         xor a
         call il_load_text
-        ld hl,t_motor
-        ld a,LANG_IL
-        call pou_add            ; slot 1 "MOTOR"
+        call t_nc
         ld hl,t_prog3
         ld a,1
         call il_load_text
@@ -564,20 +569,18 @@ sym_tests:
         ld de,t_sym_startl
         call il_check
         call t_nc
-        ld hl,il_out
+        call t_detok            ; shown as the symbol
+        ld hl,t_buf
         ld de,t_sym_ldout
         call strcmp
         call t_check
-        ; address shown as the symbol
-        ld hl,t_sym_qx
-        ld de,t_buf
-        call put_str
-        xor a
-        ld (de),a
+        xor a                   ; View > Addresses
+        ld (view_sym),a
+        call t_detok
+        ld a,1
+        ld (view_sym),a
         ld hl,t_buf
-        call il_sym_subst
-        ld hl,t_buf
-        ld de,t_sym_motor
+        ld de,t_sym_ldadr
         call strcmp
         call t_check
         ; validation: own name ok, used / reserved / invalid rejected
@@ -622,10 +625,45 @@ t_sym_motl:   db "motor1",0
 t_sym_mcomm:  db "Conveyor drive",0
 t_sym_start:  db "Start",0
 t_sym_startl: db "start",0
-t_sym_ldout:  db "LD",9,"%IX0.0",0
-t_sym_qx:     db "%QX0.0",0
+t_sym_ldout:  db "LD",9,"Start",0
+t_sym_ldadr:  db "LD",9,"%IX0.0",0
 t_sym_ton:    db "TON0",0
 t_sym_bad:    db "1abc",0
+
+; t_detok: il_out (binary instruction) -> t_buf = "MNEM" [TAB "OPERAND"]
+t_detok:
+        ld a,(il_outlen)
+        ld c,a
+        add a,2
+        ld (rec_buf),a
+        ld a,K_INSTR
+        ld (rec_buf+1),a
+        ld b,0
+        ld hl,il_out
+        ld de,rec_buf+2
+        ldir
+        ld hl,rd_m
+        ld (sp_m),hl
+        ld hl,rd_o
+        ld (sp_o),hl
+        ld hl,rd_c
+        ld (sp_c),hl
+        ld hl,rec_buf
+        call il_split
+        ld de,t_buf
+        ld hl,rd_m
+        call put_str
+        ld a,(rd_o)
+        or a
+        jr z,.e
+        ld a,9
+        ld (de),a
+        inc de
+        ld hl,rd_o
+        call put_str
+.e:     xor a
+        ld (de),a
+        ret
 
 memset_hl_keep:
         push hl

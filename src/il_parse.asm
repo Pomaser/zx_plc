@@ -131,28 +131,26 @@ il_mnem_find:
         ret
 
 ; ---- il_check: HL = mnemonic text, DE = operand text
-;      NC: il_out = normalised line;  C: il_err = message
+;      NC: il_out = binary instruction, il_outlen = its length; C: il_err = message
+; Binary instruction: [op][operand]
+;   op: bits 0-5 mnemonic index (il_mnems), bit 7 "(" modifier
+;   operand (optional): [area][index] or [area][value lo][value hi] (AR_K16,
+;   AR_KT) or [AR_LBL][label name...]; an FB call may be followed by
+;   parameters [member][operand]...
+AR_LBL  EQU 12              ; operand = jump label (name follows)
 il_check:
         ld (ilc_op),de
         call il_mnem_find
         ld hl,err_il_unknown
         jp c,il_fail
-        ld de,il_out
-        ld hl,il_mtmp
-        call put_str
         ld a,(il_mclass)
-        bit 7,a
-        jr z,.np
-        ld a,'('
-        ld (de),a
-        inc de
-.np:    ld (ilc_tab),de         ; TAB position (removed if no operand)
-        ld a,IL_TAB
-        ld (de),a
-        inc de
-        xor a
-        ld (de),a
-        ld (ilc_dst),de
+        and 0x80
+        ld b,a
+        ld a,(il_mid)
+        or b
+        ld (il_out),a
+        ld hl,il_out+1
+        ld (ilc_dst),hl
         ld hl,(ilc_op)
         call skip_sp
         ld (ilc_op),hl
@@ -165,18 +163,17 @@ il_check:
 .none:  call ilc_empty
         ld hl,err_il_noop
         jp nz,il_fail
-        jp ilc_notab
+        jp ilc_done
 
 .read:  call ilc_empty
         jr nz,.r1
         ld a,(il_mclass)        ; "AND(" may stand alone
         bit 7,a
-        jp nz,ilc_notab
+        jp nz,ilc_done
         ld hl,err_il_opreq
         jp il_fail
 .r1:    call ilc_operand
         ret c
-        and AR_MASK
         cp AR_FBI
         jp z,ilc_badop
         cp AR_POU
@@ -187,24 +184,15 @@ il_check:
         ret c
         call ilc_operand
         ret c
-        and AR_MASK
-        cp AR_Q
-        jp z,ilc_done
-        cp AR_M
-        jp z,ilc_done
         cp AR_MW
         jp z,ilc_done
-        cp AR_FBM
-        jp z,ilc_done
-        jp ilc_notwr
-
+        jr .wr
 .setres:
         call ilc_need
         ret c
         call ilc_operand
         ret c
-        and AR_MASK
-        cp AR_Q
+.wr:    cp AR_Q
         jp z,ilc_done
         cp AR_M
         jp z,ilc_done
@@ -214,45 +202,37 @@ il_check:
 
 .label: call ilc_need
         ret c
-        ld hl,(ilc_op)
         ld de,(ilc_dst)
+        ld a,AR_LBL
+        ld (de),a
+        inc de
+        ld hl,(ilc_op)
         call ident_copy
-        jr nc,.lok
-        ld hl,err_il_label
-        jp il_fail
-.lok:   ld (ilc_dst),de
+        jr c,.lbad
+        ld (ilc_dst),de
         call skip_sp
         ld a,(hl)
         or a
-        ld hl,err_il_label
-        jp nz,il_fail
-        jp ilc_done
+        jp z,ilc_done
+.lbad:  ld hl,err_il_label
+        jp il_fail
 
 .call:  call ilc_need
         ret c
-        ld hl,(ilc_op)
-        call op_parse
-        jp c,ilc_badcall
-        ld (ilc_op),hl
-        ld (ilc_area),a
-        ld (ilc_idx),bc
-        ld de,(ilc_dst)
-        ld h,0
-        ld l,0
-        ld b,0
-        call op_format          ; instance / POU name
-        ld (ilc_dst),de
-        ld a,(ilc_area)
-        and AR_MASK
+        call ilc_operand_nt
+        ret c
         cp AR_POU
         jp z,.cend
         cp AR_FBI
         jp nz,ilc_badcall
-        ; remember the instance name for member checks
-        ld hl,(ilc_tab)
-        inc hl
+        ; instance name "TON0." for member checks
+        ld a,(ilc_idx)
+        ld c,a
+        ld a,AR_FBI
         ld de,ilc_inst
-        call put_str
+        ld hl,0
+        ld b,0
+        call op_format
         ld a,'.'
         ld (de),a
         inc de
@@ -263,11 +243,6 @@ il_check:
         cp '('
         jp nz,.cend
         inc hl
-        ld de,(ilc_dst)
-        ld a,'('
-        ld (de),a
-        inc de
-        ld (ilc_dst),de
         ; parameters: member := operand {, member := operand} )
 .par:   call skip_sp
         ld de,(ilc_mem)
@@ -280,21 +255,20 @@ il_check:
         call op_parse           ; must be a member of this instance
         pop hl
         jp c,ilc_badcall
+        ld b,a
         and AR_MASK
         cp AR_FBM
         jp nz,ilc_badcall
-        push hl
-        ld hl,(ilc_mem)
+        ld a,b                  ; member number
+        rrca
+        rrca
+        rrca
+        rrca
+        and 7
         ld de,(ilc_dst)
-        call put_str
-        ld a,':'
-        ld (de),a
-        inc de
-        ld a,'='
         ld (de),a
         inc de
         ld (ilc_dst),de
-        pop hl
         call skip_sp
         ld a,(hl)
         cp ':'
@@ -307,7 +281,6 @@ il_check:
         ld (ilc_op),hl
         call ilc_operand_nt     ; operand, no end check
         ret c
-        and AR_MASK
         cp AR_FBI
         jp z,ilc_badcall
         cp AR_POU
@@ -316,21 +289,10 @@ il_check:
         call skip_sp
         ld a,(hl)
         inc hl
-        ld de,(ilc_dst)
-        cp ')'
-        jr z,.pend
         cp ','
+        jr z,.par
+        cp ')'
         jp nz,ilc_badcall
-        ld (de),a
-        inc de
-        ld a,' '
-        ld (de),a
-        inc de
-        ld (ilc_dst),de
-        jr .par
-.pend:  ld (de),a
-        inc de
-        ld (ilc_dst),de
         ld (ilc_op),hl
 .cend:  ld hl,(ilc_op)
         call skip_sp
@@ -354,8 +316,7 @@ ilc_need:
         ld hl,err_il_opreq
         jp il_fail
 
-; parse operand at ilc_op, must be followed only by spaces; writes IEC form.
-; NC: A = area
+; parse operand at ilc_op, must be followed only by spaces. NC: A = area type
 ilc_operand:
         call ilc_operand_nt
         ret c
@@ -370,30 +331,45 @@ ilc_operand:
 .bad:   pop af
         jp ilc_badop
 
-; parse operand at ilc_op (ilc_op advanced), write IEC form at ilc_dst. NC: A = area
+; parse operand at ilc_op (ilc_op advanced) and append its binary form.
+; NC: A = area type (AR_MASK applied)
 ilc_operand_nt:
         ld hl,(ilc_op)
         call op_parse
         jp c,ilc_badop
         ld (ilc_op),hl
         ld (ilc_area),a
-        ex de,hl                ; HL = value
-        ld de,(ilc_dst)
-        ld b,0
-        call op_format
-        ld (ilc_dst),de
+        ld b,a
+        ld a,c
+        ld (ilc_idx),a
+        ld hl,(ilc_dst)
+        ld (hl),b               ; area (with member bits)
+        inc hl
+        ld a,b
+        and AR_MASK
+        cp AR_K16
+        jr z,.val
+        cp AR_KT
+        jr z,.val
+        ld (hl),c               ; index
+        jr .end
+.val:   ld (hl),e               ; value
+        inc hl
+        ld (hl),d
+.end:   inc hl
+        ld (ilc_dst),hl
         ld a,(ilc_area)
+        and AR_MASK
         or a
         ret
 
-ilc_notab:
-        ld hl,(ilc_tab)
-        ld (hl),0
-        or a
-        ret
 ilc_done:
         ld hl,(ilc_dst)
-        ld (hl),0
+        ld de,il_out
+        or a
+        sbc hl,de
+        ld a,l
+        ld (il_outlen),a
         or a
         ret
 ilc_badop:
@@ -480,8 +456,8 @@ il_mclass: db 0
 il_err:    dw 0
 ilc_op:    dw 0
 ilc_dst:   dw 0
-ilc_tab:   dw 0
+il_outlen: db 0
 ilc_mem:   dw 0
 ilc_area:  db 0
-ilc_idx:   dw 0
+ilc_idx:   db 0
 ilc_inst:  ds 20

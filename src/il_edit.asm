@@ -510,7 +510,7 @@ il_commit:
         call ed_kind
         ld (cm_kind),a
         cp K_COMM
-        jr z,.comm
+        jp z,.comm
         cp K_EMPTY
         jr z,.empty
         cp K_LABEL
@@ -519,8 +519,13 @@ il_commit:
         ld de,ed_o
         call il_check
         jp c,.err
+        ld a,(il_outlen)        ; binary instruction
+        ld c,a
+        ld b,0
         ld hl,il_out
-        jr .build
+        ld de,rec_buf+2
+        ldir
+        jr .blen
 .label: ld hl,ed_m
         call il_check_label
         jp c,.err
@@ -531,7 +536,7 @@ il_commit:
 .empty: ld hl,il_nothing
 .build: ld de,rec_buf+2
         call put_str
-        ex de,hl
+.blen:  ex de,hl
         ld de,rec_buf
         or a
         sbc hl,de
@@ -552,7 +557,7 @@ il_commit:
         inc hl
         inc de
         djnz .cmp
-        jr .done
+        jp .done
 .store: ld hl,(cm_addr)
         call il_offset
         ld (cm_off),de
@@ -594,6 +599,7 @@ il_commit:
         ret
 
 ; ---- il_split: HL = record, sp_m/sp_o/sp_c = buffers -> A = kind
+;      (instructions are decoded from the binary form)
 il_split:
         ld de,(sp_m)
         xor a
@@ -602,6 +608,12 @@ il_split:
         ld (de),a
         ld de,(sp_c)
         ld (de),a
+        ld e,(hl)
+        ld d,0
+        push hl
+        add hl,de
+        ld (sp_end),hl          ; end of the record
+        pop hl
         ld a,(hl)
         sub 2
         ld b,a
@@ -610,24 +622,12 @@ il_split:
         ld (sp_kind),a
         inc hl
         cp K_COMM
-        jr z,.comm
+        jp z,.comm
         cp K_EMPTY
         jr z,.done
-        ld de,(sp_m)
-.m:     ld a,b
-        or a
-        jr z,.end
-        ld a,(hl)
-        inc hl
-        dec b
-        cp IL_TAB
-        jr z,.tab
-        ld (de),a
-        inc de
-        jr .m
-.tab:   xor a
-        ld (de),a
-        ld de,(sp_o)
+        cp K_INSTR
+        jr z,.instr
+        ld de,(sp_m)            ; label text
 .o:     ld a,b
         or a
         jr z,.end
@@ -642,47 +642,183 @@ il_split:
 .end:   xor a
         ld (de),a
 .done:  ld a,(sp_kind)
-        cp K_INSTR
-        ret nz
-        ld hl,(sp_o)            ; show the symbol instead of the address
-        call il_sym_subst
+        ret
+.instr: ; binary instruction -> mnemonic text + operand text
+        ld a,(hl)
+        inc hl
+        push hl
+        push af
+        and 0x3F
+        ld l,a
+        add a,a
+        add a,a
+        add a,a
+        sub l                   ; *7
+        ld l,a
+        ld h,0
+        ld de,il_mnems
+        add hl,de
+        ld de,(sp_m)
+        ld b,6
+.mn:    ld a,(hl)
+        or a
+        jr z,.mne
+        ld (de),a
+        inc hl
+        inc de
+        djnz .mn
+.mne:   pop af
+        bit 7,a
+        jr z,.mnp
+        ld a,'('
+        ld (de),a
+        inc de
+.mnp:   xor a
+        ld (de),a
+        pop hl
+        ld de,(sp_o)
+        call il_fmt_opnd
+        xor a
+        ld (de),a
         ld a,K_INSTR
         ret
 
-; ---- il_sym_subst: HL = operand text -> replaced by the symbol name if it
-;      is a single I/Q/M operand that has a symbol
-il_sym_subst:
-        ld a,(view_sym)
-        or a
-        ret z                   ; View > Addresses
-        ld (ss_buf),hl
+; ---- il_fmt_opnd: HL = binary operand (up to sp_end), DE = dest
+;      writes the operand text (symbols if View > Symbols), FB parameters
+il_fmt_opnd:
+        call sp_more
+        ret nc
         ld a,(hl)
-        or a
-        ret z
-        call op_parse
-        ret c
+        cp AR_LBL
+        jr nz,.op
+        inc hl                  ; label name
+.lb:    call sp_more
+        ret nc
+        ld a,(hl)
+        ld (de),a
+        inc hl
+        inc de
+        jr .lb
+.op:    and AR_MASK
+        cp AR_FBI
+        push af
+        ld a,(hl)
+        inc hl
+        ld c,(hl)               ; instance (for FB calls)
+        dec hl
+        ld (fo_inst),bc
+        call il_fmt_one
+        pop af
+        ret nz                  ; not an FB call
+        call sp_more
+        ret nc
+        ld a,'('
+.par:   ld (de),a
+        inc de
+        ; member name: fb_members[type*20 + member*4]
+        ld a,(fo_inst)
+        rrca
+        rrca
+        and 0x3F
+        ld c,a
+        add a,a
+        add a,a
+        ld b,a
+        add a,a
+        add a,a
+        add a,b                 ; type*20
         ld b,a
         ld a,(hl)
-        or a
-        ret nz                  ; more than one operand (e.g. FB call)
-        ld a,b
-        and AR_MASK
-        cp AR_I
-        jr z,.ok
-        cp AR_Q
-        jr z,.ok
-        cp AR_M
-        ret nz
-.ok:    ld a,b
-        call sym_name_of
-        ret c
-        ld de,(ss_buf)
+        inc hl
+        add a,a
+        add a,a
+        add a,b
+        push hl
+        ld l,a
+        ld h,0
+        ld bc,fb_members
+        add hl,bc
         call put_str
-        xor a
+        pop hl
+        ld a,':'
         ld (de),a
+        inc de
+        ld a,'='
+        ld (de),a
+        inc de
+        call il_fmt_one
+        call sp_more
+        ld a,')'
+        jr nc,.pe
+        ld a,','
+        ld (de),a
+        inc de
+        ld a,' '
+        jr .par
+.pe:    ld (de),a
+        inc de
         ret
 
-ss_buf: dw 0
+; il_fmt_one: HL = [area][index] or [area][value] -> text at DE, HL advanced
+il_fmt_one:
+        ld a,(hl)
+        inc hl
+        ld b,a
+        and AR_MASK
+        cp AR_K16
+        jr z,.val
+        cp AR_KT
+        jr z,.val
+        ld c,(hl)
+        inc hl
+        ld (fo_src),hl
+        ld a,(view_sym)         ; symbol instead of an I/Q/M address
+        or a
+        jr z,.fmt
+        ld a,b
+        cp AR_I
+        jr z,.sym
+        cp AR_Q
+        jr z,.sym
+        cp AR_M
+        jr nz,.fmt
+.sym:   push de
+        push bc
+        call sym_name_of
+        pop bc
+        pop de
+        jr c,.fmt
+        call put_str
+        jr .ret
+.fmt:   ld hl,0
+        jr .go
+.val:   ld c,(hl)
+        inc hl
+        ld a,(hl)
+        inc hl
+        ld (fo_src),hl
+        ld h,a
+        ld l,c                  ; HL = value
+.go:    ld a,b
+        ld b,0
+        call op_format
+.ret:   ld hl,(fo_src)
+        ret
+
+; sp_more: C if HL < sp_end (more bytes in the record)
+sp_more:
+        push hl
+        push de
+        ld de,(sp_end)
+        or a
+        sbc hl,de
+        pop de
+        pop hl
+        ret
+
+fo_inst: dw 0
+fo_src:  dw 0
+sp_end:  dw 0
 
 ; ---- il_load: loads line il_cur into the edit buffer, cursor at the end,
 ;      and shows the comment of its operand in the status bar
@@ -1228,7 +1364,7 @@ il_key:
 
 ; ---- il_load_text: HL = text lines (0-terminated, list ends with 0xFF),
 ;      A = slot -> replaces the POU body. "//..." comment, "" empty line,
-;      "NAME:" label, else instruction "MNEM<TAB>operand".
+;      "NAME:" label, else instruction "MNEM<TAB>operand" (stored binary).
 il_load_text:
         ld (lt_slot),a
         ld (lt_ptr),hl
@@ -1240,54 +1376,85 @@ il_load_text:
         ld a,(hl)
         cp 0xFF
         ret z
-        call strlen
-        ld c,a
-        add a,2
+        ; record text -> rec_buf+2, kind
+        ld de,rec_buf+2
+        call put_str
+        inc hl
+        ld (lt_ptr),hl
+        ex de,hl
+        ld (hl),0
+        ld de,rec_buf+2
+        or a
+        sbc hl,de
+        ld a,l                  ; text length
         ld (lt_len),a
         ld b,K_EMPTY
-        ld a,c
         or a
         jr z,.k
         ld b,K_COMM
-        ld a,(hl)
+        ld a,(de)
         cp '/'
         jr z,.k
-        ld b,K_INSTR
-        dec c
-        ld e,c
-        ld d,0
+        ld b,K_LABEL
+        dec hl
         add hl,de
         ld a,(hl)
         cp ':'
-        jr nz,.k
-        ld b,K_LABEL
+        jr z,.k
+        ; instruction "MNEM<TAB>operand" -> binary
+        ld hl,rec_buf+2
+        ld de,cp_empty
+.t:     ld a,(hl)
+        or a
+        jr z,.te
+        inc hl
+        cp IL_TAB
+        jr nz,.t
+        dec hl
+        ld (hl),0
+        inc hl
+        ex de,hl
+.te:    ld hl,rec_buf+2
+        call il_check
+        ret c
+        ld a,(il_outlen)
+        ld c,a
+        ld b,0
+        ld hl,il_out
+        ld de,rec_buf+2
+        ldir
+        ld hl,rec_buf+2
+        ex de,hl
+        or a
+        sbc hl,de
+        ld a,l
+        ld (lt_len),a
+        ld b,K_INSTR
 .k:     ld a,b
-        ld (lt_kind),a
+        ld (rec_buf+1),a
+        ld a,(lt_len)
+        add a,2
+        ld (rec_buf),a
+        ; append the record
         ld a,(lt_slot)
-        call pou_body           ; append at the end
+        call pou_body           ; BC = length = insert at the end
         ld d,b
         ld e,c
-        ld a,(lt_len)
+        ld a,(rec_buf)
         ld c,a
         ld b,0
         ld a,(lt_slot)
         call pou_insert
         ret c
-        ld a,(lt_len)
-        ld (hl),a
-        inc hl
-        ld a,(lt_kind)
-        ld (hl),a
-        inc hl
         ex de,hl
-        ld hl,(lt_ptr)
-        call put_str
-        inc hl
-        ld (lt_ptr),hl
-        jr .l
+        ld hl,rec_buf
+        ld a,(rec_buf)
+        ld c,a
+        ld b,0
+        ldir
+        jp .l
 
 lt_slot: db 0
-lt_kind: db 0
 lt_len:  db 0
 lt_ptr:  dw 0
 
