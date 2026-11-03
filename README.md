@@ -33,11 +33,11 @@ Keys are read in the interrupt into an 8-key queue, so typing ahead is not lost.
 
 | Menu | Items |
 |---|---|
-| File | New project, Load..., Save..., About |
+| File | New project, Load..., Save... |
 | POU | Manage, New..., Rename..., Language..., Delete |
 | Edit | Edit POU, Insert line, Delete line |
 | Run | Run/Stop, Step, Reset |
-| Help | Controls |
+| Help | Controls, About |
 
 * `MAIN` always exists and is the only POU called by the scan cycle; other POUs are called from MAIN.
 * Max. 8 POUs, name max. 8 chars (A-Z, 0-9, _), must not clash with an address or FB instance.

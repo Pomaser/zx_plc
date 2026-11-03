@@ -31,7 +31,6 @@ mi_file:
         db CMD_NEW,  'N',"New project",0
         db CMD_LOAD, 'L',"Load...",0
         db CMD_SAVE, 'S',"Save...",0
-        db CMD_ABOUT,'A',"About",0
         db 0
 mi_pou:
         db CMD_POU_MANAGE,'M',"Manage",0
@@ -51,7 +50,8 @@ mi_run:
         db CMD_RESET,'E',"Reset",0
         db 0
 mi_help:
-        db CMD_KEYS,'C',"Controls",0
+        db CMD_KEYS, 'C',"Controls",0
+        db CMD_ABOUT,'A',"About",0
         db 0
 
 ; ---- menu_init: computes title positions
@@ -871,6 +871,7 @@ txt_about:
         db "IEC 61131-3: IL, LD, FBD",0
         db "for ZX Spectrum 48K",0
         db " ",0
+        db "J.Masopust 2026",0
         db "github.com/Pomaser/zx_plc",0
         db 0
 txt_keys:
