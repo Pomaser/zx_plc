@@ -1,0 +1,5 @@
+*.sna
+*.sym
+*.lst
+.test.out
+__pycache__/

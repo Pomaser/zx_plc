@@ -1,0 +1,27 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Sestavit a spustit",
+            "type": "shell",
+            "command": "make && (pkill fuse 2>/dev/null; sleep 0.3; fuse zxplc.sna &)",
+            "group": { "kind": "build", "isDefault": true },
+            "presentation": { "reveal": "always", "panel": "shared" },
+            "problemMatcher": {
+                "owner": "sjasmplus",
+                "fileLocation": "absolute",
+                "pattern": {
+                    "regexp": "^(.+)\\((\\d+)\\): (error|warning): (.*)$",
+                    "file": 1, "line": 2, "severity": 3, "message": 4
+                }
+            }
+        },
+        {
+            "label": "Testy (headless)",
+            "type": "shell",
+            "command": "make test",
+            "group": "test",
+            "presentation": { "reveal": "always", "panel": "shared" }
+        }
+    ]
+}
