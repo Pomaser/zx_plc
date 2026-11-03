@@ -8,9 +8,10 @@
 ; pt_down = 1 draws it one line lower.
 ; ============================================================
 PT_TAB  EQU 9
-FONT_N  EQU 97             ; glyphs 32..128
+FONT_N  EQU 98             ; glyphs 32..129
 CH_LEDOFF EQU 127
 CH_LEDON  EQU 128
+CH_CHECK  EQU 129
 
 ; ---- pt_putc: A = char (32-126). Preserves BC, DE, HL
 pt_putc:

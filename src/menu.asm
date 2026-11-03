@@ -213,9 +213,14 @@ menu_open_drop:
         or a
         jr z,.cdone
         push hl
-        inc hl
+        call menu_checkable     ; room for the check mark
+        ld d,0
+        jr c,.nc
+        ld d,MENU_CHK_W
+.nc:    inc hl
         inc hl
         call pt_width
+        add a,d
         pop hl
         cp c
         jr c,.nw
@@ -266,16 +271,54 @@ menu_open_drop:
 .lab:   ld a,(hl)
         or a
         ret z
+        push hl
         inc hl
         inc hl
         ld a,(win_bx)
         add a,4
         ld (pt_x),a
         call pt_puts
+        ex (sp),hl              ; HL = record, (sp) = next record
+        call menu_active
+        jr c,.nchk
+        ld a,(pt_x)             ; active option: check mark after the label
+        add a,2
+        ld (pt_x),a
+        ld a,CH_CHECK
+        call pt_putc
+.nchk:  pop hl
         ld a,(pt_row)
         inc a
         ld (pt_row),a
         jr .lab
+
+; ---- menu_checkable: HL = item record -> NC if the item is an option
+;      that can be marked as active (keeps HL)
+MENU_CHK_W EQU 8
+menu_checkable:
+        ld a,(hl)
+        cp CMD_VIEW_SYM
+        ret z
+        cp CMD_VIEW_ADDR
+        ret z
+        scf
+        ret
+
+; ---- menu_active: HL = item record -> NC if the option is active now
+menu_active:
+        ld a,(hl)
+        cp CMD_VIEW_SYM
+        jr z,.sym
+        cp CMD_VIEW_ADDR
+        scf
+        ret nz
+        ld a,(view_sym)         ; Addresses active when symbols are off
+        cp 1                    ; C if 0
+        ccf
+        ret
+.sym:   ld a,(view_sym)
+        cp 1                    ; NC if 1
+        ret
 
 ; ---- menu_inv_item: inverts row of item drop_sel in the open drop-down
 menu_inv_item:
