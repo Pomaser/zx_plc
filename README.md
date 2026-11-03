@@ -65,7 +65,7 @@ Run > Run/Stop (or R on the Run screen) compiles all POUs to bytecode and runs M
 Compile errors are reported with the POU name and line number.
 
 * Upper part: listing of the monitored IL POU (the current POU, or MAIN) with the live value of each
-  operand on the right (`TRUE` inverted, `FALSE`, numbers). UP/DOWN scroll.
+  operand on the right (`TRUE` inverted, `FALSE` - both dark magenta - and numbers). UP/DOWN scroll.
 * Lower part: input LEDs %IX0.0-0.7 (green) and output LEDs %QX0.0-0.7 (red).
 * Keys: `1`-`8` toggle inputs, SYMBOL SHIFT + `1`-`8` push button (input on while held),
   `R` run/stop, `S` single scan, `E` reset all data. The status bar shows RUN / STOP.

@@ -15,6 +15,7 @@ ROW_HINT  EQU 22
 LED_COL0  EQU 9             ; cell of the first LED
 ATTR_LED_I EQU 0x3C         ; green ink
 ATTR_LED_Q EQU 0x3A         ; red ink
+ATTR_BOOL  EQU 0x3B         ; dark magenta ink (TRUE/FALSE values)
 
 scr_run:
         call screen_begin
@@ -524,6 +525,18 @@ sim_draw_val:
         inc h
         dec e
         jr nz,.cl
+        ; value cells: dark magenta for BOOL, black for INT
+        ld a,(pt_row)
+        ld b,a
+        ld c,SIM_VCOL
+        ld d,32-SIM_VCOL
+        ld e,ATTR_NORMAL
+        ld a,(ix+0)
+        and 0x7F
+        cp VM_MB
+        jr nz,.at
+        ld e,ATTR_BOOL
+.at:    call scr_fill_attr
         ld a,(ix+0)
         and 0x7F
         cp VM_MB
