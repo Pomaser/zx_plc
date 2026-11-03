@@ -112,6 +112,32 @@ pt_puts:
         call pt_putc
         jr pt_puts
 
+; ---- pt_puts_r: HL = string, A = right edge x (exclusive) -> right aligned on pt_row
+pt_puts_r:
+        ld b,a
+        call pt_width
+        neg
+        add a,b
+        ld (pt_x),a
+        jp pt_puts
+
+; ---- pt_clear_row: B = char row -> clears its 8 pixel lines (attributes kept)
+pt_clear_row:
+        ld c,0
+        call pix_addr
+        ld e,8
+.l:     push hl
+        ld b,32
+        xor a
+.z:     ld (hl),a
+        inc l
+        djnz .z
+        pop hl
+        inc h
+        dec e
+        jr nz,.l
+        ret
+
 ; ---- pt_charw: A = char -> A = width in pixels (TAB = 0)
 pt_charw:
         sub 32

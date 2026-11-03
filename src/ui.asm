@@ -95,6 +95,39 @@ txt_lang_q:
 
 popup_buf: ds 80
 
+; ---- ui_title: HL = title text -> row 2 in the proportional font, dark blue
+UI_TITLE_ROW EQU 2
+ui_title:
+        push hl
+        ld bc,UI_TITLE_ROW*256
+        ld d,32
+        ld e,ATTR_TITLE
+        call scr_fill_attr
+        ld b,UI_TITLE_ROW
+        call pt_clear_row
+        ld a,UI_TITLE_ROW
+        ld (pt_row),a
+        ld a,8
+        ld (pt_x),a
+        pop hl
+        jp pt_puts
+
+; ---- lang_copy: A = language, DE = dest -> name without padding, 0-terminated,
+;      DE points to the terminating 0
+lang_copy:
+        call lang_name
+        ld b,3
+.l:     ld a,(hl)
+        cp ' '
+        jr z,.e
+        ld (de),a
+        inc hl
+        inc de
+        djnz .l
+.e:     xor a
+        ld (de),a
+        ret
+
 ; ---- lang_name: A = language -> HL = 3-char name
 lang_name:
         ld l,a

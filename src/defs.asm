@@ -70,9 +70,8 @@ BORDER      EQU 7           ; white border
 
 ; ---- attributes ----------------------------------------------
 ATTR_NORMAL  EQU 0x38       ; black on white
-ATTR_SEL     EQU 0x68
 ATTR_CURSOR  EQU 0x87       ; flashing, white on black
-ATTR_TITLE   EQU 0x39       ; blue on white
+ATTR_TITLE   EQU 0x39       ; dark blue (ink 1, no BRIGHT) on white
 
 ; ---- operand areas ("area" byte) ----------------------------
 AR_NONE     EQU 0

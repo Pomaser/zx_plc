@@ -5,33 +5,34 @@
 ; ---- EDIT screen: opens the editor for the current POU language
 scr_edit:
         call screen_begin
-        ld bc,0x0201
-        ld (cur_col),bc
-        ld a,ATTR_TITLE
-        ld (cur_attr),a
+        ld de,app_buf
         ld hl,txt_edit
-        call scr_puts
+        call put_str
         ld a,(cur_pou)
         call pou_entry
-        ld b,8
-        call scr_putsn
-        ld a,' '
-        call scr_putc
+        call name_unpad
+        ld hl,txt_open
+        call put_str
         ld a,(cur_pou)
         call pou_lang
-        call lang_name
-        ld b,3
-        call scr_putsn
-        ld a,ATTR_NORMAL
-        ld (cur_attr),a
+        call lang_copy
+        ld a,')'
+        ld (de),a
+        inc de
+        xor a
+        ld (de),a
+        ld hl,app_buf
+        call ui_title
         ld hl,txt_todo_edit
-        call scr_puts
+        call app_text
         jr placeholder_loop
 
 scr_run:
         call screen_begin
-        ld hl,txt_todo_run
-        call scr_puts
+        ld hl,txt_run
+        call ui_title
+        ld hl,txt_todo
+        call app_text
 placeholder_loop:
 .key:   call kb_wait
         cp K_BREAK
@@ -43,7 +44,17 @@ placeholder_loop:
         jr z,.key
         ret
 
-txt_edit:      db "EDIT: ",0
-txt_todo_edit: db SC_AT,5,1,"Editor for this language",SC_AT,6,1,"is not implemented yet.",0
-txt_todo_run:  db SC_AT,2,1,SC_ATTR,ATTR_TITLE,"SIMULATION",SC_ATTR,ATTR_NORMAL
-               db SC_AT,5,1,"Not implemented yet.",0
+; app_text: HL = text -> row 5 at x = 8 in the proportional font
+app_text:
+        ld a,5
+        ld (pt_row),a
+        ld a,8
+        ld (pt_x),a
+        jp pt_puts
+
+txt_edit:      db "Edit: ",0
+txt_open:      db " (",0
+txt_run:       db "Simulation",0
+txt_todo_edit: db "The editor for this language is not implemented yet.",0
+txt_todo:      db "Not implemented yet.",0
+app_buf:       ds 24

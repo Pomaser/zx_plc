@@ -6,7 +6,7 @@ POU_LIST_ROW EQU 5
 scr_pou:
         call screen_begin
         ld hl,txt_pou_title
-        call scr_puts
+        call ui_title
         call pou_draw_list
         ld hl,pou_pending       ; command requested from another screen
         ld a,(hl)
@@ -201,83 +201,115 @@ ipn_slot: db 0
 pou_pending: db 0
 name_buf: ds 10
 
-; ---- pou_draw_list
+; ---- pou_draw_list: header and rows in the proportional font,
+;      selected row inverted, black on white
+PL_X_NO   EQU 8
+PL_X_NAME EQU 32
+PL_X_LANG EQU 104
+PL_X_SIZE EQU 200             ; right edge of the Size column
 pou_draw_list:
-        ld a,ATTR_TITLE
-        ld (cur_attr),a
-        ld bc,(POU_LIST_ROW-1)*256+1
-        ld (cur_col),bc
-        ld hl,txt_pou_hdr
-        call scr_puts
+        ld b,POU_LIST_ROW-1
+        call pt_clear_row
+        ld a,POU_LIST_ROW-1
+        ld (pt_row),a
+        ld a,PL_X_NO
+        ld (pt_x),a
+        ld hl,txt_h_no
+        call pt_puts
+        ld a,PL_X_NAME
+        ld (pt_x),a
+        ld hl,txt_h_name
+        call pt_puts
+        ld a,PL_X_LANG
+        ld (pt_x),a
+        ld hl,txt_h_lang
+        call pt_puts
+        ld hl,txt_h_size
+        ld a,PL_X_SIZE
+        call pt_puts_r
         ld b,0
 .row:   push bc
         ld a,b
         add a,POU_LIST_ROW
+        ld (pt_row),a
         ld b,a
-        ld a,ATTR_NORMAL
-        ld (cur_attr),a
-        ld c,1
-        call scr_clear_rows
+        ld c,0
+        ld d,32
+        ld e,ATTR_NORMAL
+        call scr_fill_attr
+        ld a,(pt_row)
+        ld b,a
+        call pt_clear_row
         pop bc
         push bc
         ld a,b
         call pou_used
         jr z,.next
-        ld a,(cur_pou)
-        cp b
-        jr nz,.nsel
-        ld a,ATTR_SEL
-        ld (cur_attr),a
-.nsel:  ld a,b
-        add a,POU_LIST_ROW
-        ld b,a
-        ld c,1
-        ld (cur_col),bc
-        pop bc
-        push bc
+        ; number
+        ld a,PL_X_NO
+        ld (pt_x),a
         ld a,b
         add a,'0'
-        call scr_putc
-        ld b,3
-        call scr_spaces
-        pop bc
-        push bc
+        call pt_putc
+        ; name
+        ld a,PL_X_NAME
+        ld (pt_x),a
         ld a,b
         call pou_entry
-        ld b,8
-        call scr_putsn
-        ld b,3
-        call scr_spaces
+        ld de,pl_buf
+        call name_unpad
+        ld hl,pl_buf
+        call pt_puts
+        ; language
+        ld a,PL_X_LANG
+        ld (pt_x),a
         pop bc
         push bc
         ld a,b
         call pou_lang
-        call lang_name
-        ld b,3
-        call scr_putsn
-        ld b,3
-        call scr_spaces
+        ld de,pl_buf
+        call lang_copy
+        ld hl,pl_buf
+        call pt_puts
+        ; size
         pop bc
         push bc
         ld a,b
         call pou_body
         ld h,b
         ld l,c
-        ld b,6
-        call scr_unum_r
-        ld b,3
-        call scr_spaces
+        ld de,pl_buf
+        call utoa16
+        ld hl,pl_buf
+        ld a,PL_X_SIZE
+        call pt_puts_r
+        ; selection
+        pop bc
+        push bc
+        ld a,(cur_pou)
+        cp b
+        jr nz,.next
+        ld a,(pt_row)
+        ld b,a
+        ld c,4
+        ld d,248
+        ld hl,0x0008
+        ld e,PX_XOR
+        call px_span
 .next:  pop bc
         inc b
         ld a,b
         cp MAX_POU
-        jr c,.row
+        jp c,.row
         jp status_draw
 
-txt_pou_title:
-        db SC_AT,2,1,SC_ATTR,ATTR_TITLE,"PROGRAM ORGANIZATION UNITS",SC_ATTR,ATTR_NORMAL,0
-txt_pou_hdr:
-        db "#   NAME       LANG    SIZE",0
+pl_buf: ds 10
+
+txt_pou_title: db "Program Organization Units",0
+txt_h_no:   db "No.",0
+txt_h_name: db "POU Name",0
+txt_h_lang: db "Language",0
+txt_h_size: db "Size",0
 txt_name_q:    db "POU name (A-Z, 0-9, _):",0," ",0," ",0,0
 txt_del_q:     db "Delete selected POU?",0
 err_pou_full:  db "Max. 8 POUs",0

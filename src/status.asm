@@ -41,16 +41,8 @@ status_draw:
         call put_str
         ld a,(cur_pou)
         call pou_lang
-        call lang_name
-        ld b,3
-.ln:    ld a,(hl)
-        cp ' '
-        jr z,.lnd
-        ld (de),a
-        inc hl
-        inc de
-        djnz .ln
-.lnd:   ld a,')'
+        call lang_copy
+        ld a,')'
         ld (de),a
         inc de
         xor a
@@ -72,12 +64,8 @@ status_draw:
         xor a
         ld (de),a
         ld hl,st_buf
-        call pt_width
-        ld b,a
         ld a,252
-        sub b
-        ld (pt_x),a
-        call pt_puts
+        call pt_puts_r
         xor a
         ld (pt_down),a
         ret
