@@ -46,7 +46,7 @@ Keys are read in the interrupt into an 8-key queue, so typing ahead is not lost.
 
 Opened by ENTER on an IL POU (or Edit > Edit POU).
 
-* Left: line numbers (black on bright white), separator line, then the program; one line = one character row.
+* Left: 3-digit line numbers with leading zeros (black on bright white), separator line, then the program; one line = one character row.
 * Type the instruction (lower case is fine) and press SPACE: a known mnemonic is converted to upper case
   and the cursor jumps to the operand column. Instructions are dark blue, operands black.
 * `//` at the start of a line makes a comment line (dark green). `NAME:` makes a label line.

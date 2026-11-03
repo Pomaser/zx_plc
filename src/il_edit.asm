@@ -893,7 +893,7 @@ il_draw_row:
         ld hl,(dr_line)
         inc hl
         ld de,dr_num
-        call utoa16
+        call dec3
         ld hl,dr_num
         ld a,IL_X_NUM
         call pt_puts_r
@@ -925,6 +925,29 @@ il_draw_row:
         call px_span
         xor a
         ld (il_cur_on),a
+        ret
+
+; ---- dec3: HL = 0..999 -> 3 digits with leading zeros + 0 at (DE)
+dec3:
+        ld bc,100
+        call .dig
+        ld bc,10
+        call .dig
+        ld a,l
+        add a,'0'
+        ld (de),a
+        inc de
+        xor a
+        ld (de),a
+        ret
+.dig:   ld a,'0'-1
+.l:     inc a
+        or a
+        sbc hl,bc
+        jr nc,.l
+        add hl,bc
+        ld (de),a
+        inc de
         ret
 
 ; ---- il_cursor_toggle: XORs the 1 px text cursor
