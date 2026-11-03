@@ -108,8 +108,16 @@ scr_run:
         jr .loop
 .letter:
         call to_upper
+        cp 'R'                  ; R toggles run / stop
+        jr nz,.nr
         ld b,CMD_RUN
-        cp 'R'
+        ld a,(sm_run)
+        or a
+        jr z,.c
+        ld b,CMD_STOP
+        jr .c
+.nr:    ld b,CMD_STOP
+        cp 'T'
         jr z,.c
         ld b,CMD_STEP
         cp 'S'
@@ -119,11 +127,11 @@ scr_run:
         jr nz,.loop
 .c:     ld a,b
         call sim_cmd
-        jr .loop
+        jp .loop
 .up:    ld hl,(sm_top)
         ld a,h
         or l
-        jr z,.loop
+        jp z,.loop
         dec hl
         ld (sm_top),hl
         call sim_draw_list
@@ -141,6 +149,8 @@ scr_run:
 .menu:  call menu_handle
         jp z,.loop
         cp CMD_RUN
+        jr z,.mc
+        cp CMD_STOP
         jr z,.mc
         cp CMD_STEP
         jr z,.mc
@@ -162,10 +172,12 @@ scr_run:
         pop af
         ret
 
-; ---- sim_cmd: A = CMD_RUN (run/stop), CMD_STEP, CMD_RESET
+; ---- sim_cmd: A = CMD_RUN, CMD_STOP, CMD_STEP, CMD_RESET
 sim_cmd:
         cp CMD_RESET
         jr z,.reset
+        cp CMD_STOP
+        jr z,.stop
         ld b,a
         ld a,(sm_ok)
         or a
@@ -175,12 +187,14 @@ sim_cmd:
 .ok:    ld a,b
         cp CMD_STEP
         jr z,.step
-        ld a,(sm_run)
-        xor 1
+        ld a,1
         ld (sm_run),a
         ld hl,(frames)
         dec hl
         ld (sm_lastf),hl
+        jr sim_state
+.stop:  xor a
+        ld (sm_run),a
         jr sim_state
 .step:  xor a
         ld (sm_run),a

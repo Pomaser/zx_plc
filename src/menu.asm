@@ -52,7 +52,8 @@ mi_view:
         db CMD_VIEW_ADDR,'A',"Addresses",0
         db 0
 mi_run:
-        db CMD_RUN,  'R',"Run/Stop",0
+        db CMD_RUN,  'R',"Run",0
+        db CMD_STOP, 'T',"Stop",0
         db CMD_STEP, 'S',"Step",0
         db CMD_RESET,'E',"Reset",0
         db 0
@@ -297,8 +298,6 @@ menu_open_drop:
 MENU_CHK_W EQU 8
 menu_checkable:
         ld a,(hl)
-        cp CMD_RUN
-        ret z
         cp CMD_VIEW_SYM
         ret z
         cp CMD_VIEW_ADDR
@@ -309,8 +308,6 @@ menu_checkable:
 ; ---- menu_active: HL = item record -> NC if the option is active now
 menu_active:
         ld a,(hl)
-        cp CMD_RUN
-        jr z,.run
         cp CMD_VIEW_SYM
         jr z,.sym
         cp CMD_VIEW_ADDR
@@ -322,9 +319,6 @@ menu_active:
         ret
 .sym:   ld a,(view_sym)
         cp 1                    ; NC if 1
-        ret
-.run:   ld a,(sm_run)           ; simulation running
-        cp 1
         ret
 
 ; ---- menu_inv_item: inverts row of item drop_sel in the open drop-down

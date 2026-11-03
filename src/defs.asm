@@ -63,6 +63,7 @@ CMD_SYMBOLS     EQU 17
 CMD_VIEW_SYM    EQU 18
 CMD_VIEW_ADDR   EQU 19
 CMD_REDRAW      EQU 20
+CMD_STOP        EQU 21
 
 ; ---- key codes ----------------------------------------------
 K_EDIT      EQU 7

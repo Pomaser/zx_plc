@@ -37,7 +37,7 @@ Keys are read in the interrupt into an 8-key queue, so typing ahead is not lost.
 | POU | Manage, New..., Rename..., Language..., Delete |
 | Edit | Edit POU, Symbols, Insert line, Delete line |
 | View | Symbols, Addresses (how operands are shown in the IL editor and the simulation) |
-| Run | Run/Stop, Step, Reset |
+| Run | Run, Stop, Step, Reset |
 | Help | Controls, About |
 
 * `MAIN` always exists and is the only POU called by the scan cycle; other POUs are called from MAIN.
@@ -78,7 +78,7 @@ and must not clash with addresses, keywords, FB instances, IL instructions or PO
 
 ## Simulation (Run)
 
-Run > Run/Stop (or R on the Run screen) compiles all POUs to bytecode and runs MAIN once per frame (20 ms).
+Run > Run (or R on the Run screen) compiles all POUs to bytecode and runs MAIN once per frame (20 ms).
 Compile errors are reported with the POU name and line number.
 
 * Upper part: listing of the monitored IL POU (the current POU, or MAIN) with the live value of each
