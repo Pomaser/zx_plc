@@ -216,39 +216,37 @@ menu_open_drop:
         jr .cnt
 .cdone: ld a,b
         ld (drop_n),a
-        ; cols = (maxw + 8 + 7) / 8 ; extra space for padding
+        ; width = max(maxw + 8, title highlight width)
         ld a,c
-        add a,8+7
-        rrca
-        rrca
-        rrca
-        and 31
-        ld e,a                  ; E = cols
-        ; c0 = (title_x - 3) / 8, clipped so that box fits
+        add a,8
+        ld e,a
         ld a,(menu_sel)
         ld c,a
         ld b,0
+        ld hl,menu_w
+        add hl,bc
+        ld a,(hl)
+        add a,5                 ; same width as the title inversion
+        cp e
+        jr c,.wok
+        ld e,a                  ; E = width px
+.wok:   ; x0 = left edge of the title inversion, clipped to the screen
         ld hl,menu_x
         add hl,bc
         ld a,(hl)
         sub 3
-        rrca
-        rrca
-        rrca
-        and 31
         ld c,a
         add a,e
-        cp 33
-        jr c,.fit
-        ld a,32
+        jr nc,.fit
+        xor a
         sub e
-        ld c,a
+        ld c,a                  ; x0 = 256 - width
 .fit:   ld b,1                  ; row 1
         ld a,(drop_n)
         ld d,a                  ; rows
         xor a
         ld (win_top),a          ; the bar separator is the top edge
-        call win_open
+        call win_open_px
         ; labels
         ld hl,(drop_list)
         ld a,1
@@ -258,10 +256,7 @@ menu_open_drop:
         ret z
         inc hl
         inc hl
-        ld a,(win_c)
-        add a,a
-        add a,a
-        add a,a
+        ld a,(win_bx)
         add a,4
         ld (pt_x),a
         call pt_puts
@@ -291,16 +286,10 @@ menu_inv_item:
         cp e
         jr nz,.nl
         dec l                   ; last item: skip bottom frame line
-.nl:    ld a,(win_c)
-        add a,a
-        add a,a
-        add a,a
+.nl:    ld a,(win_bx)
         inc a
         ld c,a
-        ld a,(win_cols)
-        add a,a
-        add a,a
-        add a,a
+        ld a,(win_bw)
         sub 2
         ld d,a
         ld e,PX_XOR
@@ -441,12 +430,50 @@ drop_list: dw 0
 drop_n:    db 0
 drop_sel:  db 0
 
-; ---- win_open: B = row, C = col, D = rows, E = cols
-;      saves covered cells, clears them (white paper), draws a 1 px frame
+; ---- win_open: B = row, C = col, D = rows, E = cols (cell aligned box)
 win_open:
-        ld (win_c),bc           ; win_c, win_r
-        ld (win_cols),de        ; win_cols, win_rows
-        ; save + clear
+        ld a,c
+        add a,a
+        add a,a
+        add a,a
+        ld c,a
+        ld a,e
+        add a,a
+        add a,a
+        add a,a
+        ld e,a
+        ; fall through
+; ---- win_open_px: B = row, D = rows, C = x0 (px), E = width (px)
+;      saves the covered cells, sets them black on white, clears the box
+;      pixels and draws a 1 px frame (top line only if win_top != 0)
+win_open_px:
+        ld a,b
+        ld (win_r),a
+        ld a,d
+        ld (win_rows),a
+        ld a,c
+        ld (win_bx),a
+        ld a,e
+        ld (win_bw),a
+        ; covered cells: c0 = x0/8, cols = (x0+w-1)/8 - c0 + 1
+        ld a,c
+        rrca
+        rrca
+        rrca
+        and 31
+        ld (win_c),a
+        ld a,c
+        add a,e
+        dec a
+        rrca
+        rrca
+        rrca
+        and 31
+        ld hl,win_c
+        sub (hl)
+        inc a
+        ld (win_cols),a
+        ; save cells, set attributes
         ld ix,win_save
         ld a,(win_rows)
         ld d,a
@@ -463,7 +490,6 @@ win_open:
         ld d,8
 .px:    ld a,(hl)
         ld (ix+0),a
-        ld (hl),0
         inc ix
         inc h
         dec d
@@ -479,6 +505,18 @@ win_open:
         inc c
         dec e
         jr nz,.cell
+        pop de
+        pop bc
+        push bc
+        push de
+        ; clear the box pixels of this row
+        ld a,(win_bx)
+        ld c,a
+        ld a,(win_bw)
+        ld d,a
+        ld hl,0x0008
+        ld e,PX_CLR
+        call px_span
         pop de
         pop bc
         inc b
@@ -547,15 +585,9 @@ win_geom:
         add a,b
         dec a
         ld l,a
-        ld a,(win_c)
-        add a,a
-        add a,a
-        add a,a
+        ld a,(win_bx)
         ld c,a
-        ld a,(win_cols)
-        add a,a
-        add a,a
-        add a,a
+        ld a,(win_bw)
         ld d,a
         ret
 
@@ -603,6 +635,8 @@ win_r:    db 0
 win_cols: db 0
 win_rows: db 0
 win_top:  db 1             ; 0 = window without top frame line
+win_bx:   db 0             ; box x (px)
+win_bw:   db 0             ; box width (px)
 
 ; ---- msg_box: HL = lines (each 0-terminated, list ends with an empty line)
 ;      shows a centred popup and waits for a key
@@ -647,10 +681,7 @@ msg_box:
         ld a,(win_r)
         inc a
         ld (pt_row),a
-        ld a,(win_c)
-        add a,a
-        add a,a
-        add a,a
+        ld a,(win_bx)
         add a,8
         ld (mb_x),a
         add a,MB_TAB
