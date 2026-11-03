@@ -83,7 +83,8 @@ scr_sym:
         ld a,F_OPER
         ld hl,ed_o
         jr .tofield
-.tocomm:
+.tocomm:                        ; (only reached from the address field)
+        call sy_norm_addr
         ld a,F_COMM
         ld hl,ed_c
 .tofield:
@@ -229,6 +230,41 @@ scr_sym:
         ld (il_pou),a           ; IL editor reloads its state
         pop af
         ret
+
+; ---- sy_norm_addr: the typed address (e.g. "i0.0") -> IEC form "%IX0.0"
+;      (left unchanged if it is not a valid I/Q/M address)
+sy_norm_addr:
+        ld hl,ed_o
+        ld a,(hl)
+        or a
+        ret z
+        call op_parse
+        ret c
+        ld b,a
+        ld a,(hl)
+        or a
+        ret nz
+        ld a,b
+        cp AR_I
+        jr z,.ok
+        cp AR_Q
+        jr z,.ok
+        cp AR_M
+        ret nz
+.ok:    ld (sy_narea),a
+        ld a,c
+        ld (sy_nidx),a
+        ld hl,ed_o              ; a symbol name is not an address
+        call sym_find_name
+        ret nc
+        ld a,(sy_nidx)
+        ld c,a
+        ld a,(sy_narea)
+        ld de,ed_o
+        ld hl,0
+        ld b,0
+        call op_format
+        jp sy_draw_edit
 
 ; ---- sy_count: il_n = number of symbols + 1 (empty row for a new one)
 sy_count:
