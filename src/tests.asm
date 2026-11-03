@@ -88,6 +88,7 @@ run_tests:
 
         ; ---- project tests
 .proj:  call proj_tests
+        call ptext_tests
         ; ---- result
         ld bc,0x0000
         ld (cur_col),bc
@@ -187,6 +188,75 @@ proj_tests:
         cp 1
         call t_check
         ret
+
+ptext_tests:
+        ; width of "ii" = 2 * 2 px
+        ld hl,t_ii
+        call pt_width
+        cp 4
+        call t_check
+        ; width of "File" = 5+2+3+5
+        ld hl,mt_file
+        call pt_width
+        cp 15
+        call t_check
+        ; XOR span twice must restore the screen (row 0 checksum)
+        call row0_sum
+        ld (t_val),hl
+        ld bc,0x0003            ; row 0, x = 3
+        ld d,77
+        ld hl,0x0008
+        ld e,PX_XOR
+        call px_span
+        call row0_sum
+        ld de,(t_val)
+        or a
+        sbc hl,de               ; must differ after one XOR
+        ld a,h
+        or l
+        jr z,.eq
+        xor a                   ; Z = pass
+        jr .chk
+.eq:    inc a                   ; NZ = fail
+.chk:   call t_check
+        ld bc,0x0003
+        ld d,77
+        ld hl,0x0008
+        ld e,PX_XOR
+        call px_span
+        call row0_sum
+        ld de,(t_val)
+        or a
+        sbc hl,de
+        call t_check
+        ret
+
+; row0_sum: HL = sum of all pixel bytes of char row 0
+row0_sum:
+        ld hl,0
+        ld de,0x4000
+        ld c,8
+.l1:    ld b,32
+        push de
+.l2:    ld a,(de)
+        add a,l
+        ld l,a
+        jr nc,.n
+        inc h
+.n:     inc a                   ; weight by position to catch moved bits
+        add a,l
+        ld l,a
+        jr nc,.n2
+        inc h
+.n2:    inc e
+        djnz .l2
+        pop de
+        inc d
+        dec c
+        jr nz,.l1
+        ret
+
+t_ii:   db "ii",0
 
 memset_hl_keep:
         push hl

@@ -15,12 +15,24 @@ Requires `sjasmplus` (>= 1.18). Headless tests: `pip install z80`, then `make te
 
 ## Controls (status: phase 1)
 
+The top menu bar (`File  POU  Edit  Run  Help`) uses a proportional 6x8 font, black on white;
+the selection is shown by inversion. Each title opens a drop-down submenu.
+
 | Key | Function |
 |---|---|
-| BREAK (CS+SPACE) or EDIT (CS+1) | top menu (POU / EDIT / RUN / FILE), LEFT/RIGHT select, ENTER |
-| UP / DOWN (CS+7 / CS+6) | move in the POU list |
-| ENTER / E | open the POU in the editor |
-| N / R / D / L | new POU / rename / delete / change language (empty POU only) |
+| BREAK (CS+SPACE) or EDIT (CS+1) | open the menu / close it |
+| LEFT / RIGHT (CS+5 / CS+8) | previous / next submenu |
+| UP / DOWN (CS+7 / CS+6) | move in a submenu or in the POU list |
+| ENTER | execute the item / open the selected POU in the editor |
+| letters | underlined hotkeys in the menu; N / R / D / L in the POU list |
+
+| Menu | Items |
+|---|---|
+| File | New project, Load..., Save..., About |
+| POU | Manage, New..., Rename..., Language..., Delete |
+| Edit | Edit POU |
+| Run | Run/Stop, Step, Reset |
+| Help | Controls |
 
 * `MAIN` always exists and is the only POU called by the scan cycle; other POUs are called from MAIN.
 * Max. 8 POUs, name max. 8 chars (A-Z, 0-9, _), must not clash with an address or FB instance.
@@ -42,7 +54,8 @@ The time base is 20 ms (one frame).
 ## Structure
 
 * `main.asm` - entry point, interrupts, screen switching
-* `src/` - modules (screen, keyboard, ui, project, operand, pou, app, tests)
+* `src/` - modules (screen, keyboard, ui, ptext, menu, project, operand, pou, app, tests)
+* `src/font6.asm` - generated from `tools/font6.txt` by `tools/mkfont.py` (edit the .txt, then run the script)
 * `tools/zxrun.py` - headless emulator for tests and screenshots, `tools/fixjr.py` - converts out-of-range JR to JP
 
 ## Memory map

@@ -22,6 +22,7 @@ START:
         ld a,ATTR_NORMAL
         ld (cur_attr),a
         call scr_cls
+        call menu_init
     IFDEF TEST
         jp run_tests
     ENDIF
@@ -33,13 +34,33 @@ main_loop:
         call kb_release
         ld a,(cur_screen)
         ld hl,screen_tab
-        call .disp
-        ld (cur_screen),a
+        call .disp              ; screen returns a command in A
+        call cmd_target
         jr main_loop
 .disp:  jp jump_table
 
 screen_tab:
-        dw scr_pou, scr_edit, scr_run, scr_file
+        dw scr_pou, scr_edit, scr_run
+
+; ---- cmd_target: A = command -> selects the screen to show next
+cmd_target:
+        cp CMD_POU_MANAGE
+        ret c
+        ld b,SCR_POU
+        jr z,.set
+        cp CMD_EDIT
+        jr c,.pou
+        ld b,SCR_EDIT
+        jr z,.set
+        cp CMD_KEYS
+        ret nc
+        ld b,SCR_RUN
+.set:   ld a,b
+        ld (cur_screen),a
+        ret
+.pou:   ld (pou_pending),a      ; POU action, executed by the POU screen
+        ld b,SCR_POU
+        jr .set
 
 cur_screen: db SCR_POU
 
@@ -75,6 +96,8 @@ frames: dw 0
         INCLUDE "src/screen.asm"
         INCLUDE "src/keyboard.asm"
         INCLUDE "src/ui.asm"
+        INCLUDE "src/ptext.asm"
+        INCLUDE "src/menu.asm"
         INCLUDE "src/project.asm"
         INCLUDE "src/operand.asm"
         INCLUDE "src/pou.asm"
@@ -83,6 +106,9 @@ frames: dw 0
         INCLUDE "src/tests.asm"
     ENDIF
 
+        INCLUDE "src/font6.asm"
+
+win_save: ds 9*24*12        ; cells saved under a popup window
 CODE_END:
         DISPLAY "Code end: ",/H,CODE_END," (limit 0xC000), free: ",/D,PROJ-CODE_END
         ASSERT CODE_END <= PROJ

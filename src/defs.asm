@@ -38,7 +38,23 @@ LANG_FBD    EQU 2
 SCR_POU     EQU 0
 SCR_EDIT    EQU 1
 SCR_RUN     EQU 2
-SCR_FILE    EQU 3
+
+; ---- menu commands ------------------------------------------
+CMD_NONE        EQU 0
+CMD_NEW         EQU 1
+CMD_LOAD        EQU 2
+CMD_SAVE        EQU 3
+CMD_ABOUT       EQU 4
+CMD_POU_MANAGE  EQU 5
+CMD_POU_NEW     EQU 6
+CMD_POU_RENAME  EQU 7
+CMD_POU_DELETE  EQU 8
+CMD_POU_LANG    EQU 9
+CMD_EDIT        EQU 10
+CMD_RUN         EQU 11
+CMD_STEP        EQU 12
+CMD_RESET       EQU 13
+CMD_KEYS        EQU 14
 
 ; ---- key codes ----------------------------------------------
 K_EDIT      EQU 7
@@ -52,9 +68,6 @@ K_BREAK     EQU 27
 
 ; ---- attributes ----------------------------------------------
 ATTR_NORMAL  EQU 0x38       ; black on white
-ATTR_BAR     EQU 0x4F       ; white on blue, bright
-ATTR_BAR_CUR EQU 0x4E       ; yellow on blue, bright
-ATTR_BAR_SEL EQU 0x68       ; black on cyan, bright
 ATTR_SEL     EQU 0x68
 ATTR_HINT    EQU 0x0F       ; white on blue
 ATTR_ERR     EQU 0x57       ; white on red, bright

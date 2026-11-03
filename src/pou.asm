@@ -9,6 +9,12 @@ scr_pou:
         call scr_puts
         ld hl,hint_pou
         call ui_hints
+        call pou_draw_list
+        ld hl,pou_pending       ; command requested from another screen
+        ld a,(hl)
+        ld (hl),0
+        or a
+        jr .cmd
 .redraw:
         call pou_draw_list
 .key:   call kb_wait
@@ -44,11 +50,19 @@ scr_pou:
         jr c,.key
         ld (cur_pou),a
         jr .redraw
-.edit:  ld a,SCR_EDIT
+.edit:  ld a,CMD_EDIT
         ret
-.menu:  call menu_switch
-        ret nz
-        jr .key
+.menu:  call menu_handle
+.cmd:   jr z,.key
+        cp CMD_POU_NEW
+        jp z,.new
+        cp CMD_POU_RENAME
+        jp z,.rename
+        cp CMD_POU_DELETE
+        jp z,.delete
+        cp CMD_POU_LANG
+        jp z,.lang
+        ret
 
 .new:   ld a,(PROJ+P_NPOU)
         cp MAX_POU
@@ -60,12 +74,12 @@ scr_pou:
         ld (name_buf),a
         ld a,0xFF
         call input_pou_name
-        jr c,.key
+        jp c,.key
         call ui_choose_lang
-        jr c,.key
+        jp c,.key
         ld hl,name8
         call pou_add
-        jr c,.key
+        jp c,.key
         ld (cur_pou),a
         jp .redraw
 
@@ -187,6 +201,7 @@ input_pou_name:
         ret
 
 ipn_slot: db 0
+pou_pending: db 0
 name_buf: ds 10
 
 ; ---- pou_draw_list

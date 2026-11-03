@@ -2,111 +2,12 @@
 ; ui.asm - menu, hints, error messages, line input
 ; ============================================================
 
-; ---- ui_draw_bar: A = highlighted item (0-3 / 0xFF), E = highlight attribute
-ui_draw_bar:
-        ld (bar_hl),a
-        push de
-        ld bc,0
-        ld (cur_col),bc
-        ld a,ATTR_BAR
-        ld (cur_attr),a
-        ld hl,bar_text
-        call scr_puts
-        pop de
-        ld a,(bar_hl)
-        cp 4
-        ret nc
-        add a,a
-        ld l,a
-        ld h,0
-        ld bc,bar_pos
-        add hl,bc
-        ld c,(hl)
-        inc hl
-        ld d,(hl)
-        ld b,0
-        jp scr_fill_attr
-
-bar_text: db " POU  EDIT  RUN  FILE     ZX-PLC",0
-bar_pos:  db 0,5, 5,6, 11,5, 16,6
-bar_hl:   db 0
-
-; ---- screen_begin: clears the screen and draws the bar with the current screen
+; ---- screen_begin: clears the screen and draws the menu bar
 screen_begin:
         ld a,ATTR_NORMAL
         ld (cur_attr),a
         call scr_cls
-        ld a,(cur_screen)
-        ld e,ATTR_BAR_CUR
-        jp ui_draw_bar
-
-; ---- ui_menu: selection in the bar. A = chosen screen or 0xFF
-ui_menu:
-        ld a,(cur_screen)
-        ld (menu_sel),a
-        ld hl,hint_menu
-        call ui_hints_tmp
-.draw:  ld a,(menu_sel)
-        ld e,ATTR_BAR_SEL
-        call ui_draw_bar
-.key:   call kb_wait
-        cp K_LEFT
-        jr z,.left
-        cp K_RIGHT
-        jr z,.right
-        cp K_ENTER
-        jr z,.ok
-        cp K_BREAK
-        jr z,.cancel
-        cp K_EDIT
-        jr z,.cancel
-        call to_upper
-        ld hl,menu_keys
-        ld b,4
-.hk:    cp (hl)
-        jr z,.hot
-        inc hl
-        djnz .hk
-        jr .key
-.hot:   ld a,4
-        sub b
-        ld (menu_sel),a
-        jr .ok
-.left:  ld a,(menu_sel)
-        dec a
-        and 3
-        ld (menu_sel),a
-        jr .draw
-.right: ld a,(menu_sel)
-        inc a
-        and 3
-        ld (menu_sel),a
-        jr .draw
-.ok:    ld a,(menu_sel)
-        jr .ret
-.cancel:
-        ld a,0xFF
-.ret:   push af
-        ld a,(cur_screen)
-        ld e,ATTR_BAR_CUR
-        call ui_draw_bar
-        call ui_hints_restore
-        pop af
-        ret
-
-menu_keys: db "PERF"
-menu_sel:  db 0
-
-; ---- menu_switch: opens the menu; NZ + A = new screen, Z = stay
-menu_switch:
-        call ui_menu
-        cp 0xFF
-        ret z
-        ld b,a
-        ld a,(cur_screen)
-        cp b
-        ld a,b
-        ret
+        jp menu_draw_bar
 
 ; ---- ui_hints: HL = hint text for rows 22-23 (stored for restore)
 ui_hints:
@@ -131,7 +32,6 @@ ui_hints_restore:
 
 hint_ptr: dw hint_none
 hint_none: db 0
-hint_menu: db " MENU  LEFT/RIGHT:select ENTER:ok",SC_AT,23,0," P/E/R/F hotkeys   BREAK cancel",0
 
 ; ---- ui_error: HL = error text, beeps, waits for a key, restores hints
 ui_error:
