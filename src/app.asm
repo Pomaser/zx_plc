@@ -4,6 +4,10 @@
 
 ; ---- EDIT screen: opens the editor for the current POU language
 scr_edit:
+        ld a,(cur_pou)
+        call pou_lang
+        cp LANG_IL
+        jp z,il_editor
         call screen_begin
         ld de,app_buf
         ld hl,txt_edit

@@ -55,6 +55,8 @@ CMD_RUN         EQU 11
 CMD_STEP        EQU 12
 CMD_RESET       EQU 13
 CMD_KEYS        EQU 14
+CMD_IL_INS      EQU 15
+CMD_IL_DEL      EQU 16
 
 ; ---- key codes ----------------------------------------------
 K_EDIT      EQU 7
@@ -72,6 +74,9 @@ BORDER      EQU 7           ; white border
 ATTR_NORMAL  EQU 0x38       ; black on white
 ATTR_CURSOR  EQU 0x87       ; flashing, white on black
 ATTR_TITLE   EQU 0x39       ; dark blue (ink 1, no BRIGHT) on white
+ATTR_LNUM    EQU 0x78       ; black on bright white (line numbers)
+ATTR_MNEM    EQU 0x39       ; dark blue on white (IL instruction)
+ATTR_COMMENT EQU 0x3C       ; dark green on white (comments)
 
 ; ---- operand areas ("area" byte) ----------------------------
 AR_NONE     EQU 0

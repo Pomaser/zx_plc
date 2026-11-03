@@ -35,12 +35,28 @@ Keys are read in the interrupt into an 8-key queue, so typing ahead is not lost.
 |---|---|
 | File | New project, Load..., Save..., About |
 | POU | Manage, New..., Rename..., Language..., Delete |
-| Edit | Edit POU |
+| Edit | Edit POU, Insert line, Delete line |
 | Run | Run/Stop, Step, Reset |
 | Help | Controls |
 
 * `MAIN` always exists and is the only POU called by the scan cycle; other POUs are called from MAIN.
 * Max. 8 POUs, name max. 8 chars (A-Z, 0-9, _), must not clash with an address or FB instance.
+
+## IL editor
+
+Opened by ENTER on an IL POU (or Edit > Edit POU).
+
+* Left: line numbers (black on bright white), separator line, then the program; one line = one character row.
+* Type the instruction (lower case is fine) and press SPACE: a known mnemonic is converted to upper case
+  and the cursor jumps to the operand column. Instructions are dark blue, operands black.
+* `//` at the start of a line makes a comment line (dark green). `NAME:` makes a label line.
+* ENTER stores the line (validated and normalised to the IEC form, e.g. `i0.3` -> `%IX0.3`) and opens a
+  new line below; UP/DOWN store and move; DELETE on an empty line removes it.
+* Edit menu: Insert line, Delete line. Errors are shown in a popup and the cursor stays on the line.
+
+Supported instructions: `LD LDN ST STN S R AND ANDN OR ORN XOR XORN NOT ADD SUB MUL DIV MOD
+GT GE EQ NE LE LT JMP JMPC JMPCN CAL CALC CALCN RET RETC RETCN )`, with the `(` modifier where IEC allows
+it (`AND(`, `ADD(` ...). FB calls: `CAL TON0(IN:=%IX0.0, PT:=T#2s)`; POU calls: `CAL PUMP`.
 
 ## Operands
 
@@ -59,7 +75,7 @@ The time base is 20 ms (one frame).
 ## Structure
 
 * `main.asm` - entry point, interrupts, screen switching
-* `src/` - modules (screen, keyboard, ui, ptext, menu, status, project, operand, pou, app, tests)
+* `src/` - modules (screen, keyboard, ui, ptext, menu, status, project, operand, pou, app, il_parse, il_edit, tests)
 * `src/font6.asm` - generated from `tools/font6.txt` by `tools/mkfont.py` (edit the .txt, then run the script)
 * `tools/zxrun.py` - headless emulator for tests and screenshots, `tools/fixjr.py` - converts out-of-range JR to JP
 

@@ -89,6 +89,7 @@ run_tests:
         ; ---- project tests
 .proj:  call proj_tests
         call ptext_tests
+        call il_tests
         ; ---- result
         ld bc,0x0000
         ld (cur_col),bc
@@ -257,6 +258,94 @@ row0_sum:
         ret
 
 t_ii:   db "ii",0
+
+; ---- IL line check: mnemonic, operand, expected text ("" = error)
+il_tests:
+        ld hl,il_cases
+.lp:    ld a,(hl)
+        cp 0xFF
+        ret z
+        ld (t_in),hl            ; mnemonic
+        call skipstr
+        ld (t_val),hl           ; operand
+        call skipstr
+        ld (t_exp),hl
+        call skipstr
+        ld (t_next),hl
+        xor a
+        ld (il_out),a
+        ld hl,(t_in)
+        ld a,(hl)
+        cp '/'
+        jr z,.lab               ; "/" marks a label test
+        ld de,(t_val)
+        call il_check
+        jr .chk
+.lab:   ld hl,(t_val)
+        call il_check_label
+.chk:   jr c,.err
+        ld hl,il_out
+        ld de,(t_exp)
+        call strcmp
+        jr .res
+.err:   ld hl,(t_exp)
+        ld a,(hl)
+        or a
+.res:   push af
+        call t_check
+        pop af
+        jr z,.next
+        ld hl,(t_in)            ; print the failing case
+        call scr_puts
+        ld a,' '
+        call scr_putc
+        ld hl,(t_val)
+        call scr_puts
+        ld a,(cur_row)
+        inc a
+        cp 22
+        jr c,.r
+        ld a,21
+.r:     ld b,a
+        ld c,0
+        ld (cur_col),bc
+.next:  ld hl,(t_next)
+        jr .lp
+
+il_cases:
+        db "ld",0,"i0.3",0,"LD",9,"%IX0.3",0
+        db "LDN",0," %mx5 ",0,"LDN",9,"%MX5",0
+        db "andn(",0,"m5",0,"ANDN(",9,"%MX5",0
+        db "and(",0,0,"AND(",0
+        db "st",0,"5",0,0
+        db "st",0,"i0.0",0,0
+        db "st",0,"mw3",0,"ST",9,"%MW3",0
+        db "s",0,"q0.7",0,"S",9,"%QX0.7",0
+        db "r",0,"mw1",0,0
+        db "not",0,0,"NOT",0
+        db "not",0,"x",0,0
+        db "ld",0,0,0
+        db "add",0,"-5",0,"ADD",9,"-5",0
+        db "gt",0,"t#1s",0,"GT",9,"T#1s",0
+        db "jmpc",0,"loop",0,"JMPC",9,"LOOP",0
+        db "jmp",0,"1x",0,0
+        db "cal",0,"ton0(in:=i0.0, pt:=t#2s)",0,"CAL",9,"TON0(IN:=%IX0.0, PT:=T#2s)",0
+        db "cal",0,"ctu1",0,"CAL",9,"CTU1",0
+        db "cal",0,"ton0(cu:=m1)",0,0
+        db "cal",0,"ton0(in:=m1",0,0
+        db "cal",0,"main",0,"CAL",9,"MAIN",0
+        db "cal",0,"xyz",0,0
+        db "cal",0,"5",0,0
+        db "ld",0,"ton0",0,0
+        db "ld",0,"ton0.q",0,"LD",9,"TON0.Q",0
+        db ")",0,0,")",0
+        db "foo",0,"1",0,0
+        db "ldx",0,"1",0,0
+        db "ld(",0,"1",0,0
+        db "/",0,"loop:",0,"LOOP:",0
+        db "/",0,"Start_1 :",0,0
+        db "/",0,"9x:",0,0
+        db 0xFF
 
 memset_hl_keep:
         push hl

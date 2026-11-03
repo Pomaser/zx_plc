@@ -107,6 +107,8 @@ frames: dw 0
         INCLUDE "src/operand.asm"
         INCLUDE "src/pou.asm"
         INCLUDE "src/app.asm"
+        INCLUDE "src/il_parse.asm"
+        INCLUDE "src/il_edit.asm"
     IFDEF TEST
         INCLUDE "src/tests.asm"
     ENDIF

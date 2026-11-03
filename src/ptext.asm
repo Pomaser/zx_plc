@@ -112,6 +112,30 @@ pt_puts:
         call pt_putc
         jr pt_puts
 
+; ---- pt_width_n: HL = string, A = max chars -> A = width of the first chars
+;      preserves BC, DE, HL
+pt_width_n:
+        push hl
+        push bc
+        ld c,a
+        ld b,0
+.l:     ld a,c
+        or a
+        jr z,.e
+        ld a,(hl)
+        or a
+        jr z,.e
+        call pt_charw
+        add a,b
+        ld b,a
+        inc hl
+        dec c
+        jr .l
+.e:     ld a,b
+        pop bc
+        pop hl
+        ret
+
 ; ---- pt_puts_r: HL = string, A = right edge x (exclusive) -> right aligned on pt_row
 pt_puts_r:
         ld b,a

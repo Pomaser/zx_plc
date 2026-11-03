@@ -190,7 +190,13 @@ input_pou_name:
         ld hl,err_name_used
         call ui_error
         jr .again
-.notop: ; IL instruction names are reserved too - added in phase 2
+.notop: ; IL instruction names are reserved too
+        ld hl,name_buf
+        call il_mnem_find
+        jr c,.notop2
+        ld hl,err_reserved
+        call ui_error
+        jp .again
 .notop2:
         ld hl,name_buf
         call name_pad

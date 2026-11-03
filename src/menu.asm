@@ -41,7 +41,9 @@ mi_pou:
         db CMD_POU_DELETE,'D',"Delete",0
         db 0
 mi_edit:
-        db CMD_EDIT,'E',"Edit POU",0
+        db CMD_EDIT,  'E',"Edit POU",0
+        db CMD_IL_INS,'I',"Insert line",0
+        db CMD_IL_DEL,'D',"Delete line",0
         db 0
 mi_run:
         db CMD_RUN,  'R',"Run/Stop",0
