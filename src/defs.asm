@@ -4,8 +4,8 @@
 
 ; ---- memory map ---------------------------------------------
 STACK_TOP   EQU 0x6000      ; stack 0x5D00-0x5FFF
-CODE_ORG    EQU 0x6000      ; editor code 0x6000-0xBFFF
-PROJ        EQU 0xC000      ; project (saved to tape)
+CODE_ORG    EQU 0x6000      ; editor code 0x6000-0xC7FF
+PROJ        EQU 0xC800      ; project 0xC800-0xEFFF, 10 KB (saved to tape)
 PROJ_END    EQU 0xF000
 BCODE       EQU 0xF000      ; compiled bytecode 0xF000-0xF7FF
 BCODE_END   EQU 0xF800

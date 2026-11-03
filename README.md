@@ -109,6 +109,6 @@ The time base is 20 ms (one frame).
 ## Memory map
 
 ```
-6000-BFFF  code      C000-EFFF  project (saved to tape)
+6000-C7FF  code      C800-EFFF  project, 10 KB (saved to tape)
 F000-F7FF  bytecode  F800-FDFC  runtime   FDFD-FF00  IM2
 ```

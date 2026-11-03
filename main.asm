@@ -134,7 +134,7 @@ frames: dw 0
 
 win_save: ds 9*24*12        ; cells saved under a popup window
 CODE_END:
-        DISPLAY "Code end: ",/H,CODE_END," (limit 0xC000), free: ",/D,PROJ-CODE_END
+        DISPLAY "Code end: ",/H,CODE_END," (limit ",/H,PROJ,"), free: ",/D,PROJ-CODE_END
         ASSERT CODE_END <= PROJ
 
     IFDEF TEST
