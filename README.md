@@ -11,7 +11,9 @@ make            # -> zxplc.sna  (run in Fuse: make run)
 make test       # test build + headless run (requires the Python package z80)
 ```
 
-Requires `sjasmplus` (>= 1.18). Headless tests: `pip install z80`, then `make test PYTHON=/path/to/python`.
+Requires `sjasmplus` (>= 1.18). Headless tests need the Python package `z80`:
+`python3 -m venv .scratch/venv && .scratch/venv/bin/pip install z80` (used automatically by `make test`),
+or `make test PYTHON=/path/to/python`. The `.scratch/` folder is ignored by Git.
 
 ## Controls (status: phase 1)
 

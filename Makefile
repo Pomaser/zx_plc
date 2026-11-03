@@ -1,6 +1,7 @@
 # ZX-PLC build
-# PYTHON must have the "z80" package (pip install z80) for headless tests
-PYTHON ?= python3
+# PYTHON must have the "z80" package (pip install z80) for headless tests;
+# a local venv in .scratch/venv is used automatically if it exists
+PYTHON ?= $(if $(wildcard .scratch/venv/bin/python),.scratch/venv/bin/python,python3)
 SRC := main.asm $(wildcard src/*.asm)
 
 all: zxplc.sna
