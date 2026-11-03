@@ -1,12 +1,13 @@
 ; ============================================================
 ; sym_edit.asm - symbol editor (Edit > Symbols)
 ; ============================================================
-; Fixed list of 80 addresses: %IX0.0-0.7, %QX0.0-0.7, %MX0-63.
-; Cells 0-4 address (bright white, current row inverted), separator
-; at x=39, symbol name (dark blue) at x=44, comment (dark green) at x=96.
-; Uses the IL editor machinery (il_cur/il_top/il_n, cursor, fields).
+; Free list: one row per symbol record (sorted by address) plus an
+; empty row at the end for a new entry. Row fields: address (cells
+; 0-4, bright white, current row inverted), name (dark blue, x=44),
+; comment (dark green, x=96). SPACE moves to the next field.
+; Uses the IL editor machinery (il_cur/il_top/il_n, cursor, fields):
+;   F_OPER = address, F_MNEM = name, F_COMM = comment.
 ; ============================================================
-SY_ROWS   EQU 80
 SY_X_ADDR EQU 4
 SY_X_SEP  EQU 39
 SY_X_NAME EQU 44
@@ -19,14 +20,20 @@ scr_sym:
         ld (sy_scur),hl
         ld hl,(il_top)
         ld (sy_stop),hl
-        ld hl,(sy_cur)
-        ld (il_cur),hl
-        ld hl,(sy_top)
-        ld (il_top),hl
-        ld hl,SY_ROWS
-        ld (il_n),hl
         ld a,1
         ld (ed_mode),a
+        call sy_count
+        ld hl,(sy_cur)
+        ld de,(il_n)
+        or a
+        sbc hl,de
+        add hl,de
+        jr c,.cok
+        ld hl,(il_n)
+        dec hl
+.cok:   ld (il_cur),hl
+        ld hl,(sy_top)
+        ld (il_top),hl
         call sy_load
         call il_fix_top
 .full:  call sy_redraw_all
@@ -42,7 +49,7 @@ scr_sym:
         cp K_RIGHT
         jr z,.right
         cp K_DEL
-        jr z,.del
+        jp z,.del
         cp K_BREAK
         jp z,.menu
         cp K_EDIT
@@ -51,61 +58,75 @@ scr_sym:
         jr c,.loop
         cp 128
         jr nc,.loop
-        ld b,a
+        cp ' '
+        jr nz,.ins
         ld a,(ed_field)
-        cp F_COMM
-        ld a,b
-        jr z,.ins
-        cp ' '                  ; SPACE in the name -> comment
+        cp F_OPER
+        jr z,.toname
+        cp F_MNEM
         jr z,.tocomm
+        ld a,' '
 .ins:   call ed_insert
-        call c,beep
+        jr c,.beep
+        ld a,1
+        ld (sy_mod),a
 .redraw:
-        call sy_draw_cur_text
+        call sy_draw_edit
         jr .loop
-.tocomm:
-        ld a,F_COMM
-        ld (ed_field),a
-        ld hl,ed_c
-        call strlen
-        ld (ed_pos),a
+.beep:  call beep
         jr .loop
 .toname:
+        ld a,(ed_o)
+        or a
+        jr z,.loop
         ld a,F_MNEM
-        ld (ed_field),a
         ld hl,ed_m
+        jr .tofield
+.tocomm:
+        ld a,F_COMM
+        ld hl,ed_c
+.tofield:
+        ld (ed_field),a
         call strlen
         ld (ed_pos),a
         jr .loop
 .left:  ld a,(ed_pos)
         or a
-        jr z,.l0
+        jr z,.back
         dec a
         ld (ed_pos),a
         jr .loop
-.l0:    ld a,(ed_field)
+.back:  ld a,(ed_field)         ; previous field
         cp F_COMM
         jr z,.toname
-        jr .loop
+        cp F_MNEM
+        jp nz,.loop
+        ld a,F_OPER
+        ld hl,ed_o
+        jr .tofield
 .right: call ed_field_info
         call strlen
         ld b,a
         ld a,(ed_pos)
         cp b
-        jr nc,.r0
+        jr nc,.fwd
         inc a
         ld (ed_pos),a
         jp .loop
-.r0:    ld a,(ed_field)
-        cp F_COMM
-        jr nz,.tocomm
+.fwd:   ld a,(ed_field)         ; next field
+        cp F_OPER
+        jr z,.toname
+        cp F_MNEM
+        jr z,.tocomm
         jp .loop
 .del:   ld a,(ed_pos)
         or a
-        jr z,.l0
+        jr z,.back
         dec a
         ld (ed_pos),a
         call ed_del_char
+        ld a,1
+        ld (sy_mod),a
         jr .redraw
 
 .up:    call sy_commit
@@ -113,17 +134,34 @@ scr_sym:
         ld hl,(il_cur)
         ld a,h
         or l
-        jr z,.same
+        jr z,.stay
         dec hl
         jr .move
 .down:  call sy_commit
         jp c,.loop
-        ld hl,(il_cur)
+        ld a,(sy_dirty)         ; a new symbol was added -> next new entry
+        or a
+        jr z,.dn
+        ld a,(sy_old)
+        or a
+        jr nz,.dn
+        ld hl,(il_n)
+        dec hl
+        jr .move
+.dn:    ld hl,(il_cur)
         inc hl
-        ld a,l
-        cp SY_ROWS
+        ld de,(il_n)
+        or a
+        sbc hl,de
+        add hl,de
         jr c,.move
-.same:  call sy_draw_cur        ; stays: show the stored form
+.stay:  ld a,(sy_dirty)
+        or a
+        jr z,.st2
+        call sy_load            ; the row content changed
+        jp .full
+.st2:
+        call sy_draw_cur
         jp .loop
 .move:  push hl
         call il_row_cur
@@ -132,7 +170,12 @@ scr_sym:
         ld (il_oldln),hl
         pop hl
         ld (il_cur),hl
+        ld a,(sy_dirty)         ; (sy_load clears it)
+        push af
         call sy_load
+        pop af
+        or a
+        jr nz,.mfull
         call il_fix_top
         jp nz,.full
         ld a,(il_oldrow)
@@ -141,13 +184,38 @@ scr_sym:
         call sy_draw_row
         call sy_draw_cur
         jp .loop
+.mfull: call il_fix_top
+        jp .full
 
 .menu:  call sy_commit
         jp c,.loop
+        call sy_load
+        ld a,(sy_dirty)
+        or a
+        call nz,sy_redraw_all
         call sy_draw_cur
         call menu_handle
         jp z,.loop
-        push af
+        cp CMD_REDRAW
+        jp z,.full
+        cp CMD_IL_DEL
+        jr nz,.exit
+        ; Edit > Delete line: remove the symbol of this row
+        ld de,(il_cur)
+        call sy_rec
+        jp c,.loop
+        inc hl
+        ld a,(hl)
+        inc hl
+        ld c,(hl)
+        ld hl,cp_empty
+        ld de,cp_empty
+        call sym_store
+        call sy_count
+        call status_right
+        call sy_load
+        jp .full
+.exit:  push af
         ld hl,(il_cur)
         ld (sy_cur),hl
         ld hl,(il_top)
@@ -163,23 +231,37 @@ scr_sym:
         pop af
         ret
 
-; ---- sy_addr: E = row -> A = area, C = index
-sy_addr:
-        ld a,e
-        cp 8
-        jr nc,.q
-        ld c,a
-        ld a,AR_I
+; ---- sy_count: il_n = number of symbols + 1 (empty row for a new one)
+sy_count:
+        call sym_first
+        ld bc,1
+.l:     push bc
+        call sym_at_end
+        pop bc
+        jr nc,.e
+        inc bc
+        call sym_next
+        jr .l
+.e:     ld (il_n),bc
         ret
-.q:     cp 16
-        jr nc,.m
-        sub 8
-        ld c,a
-        ld a,AR_Q
-        ret
-.m:     sub 16
-        ld c,a
-        ld a,AR_M
+
+; ---- sy_rec: DE = row -> NC: HL = record; C: the empty row (or beyond)
+sy_rec: ld b,d
+        ld c,e
+        push bc
+        call sym_first
+        pop bc
+.l:     push bc
+        call sym_at_end
+        pop bc
+        jr nc,.new
+        ld a,b
+        or c
+        ret z
+        dec bc
+        call sym_next
+        jr .l
+.new:   scf
         ret
 
 ; ---- sy_split: HL = record -> name to (sp_m), comment to (sp_c)
@@ -216,45 +298,220 @@ sy_split:
         ld (de),a
         ret
 
-; ---- sy_load: row il_cur -> edit buffers
+; ---- sy_rec_text: HL = record -> address to (sp_o), name/comment via sy_split
+sy_rec_text:
+        push hl
+        inc hl
+        ld a,(hl)
+        inc hl
+        ld c,(hl)
+        ld de,(sp_o)
+        ld hl,0
+        ld b,0
+        call op_format
+        pop hl
+        jr sy_split
+
+; ---- sy_load: row il_cur -> edit buffers (cursor at the end of the last field)
 sy_load:
         xor a
         ld (ed_m),a
+        ld (ed_o),a
         ld (ed_c),a
-        ld (ed_field),a         ; F_MNEM
+        ld (ed_pos),a
+        ld (sy_mod),a
+        ld (sy_dirty),a
+        ld a,F_OPER
+        ld (ed_field),a
         ld hl,ed_m
         ld (sp_m),hl
+        ld hl,ed_o
+        ld (sp_o),hl
         ld hl,ed_c
         ld (sp_c),hl
         ld de,(il_cur)
-        call sy_addr
-        call sym_find_addr
-        call nc,sy_split
+        call sy_rec
+        ret c
+        call sy_rec_text
+        ld a,F_COMM
+        ld hl,ed_c
+        ld b,(hl)
+        inc b
+        dec b
+        jr nz,.set
+        ld a,F_MNEM
         ld hl,ed_m
+        ld b,(hl)
+        inc b
+        dec b
+        jr nz,.set
+        ld a,F_OPER
+        ld hl,ed_o
+.set:   ld (ed_field),a
         call strlen
         ld (ed_pos),a
         ret
 
-; ---- sy_commit: validates and stores the edited row; C = error shown
+; ---- sy_commit: validates and stores the edited row
+;      C = error shown; sy_dirty = 1 if the list changed (il_cur = its new row)
 sy_commit:
+        xor a
+        ld (sy_dirty),a
+        ld a,(sy_mod)
+        or a
+        ret z                   ; nothing edited
+        ; old address of this row
+        xor a
+        ld (sy_old),a
         ld de,(il_cur)
-        call sy_addr
-        ld (sy_area),a
+        call sy_rec
+        jr c,.nold
+        inc hl
+        ld a,(hl)
+        ld (sy_oarea),a
+        inc hl
+        ld a,(hl)
+        ld (sy_oidx),a
+        ld a,1
+        ld (sy_old),a
+.nold:  ; everything empty -> delete the row
+        ld a,(ed_o)
         ld hl,ed_m
+        or (hl)
+        ld hl,ed_c
+        or (hl)
+        jr nz,.addr
+        ld a,(sy_old)
+        or a
+        jp z,.done
+        call .delold
+        jp .stored
+.addr:  ld a,(ed_o)
+        or a
+        ld hl,err_sy_noaddr
+        jp z,.err
+        ld hl,ed_o
+        call op_parse
+        jp c,.badaddr
+        ld b,a
+        ld a,(hl)
+        or a
+        jp nz,.badaddr
+        ld a,b
+        cp AR_I
+        jr z,.aok
+        cp AR_Q
+        jr z,.aok
+        cp AR_M
+        jp nz,.badaddr
+.aok:   ld (sy_narea),a
+        ld a,c
+        ld (sy_nidx),a
+        ld hl,ed_o              ; a symbol name is not an address
+        call sym_find_name
+        jp nc,.badaddr
+        ; address used by another row?
+        call .same
+        jr z,.free
+        ld a,(sy_nidx)
+        ld c,a
+        ld a,(sy_narea)
+        call sym_find_addr
+        ld hl,err_sy_used
+        jp nc,.err
+.free:  ; name check: a name of this row's old address counts as its own
+        ld a,(sy_nidx)
+        ld c,a
+        ld a,(sy_narea)
+        ld b,a
+        ld hl,ed_m
+        push bc
+        call sym_find_name
+        pop de                  ; D = new area, E = new index
+        jr c,.vnew
+        ld b,a
+        ld a,(sy_old)
+        or a
+        jr z,.vnew
+        ld a,(sy_oarea)
+        cp b
+        jr nz,.vnew
+        ld a,(sy_oidx)
+        cp c
+        jr nz,.vnew
+        ld a,b                  ; validate against the old address
+        jr .val
+.vnew:  ld a,d
+        ld c,e
+.val:   ld hl,ed_m
         call sym_validate
-        jr c,.err
-        ld de,(il_cur)
-        call sy_addr
+        jr c,.verr
+        ; store
+        ld a,(sy_old)
+        or a
+        call nz,.delold
+        ld a,(sy_nidx)
+        ld c,a
+        ld a,(sy_narea)
         ld hl,ed_m
         ld de,ed_c
         call sym_store
         ret c
+        ; the row of the stored record
+        ld a,(sy_nidx)
+        ld c,a
+        ld a,(sy_narea)
+        call sym_find_addr
+        ex de,hl
+        call sym_first
+        ld bc,0
+.pos:   or a
+        sbc hl,de
+        add hl,de
+        jr z,.posok
+        inc bc
+        push de
+        call sym_next
+        pop de
+        jr .pos
+.posok: ld (il_cur),bc
+.stored:
+        call sy_count
         call status_right
-        or a
+        ld a,1
+        ld (sy_dirty),a
+.done:  xor a
+        ld (sy_mod),a
         ret
-.err:   ld hl,(il_err)
-        call ui_error
+.badaddr:
+        ld hl,err_sy_addr
+        jr .err
+.verr:  ld hl,(il_err)
+.err:   call ui_error
         scf
+        ret
+.delold:
+        ld a,(sy_oidx)
+        ld c,a
+        ld a,(sy_oarea)
+        ld hl,cp_empty
+        ld de,cp_empty
+        jp sym_store
+; Z if the new address equals the old one of this row
+.same:  ld a,(sy_old)
+        or a
+        jr z,.nz
+        ld a,(sy_narea)
+        ld b,a
+        ld a,(sy_oarea)
+        cp b
+        ret nz
+        ld a,(sy_nidx)
+        ld b,a
+        ld a,(sy_oidx)
+        cp b
+        ret
+.nz:    or 1
         ret
 
 ; ---- drawing
@@ -277,7 +534,11 @@ sy_redraw_all:
         inc (hl)
         jr .l
 
-sy_draw_cur_text:
+; sy_draw_edit: after editing a field (address field -> whole row)
+sy_draw_edit:
+        ld a,(ed_field)
+        cp F_OPER
+        jr z,sy_draw_cur
         ld a,1
         ld (dr_text),a
 sy_draw_cur:
@@ -289,16 +550,24 @@ sy_draw_row:
         ld a,b
         ld (dr_row),a
         ld (dr_line),de
+        xor a
+        ld (dr_kind),a
         ld hl,(il_cur)
         or a
         sbc hl,de
         jr nz,.rec
+        ld hl,ed_o
+        ld (dr_o),hl
         ld hl,ed_m
         ld (dr_m),hl
         ld hl,ed_c
         ld (dr_c),hl
         jr .attr
-.rec:   ld hl,rd_m
+.rec:   ld hl,rd_o
+        ld (dr_o),hl
+        ld (sp_o),hl
+        ld (hl),0
+        ld hl,rd_m
         ld (dr_m),hl
         ld (sp_m),hl
         ld (hl),0
@@ -307,9 +576,15 @@ sy_draw_row:
         ld (sp_c),hl
         ld (hl),0
         ld de,(dr_line)
-        call sy_addr
-        call sym_find_addr
-        call nc,sy_split
+        call sy_rec
+        call nc,sy_rec_text
+        ld hl,(dr_line)         ; beyond the empty row: no address column
+        ld de,(il_n)
+        or a
+        sbc hl,de
+        jr c,.attr
+        ld a,K_NONE
+        ld (dr_kind),a
 .attr:  ld a,(dr_row)
         ld b,a
         ld c,0
@@ -354,15 +629,9 @@ sy_draw_row:
         ld hl,0x0008
         ld e,PX_SET
         call px_span
-        ld de,(dr_line)
-        call sy_addr
-        ld de,sy_abuf
-        ld hl,0
-        ld b,0
-        call op_format
         ld a,SY_X_ADDR
         ld (pt_x),a
-        ld hl,sy_abuf
+        ld hl,(dr_o)
         call pt_puts
 .text:  ld a,SY_X_NAME
         ld (pt_x),a
@@ -395,10 +664,19 @@ sy_draw_row:
         ld (il_cur_on),a
         ret
 
-sy_cur:  dw 0
-sy_top:  dw 0
-sy_scur: dw 0
-sy_stop: dw 0
-sy_end:  dw 0
-sy_area: db 0
-sy_abuf: ds 8
+err_sy_noaddr: db "Address required",0
+err_sy_addr:   db "Invalid address (I, Q, M)",0
+err_sy_used:   db "Address already defined",0
+
+sy_cur:   dw 0
+sy_top:   dw 0
+sy_scur:  dw 0
+sy_stop:  dw 0
+sy_end:   dw 0
+sy_mod:   db 0
+sy_dirty: db 0
+sy_old:   db 0
+sy_oarea: db 0
+sy_oidx:  db 0
+sy_narea: db 0
+sy_nidx:  db 0

@@ -32,17 +32,11 @@ status_draw:
         call status_left
         jp status_right
 
-; ---- status_left: left part (cells 0-17): st_left text if set (comment of
-;      the current element), else "POU: name (lang)"; redrawn only on change
+; ---- status_left: left part (cells 0-23): "POU: name (lang)" followed by the
+;      st_left text if set (comment of the current element); redrawn only on change
 status_left:
         ld de,st_buf
-        ld hl,(st_left)
-        ld a,h
-        or l
-        jr z,.pou
-        call put_str
-        jr .term
-.pou:   ld hl,txt_st_pou
+        ld hl,txt_st_pou
         call put_str
         ld a,(cur_pou)
         call pou_entry
@@ -55,6 +49,16 @@ status_left:
         ld a,')'
         ld (de),a
         inc de
+        ld hl,(st_left)         ; comment of the current element
+        ld a,h
+        or l
+        jr z,.term
+        ld a,' '
+        ld (de),a
+        inc de
+        ld (de),a
+        inc de
+        call put_str
 .term:  xor a
         ld (de),a
         ld hl,st_buf
@@ -69,8 +73,13 @@ status_left:
         ld c,0
         ld b,ST_RCOL
         call st_clear
+        ld a,ST_RCOL*8-4        ; clip before the right part
+        ld (pt_xmax),a
         ld a,4
-        jr st_print
+        call st_print
+        ld a,255
+        ld (pt_xmax),a
+        ret
 
 ; st_clear: C = first cell, B = cells -> clears pixel lines 1-7 of the bar
 st_clear:
@@ -108,7 +117,7 @@ st_print:
 
 ; ---- status_right: redraws only the right part of the status bar (free
 ;      memory, or st_right text if set) and only when the text changed
-ST_RCOL EQU 18              ; first cell of the right part
+ST_RCOL EQU 24              ; first cell of the right part
 status_right:
         ld de,st_buf
         ld hl,(st_right)
@@ -177,8 +186,8 @@ txt_st_pou:  db "POU: ",0
 txt_st_open: db " (",0
 txt_st_free: db "Free ",0
 txt_st_b:    db " B",0
-st_buf:      ds 34
+st_buf:      ds 60
 st_last:     ds 24
-st_llast:    ds 34
+st_llast:    ds 60
 st_left:     dw 0             ; text for the left part (0 = POU info)
 st_right:    dw 0             ; text for the right part (0 = free memory)

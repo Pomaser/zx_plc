@@ -62,13 +62,14 @@ it (`AND(`, `ADD(` ...). FB calls: `CAL TON0(IN:=%IX0.0, PT:=T#2s)`; POU calls: 
 
 ## Symbols
 
-Edit > Symbols opens a fixed list of all addresses (%IX0.0-0.7, %QX0.0-0.7, %MX0-63). Each address can get
-a symbolic name (max. 8 chars, identifier, dark blue) and a comment (max. 30 chars, dark green); the editor
-works like the IL editor (SPACE jumps from the name to the comment, ENTER/UP/DOWN store the row).
+Edit > Symbols opens the list of defined symbols, sorted by address, with an empty row at the end for a new
+one. Type the address (`%IX0.0`, `i0.0`, `%QX0.1`, `m5` ... only I, Q, M), SPACE, the symbolic name (max. 8 chars,
+identifier, dark blue), SPACE, the comment (max. 30 chars, dark green). ENTER/UP/DOWN store the row (the list is
+re-sorted), clearing the name and the comment removes the symbol, Edit > Delete line deletes it too.
 
 Symbols can be typed in IL instead of addresses (`LD Start`); the program stores the address and the
 editor and the simulation show the symbol, so renaming a symbol changes it everywhere (View > Addresses shows
-the addresses instead). In the IL editor the status bar shows the comment of the operand on the current line. Names must be unique
+the addresses instead). In the IL editor the status bar shows the comment of the operand on the current line after the POU name. Names must be unique
 and must not clash with addresses, keywords, FB instances, IL instructions or POU names.
 
 ## Simulation (Run)

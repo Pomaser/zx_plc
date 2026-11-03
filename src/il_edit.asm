@@ -837,9 +837,11 @@ ed_field_info:
         ld bc,ED_CLEN*256+IL_X_MNEM
         ld d,IL_X_MAX
         ret
-.sym:   ld a,(ed_field)         ; symbol editor: name / comment
+.sym:   ld a,(ed_field)         ; symbol editor: address / name / comment
         cp F_COMM
         jr z,.sc
+        cp F_OPER
+        jr z,.sa
         ld hl,ed_m
         ld bc,SYM_NMAX*256+SY_X_NAME
         ld d,SY_X_COMM-2
@@ -847,6 +849,10 @@ ed_field_info:
 .sc:    ld hl,ed_c
         ld bc,SYM_CMAX*256+SY_X_COMM
         ld d,IL_X_MAX
+        ret
+.sa:    ld hl,ed_o
+        ld bc,8*256+SY_X_ADDR
+        ld d,SY_X_SEP-2
         ret
 
 ; ---- ed_insert: A = char -> inserted at ed_pos; C = full / too wide

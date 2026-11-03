@@ -23,9 +23,9 @@ pt_putc:
         ld (pt_x),a
         jp .done
 .nt:    sub 32
-        jr c,.done
+        jp c,.done
         cp FONT_N
-        jr nc,.done
+        jp nc,.done
         ld l,a
         ld h,0
         ld de,font6_w
@@ -46,9 +46,13 @@ pt_putc:
         ld a,(pt_x)
         ld e,a
         add a,c
-        jr nc,.nov
-        ld a,255
-.nov:   ld (pt_x),a             ; advance cursor
+        jr c,.done              ; past the screen edge
+        ld b,a
+        ld a,(pt_xmax)
+        cp b
+        jr c,.done              ; past the clipping limit
+        ld a,b
+        ld (pt_x),a             ; advance cursor
         ld a,e
         and 7
         ld (pt_sh),a
@@ -303,6 +307,7 @@ pt_row:   db 0
 pt_tab:   db 0
 pt_skip:  db 0             ; glyph lines skipped at the top
 pt_down:  db 0             ; 1 = glyph drawn one line lower (last line dropped)
+pt_xmax:  db 255           ; glyphs ending past this x are not drawn
 pt_sh:    db 0
 pt_gp:    dw 0
 ps_line:                        ; L = count, H = first line (ld (ps_line),hl)
