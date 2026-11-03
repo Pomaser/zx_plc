@@ -477,7 +477,7 @@ il_ins_empty:
         ld hl,(il_n)
         inc hl
         ld (il_n),hl
-        call status_draw
+        call status_right
         or a
         ret
 .mem:   ld hl,err_il_mem
@@ -496,7 +496,7 @@ il_del_line:
         ld hl,(il_n)
         dec hl
         ld (il_n),hl
-        jp status_draw
+        jp status_right
 
 ; ---- il_commit: validates the edit buffer and stores it as line il_cur
 ;      C = error (message shown)
@@ -574,7 +574,7 @@ il_commit:
         ld b,0
         ld a,(cur_pou)
         call pou_delete
-        call status_draw
+        call status_right
 .done:  call il_load            ; show the normalised form
         or a
         ret
