@@ -53,6 +53,7 @@ cmd_target:
         jr z,.set
         cp CMD_KEYS
         ret nc
+        ld (sim_pending),a      ; Run/Step/Reset, executed by the RUN screen
         ld b,SCR_RUN
 .set:   ld a,b
         ld (cur_screen),a
@@ -109,6 +110,9 @@ frames: dw 0
         INCLUDE "src/app.asm"
         INCLUDE "src/il_parse.asm"
         INCLUDE "src/il_edit.asm"
+        INCLUDE "src/il_comp.asm"
+        INCLUDE "src/vm.asm"
+        INCLUDE "src/sim.asm"
     IFDEF TEST
         INCLUDE "src/tests.asm"
     ENDIF

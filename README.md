@@ -59,6 +59,20 @@ Supported instructions: `LD LDN ST STN S R AND ANDN OR ORN XOR XORN NOT ADD SUB 
 GT GE EQ NE LE LT JMP JMPC JMPCN CAL CALC CALCN RET RETC RETCN )`, with the `(` modifier where IEC allows
 it (`AND(`, `ADD(` ...). FB calls: `CAL TON0(IN:=%IX0.0, PT:=T#2s)`; POU calls: `CAL PUMP`.
 
+## Simulation (Run)
+
+Run > Run/Stop (or R on the Run screen) compiles all POUs to bytecode and runs MAIN once per frame (20 ms).
+Compile errors are reported with the POU name and line number.
+
+* Upper part: listing of the monitored IL POU (the current POU, or MAIN) with the live value of each
+  operand on the right (`TRUE` inverted, `FALSE`, numbers). UP/DOWN scroll.
+* Lower part: input LEDs %IX0.0-0.7 (green) and output LEDs %QX0.0-0.7 (red).
+* Keys: `1`-`8` toggle inputs, SYMBOL SHIFT + `1`-`8` push button (input on while held),
+  `R` run/stop, `S` single scan, `E` reset all data. The status bar shows RUN / STOP.
+* Standard FBs: TON, TOF, TP, CTU, CTD, R_TRIG, F_TRIG, SR, RS. Calls of other POUs: max. depth 8.
+  A watchdog stops a scan that executes more than 30000 instructions.
+* LD and FBD POUs are not compiled yet (a call of such a POU does nothing).
+
 ## Operands
 
 | Area | IEC | Short | Range |
@@ -76,7 +90,8 @@ The time base is 20 ms (one frame).
 ## Structure
 
 * `main.asm` - entry point, interrupts, screen switching
-* `src/` - modules (screen, keyboard, ui, ptext, menu, status, project, operand, pou, app, il_parse, il_edit, tests)
+* `src/` - modules (screen, keyboard, ui, ptext, menu, status, project, operand, pou, app, il_parse, il_edit,
+  il_comp (IL -> bytecode), vm (interpreter + standard FBs), sim (Run screen), tests)
 * `src/font6.asm` - generated from `tools/font6.txt` by `tools/mkfont.py` (edit the .txt, then run the script)
 * `tools/zxrun.py` - headless emulator for tests and screenshots, `tools/fixjr.py` - converts out-of-range JR to JP
 

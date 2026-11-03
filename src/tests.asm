@@ -90,6 +90,7 @@ run_tests:
 .proj:  call proj_tests
         call ptext_tests
         call il_tests
+        call vm_tests
         ; ---- result
         ld bc,0x0000
         ld (cur_col),bc
@@ -345,6 +346,242 @@ il_cases:
         db "/",0,"loop:",0,"LOOP:",0
         db "/",0,"Start_1 :",0,0
         db "/",0,"9x:",0,0
+        db 0xFF
+
+; ---- compiler + VM tests
+vm_tests:
+        ; program 1: latch with reset
+        ld hl,t_prog1
+        xor a
+        call t_prog
+        call il_compile
+        call t_nc
+        call vm_reset
+        ld a,1
+        call t_scan_i
+        ld a,(RT_Q)
+        and 1
+        cp 1
+        call t_check            ; set
+        xor a
+        call t_scan_i
+        ld a,(RT_Q)
+        and 1
+        cp 1
+        call t_check            ; holds
+        ld a,2
+        call t_scan_i
+        ld a,(RT_Q)
+        and 1
+        call t_check            ; reset
+        ; program 2: arithmetic, compare, "(", jump, CTU, POU call
+        ld hl,t_prog2
+        xor a
+        call t_prog
+        ld hl,t_motor
+        ld a,LANG_IL
+        call pou_add            ; slot 1 "MOTOR"
+        ld hl,t_prog3
+        ld a,1
+        call t_prog
+        call il_compile
+        call t_nc
+        call vm_reset
+        ld a,0x05               ; I0.0, I0.2
+        call t_scan_i
+        ld hl,RT_MW
+        ld de,36
+        call t_word
+        ld hl,RT_MW+2
+        ld de,-4
+        call t_word
+        ld hl,RT_MW+4
+        ld de,-1
+        call t_word
+        ld hl,RT_MW+6
+        ld de,1
+        call t_word
+        ld hl,RT_MW+8
+        ld de,0
+        call t_word             ; skipped by the jump
+        ld hl,RT_MW+10
+        ld de,5
+        call t_word
+        ld hl,RT_MW+12
+        ld de,99
+        call t_word             ; set by POU MOTOR
+        ld a,(RT_Q)
+        and 0x1C
+        cp 0x1C                 ; Q0.2 GT, Q0.3 LT, Q0.4 AND(...)
+        call t_check
+        ; CTU0 PV=2: two rising edges of I0.3
+        ld a,0x08
+        call t_scan_i
+        xor a
+        call t_scan_i
+        ld a,(RT_Q)
+        and 0x20
+        call t_check            ; not yet
+        ld a,0x08
+        call t_scan_i
+        ld a,(RT_Q)
+        and 0x20
+        cp 0x20
+        call t_check
+        ; TON0 PT=T#100ms (5 ticks), dt = 3 per scan
+        ld a,0x80
+        call t_scan_i
+        ld a,(RT_Q)
+        and 0x40
+        call t_check            ; ET = 3
+        ld a,0x80
+        call t_scan_i
+        ld a,(RT_Q)
+        and 0x40
+        cp 0x40
+        call t_check            ; ET = 5 -> Q
+        ; compile error: unknown label
+        ld hl,t_prog4
+        xor a
+        call t_prog
+        call il_compile
+        ccf
+        call t_nc
+        ld hl,(il_err)
+        ld de,err_cp_nolbl
+        or a
+        sbc hl,de
+        call t_check
+        ret
+
+; NC -> pass
+t_nc:   ld a,0
+        jr nc,.ok
+        inc a
+.ok:    or a
+        jp t_check
+
+; A = inputs -> one scan with dt = 3
+t_scan_i:
+        ld (RT_I),a
+        ld hl,3
+        ld (vm_dt),hl
+        call vm_scan
+        jr t_nc
+
+; HL = address, DE = expected word
+t_word: ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
+        or a
+        sbc hl,de
+        jp t_check
+
+; ---- t_prog: HL = lines (list ends with 0xFF), A = slot -> POU body
+t_prog: ld (t_slot),a
+        ld (t_ptr),hl
+        call pou_body
+        ld de,0
+        ld a,(t_slot)
+        call pou_delete
+.l:     ld hl,(t_ptr)
+        ld a,(hl)
+        cp 0xFF
+        ret z
+        call strlen
+        ld c,a
+        add a,2
+        ld (t_len),a
+        ; label if the last char is ':'
+        ld b,K_INSTR
+        dec c
+        ld e,c
+        ld d,0
+        add hl,de
+        ld a,(hl)
+        cp ':'
+        jr nz,.k
+        ld b,K_LABEL
+.k:     ld a,b
+        ld (t_kind),a
+        ld a,(t_slot)
+        call pou_body           ; BC = length = insert at the end
+        ld d,b
+        ld e,c
+        ld a,(t_len)
+        ld c,a
+        ld b,0
+        ld a,(t_slot)
+        call pou_insert
+        ld a,(t_len)
+        ld (hl),a
+        inc hl
+        ld a,(t_kind)
+        ld (hl),a
+        inc hl
+        ex de,hl
+        ld hl,(t_ptr)
+        call put_str
+        inc hl
+        ld (t_ptr),hl
+        jr .l
+
+t_slot: db 0
+t_kind: db 0
+t_len:  db 0
+t_ptr:  dw 0
+
+t_prog1:
+        db "LD",9,"%IX0.0",0
+        db "OR",9,"%QX0.0",0
+        db "ANDN",9,"%IX0.1",0
+        db "ST",9,"%QX0.0",0
+        db 0xFF
+t_prog2:
+        db "LD",9,"7",0
+        db "ADD",9,"5",0
+        db "MUL",9,"3",0
+        db "ST",9,"%MW0",0
+        db "SUB",9,"40",0
+        db "ST",9,"%MW1",0
+        db "DIV",9,"3",0
+        db "ST",9,"%MW2",0
+        db "LD",9,"%MW0",0
+        db "MOD",9,"5",0
+        db "ST",9,"%MW3",0
+        db "LD",9,"%MW0",0
+        db "GT",9,"10",0
+        db "ST",9,"%QX0.2",0
+        db "LD",9,"%MW1",0
+        db "LT",9,"0",0
+        db "ST",9,"%QX0.3",0
+        db "LD",9,"%IX0.0",0
+        db "AND(",9,"%IX0.1",0
+        db "OR",9,"%IX0.2",0
+        db ")",0
+        db "ST",9,"%QX0.4",0
+        db "LD",9,"TRUE",0
+        db "JMPC",9,"SKIP",0
+        db "LD",9,"1",0
+        db "ST",9,"%MW4",0
+        db "SKIP:",0
+        db "LD",9,"5",0
+        db "ST",9,"%MW5",0
+        db "CAL",9,"CTU0(CU:=%IX0.3, PV:=2)",0
+        db "LD",9,"CTU0.Q",0
+        db "ST",9,"%QX0.5",0
+        db "CAL",9,"TON0(IN:=%IX0.7, PT:=T#100ms)",0
+        db "LD",9,"TON0.Q",0
+        db "ST",9,"%QX0.6",0
+        db "CAL",9,"MOTOR",0
+        db 0xFF
+t_prog3:
+        db "LD",9,"99",0
+        db "ST",9,"%MW6",0
+        db 0xFF
+t_prog4:
+        db "JMP",9,"NOWHERE",0
         db 0xFF
 
 memset_hl_keep:

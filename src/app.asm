@@ -31,12 +31,6 @@ scr_edit:
         call app_text
         jr placeholder_loop
 
-scr_run:
-        call screen_begin
-        ld hl,txt_run
-        call ui_title
-        ld hl,txt_todo
-        call app_text
 placeholder_loop:
 .key:   call kb_wait
         cp K_BREAK
@@ -58,7 +52,6 @@ app_text:
 
 txt_edit:      db "Edit: ",0
 txt_open:      db " (",0
-txt_run:       db "Simulation",0
 txt_todo_edit: db "The editor for this language is not implemented yet.",0
 txt_todo:      db "Not implemented yet.",0
 app_buf:       ds 24

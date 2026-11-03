@@ -8,6 +8,9 @@
 ; pt_down = 1 draws it one line lower.
 ; ============================================================
 PT_TAB  EQU 9
+FONT_N  EQU 97             ; glyphs 32..128
+CH_LEDOFF EQU 127
+CH_LEDON  EQU 128
 
 ; ---- pt_putc: A = char (32-126). Preserves BC, DE, HL
 pt_putc:
@@ -21,7 +24,7 @@ pt_putc:
         jp .done
 .nt:    sub 32
         jr c,.done
-        cp 95
+        cp FONT_N
         jr nc,.done
         ld l,a
         ld h,0
@@ -166,7 +169,7 @@ pt_clear_row:
 pt_charw:
         sub 32
         jr c,.z
-        cp 95
+        cp FONT_N
         jr nc,.z
         push hl
         push de
