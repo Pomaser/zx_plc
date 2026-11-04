@@ -707,7 +707,7 @@ sim_draw_val:
 txt_sm_run:   db "RUN",0
 txt_sm_stop:  db "STOP",0
 txt_sm_true:  db "TRUE",0
-txt_sm_hint:  db "0-7 toggle, SS+n push, B I0/I1, R run, S step, E reset",0
+txt_sm_hint:  db "0-7 Force, SS+n Write, B 0/1, R Run, S Set, E Res",0
 txt_sm_nomon: db "No IL or LD POU to monitor.",0
 txt_sm_err:   db "Error in ",0
 txt_sm_line:  db ", line ",0
