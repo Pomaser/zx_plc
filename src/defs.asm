@@ -64,6 +64,28 @@ LANG_IL     EQU 0
 LANG_LD     EQU 1
 LANG_FBD    EQU 2
 
+; ---- FBD element types (LD record format; the codes of the wire, the
+;      timer boxes and the comment row are the same as in LD)
+FT_EMPTY    EQU 0
+FT_WIRE     EQU 1
+FT_IN       EQU 2           ; input operand
+FT_OUT      EQU 3           ; output assignment (position 9)
+FT_AND      EQU 4           ; logic boxes: area byte = number of inputs (2-4)
+FT_OR       EQU 5
+FT_TON      EQU 6           ; timer boxes: AR_FBI instance + PT
+FT_TOF      EQU 7
+FT_XOR      EQU 8
+FT_NOT      EQU 9
+FT_SR       EQU 10          ; FB boxes: AR_FBI instance
+FT_RS       EQU 11
+FT_TP       EQU 12
+FT_RTRIG    EQU 13
+FT_CMT      EQU 14
+FT_FTRIG    EQU 15
+FT_NEG      EQU 0x80        ; negated input / output
+FT_MASK     EQU 0x0F
+FT_MAXIN    EQU 4           ; inputs of a logic box
+
 ; ---- application screens ------------------------------------
 SCR_POU     EQU 0
 SCR_EDIT    EQU 1

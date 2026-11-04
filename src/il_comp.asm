@@ -2,8 +2,8 @@
 ; il_comp.asm - compiles all POUs to bytecode (BCODE)
 ; ============================================================
 ; Every used POU slot gets its start address in RT_POU. IL POUs are
-; compiled in two passes (1: label addresses, 2: code); LD/FBD POUs
-; are compiled to a single RET until their compilers exist.
+; compiled in two passes (1: label addresses, 2: code); LD and FBD POUs
+; in one pass (ld_comp.asm, fbd_comp.asm).
 ; Error: C, il_err = message, cp_slot / cp_line = location.
 ; ============================================================
 CP_MAXLBL EQU 32
@@ -41,8 +41,13 @@ il_compile:
         ld (cp_pass),a
         pop af
         cp LANG_LD
-        jr nz,.ret
+        jr nz,.fbd
         call ld_compile
+        ret c
+        jr .ret
+.fbd:   cp LANG_FBD
+        jr nz,.ret
+        call fb_compile
         ret c
 .ret:   ld a,OP_RET
         call cp_emit0

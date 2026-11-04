@@ -101,6 +101,7 @@ run_tests:
         call vm_tests
         call sym_tests
         call ld_tests
+        call fbd_tests
     ENDIF
         ; ---- result
         ld bc,0x0000
@@ -828,6 +829,133 @@ ld_tests:
         ld a,(RT_Q)
         and 8
         jp t_check
+
+; ---- FBD compiler: cells built with ld_put, MAIN = CAL FBT
+fbd_tests:
+        ld hl,t_fbname
+        ld a,LANG_FBD
+        call pou_add
+        ld (cur_pou),a
+        ld hl,5
+        ld (ld_ppt),hl
+        ld hl,t_fb_cells
+.cell:  ld a,(hl)
+        cp 0xFF
+        jr z,.prog
+        ld d,a
+        inc hl
+        ld e,(hl)
+        inc hl
+        ld a,(hl)
+        inc hl
+        ld b,(hl)
+        inc hl
+        ld c,(hl)
+        inc hl
+        push hl
+        BCALL ld_put
+        pop hl
+        jr .cell
+.prog:  xor a
+        ld (cur_pou),a
+        ld hl,t_fb_main
+        BCALL il_load_text
+        call t_nc
+        BCALL il_compile
+        call t_nc
+        BCALL vm_reset
+        ld hl,t_fb_cases
+.case:  ld a,(hl)               ; inputs, Q mask, Q expected, M0 expected
+        cp 0xEE
+        ret z
+        inc hl
+        push hl
+        call t_scan_i
+        pop hl
+        ld a,(RT_Q)
+        and (hl)
+        inc hl
+        cp (hl)
+        inc hl
+        push hl
+        call t_check
+        pop hl
+        ld a,(RT_M)
+        and 1
+        cp (hl)
+        inc hl
+        push hl
+        call t_check
+        pop hl
+        jr .case
+
+; inputs, mask of the checked outputs, expected outputs, expected M0
+t_fb_cases:
+        db 0x03, 0x07, 0x07, 0  ; AND: Q0.0; Q0.1 = NOT(0 XOR 0); TON starts: Q0.2 = NOT Q
+        db 0x07, 0x01, 0x00, 0  ; I0.2 (negated input) blocks the AND
+        db 0x08, 0x02, 0x00, 0  ; (I3 OR I4) XOR I5 = 1 -> negated output 0
+        db 0x28, 0x02, 0x02, 0  ; 1 XOR 1 = 0 -> 1
+        db 0x40, 0x00, 0x00, 1  ; SR set
+        db 0x00, 0x00, 0x00, 1  ; holds
+        db 0x80, 0x00, 0x00, 0  ; reset
+        db 0x01, 0x04, 0x04, 0  ; TON3: ET 3 < 5, Q0.2 = NOT Q = 1
+        db 0x01, 0x04, 0x00, 0  ; ET 6 >= 5: Q -> Q0.2 = 0
+        db 0xEE
+
+t_fbname: db "FBT     "
+t_fb_main: db "CAL",9,"FBT",0
+        db 0xFF
+t_fb_cells:
+        ; rows 0-2: Q0.0 = I0.0 AND I0.1 AND NOT I0.2
+        db 0,0,FT_IN,AR_I,0
+        db 0,1,FT_AND,3,0
+        db 0,2,FT_WIRE,0,0
+        db 0,3,FT_WIRE,0,0
+        db 0,4,FT_WIRE,0,0
+        db 0,5,FT_WIRE,0,0
+        db 0,6,FT_WIRE,0,0
+        db 0,7,FT_WIRE,0,0
+        db 0,8,FT_WIRE,0,0
+        db 0,9,FT_OUT,AR_Q,0
+        db 1,0,FT_IN,AR_I,1
+        db 2,0,FT_IN|FT_NEG,AR_I,2
+        ; rows 4-5: Q0.1 = NOT ((I0.3 OR I0.4) XOR I0.5)
+        db 4,0,FT_IN,AR_I,3
+        db 4,1,FT_OR,2,0
+        db 4,2,FT_WIRE,0,0
+        db 4,3,FT_XOR,2,0
+        db 4,4,FT_WIRE,0,0
+        db 4,5,FT_WIRE,0,0
+        db 4,6,FT_WIRE,0,0
+        db 4,7,FT_WIRE,0,0
+        db 4,8,FT_WIRE,0,0
+        db 4,9,FT_OUT|FT_NEG,AR_Q,1
+        db 5,0,FT_IN,AR_I,4
+        db 5,2,FT_IN,AR_I,5
+        ; rows 7-8: M0 = SR0(S1 := I0.6, R := I0.7)
+        db 7,0,FT_IN,AR_I,6
+        db 7,1,FT_SR,AR_FBI,FBT_SR*FB_PER_TYPE
+        db 7,2,FT_WIRE,0,0
+        db 7,3,FT_WIRE,0,0
+        db 7,4,FT_WIRE,0,0
+        db 7,5,FT_WIRE,0,0
+        db 7,6,FT_WIRE,0,0
+        db 7,7,FT_WIRE,0,0
+        db 7,8,FT_WIRE,0,0
+        db 7,9,FT_OUT,AR_M,0
+        db 8,0,FT_IN,AR_I,7
+        ; row 10: Q0.2 = NOT TON3(IN := I0.0, PT = 5 ticks).Q
+        db 10,0,FT_IN,AR_I,0
+        db 10,1,FT_TON,AR_FBI,3
+        db 10,2,FT_NOT,1,0
+        db 10,3,FT_WIRE,0,0
+        db 10,4,FT_WIRE,0,0
+        db 10,5,FT_WIRE,0,0
+        db 10,6,FT_WIRE,0,0
+        db 10,7,FT_WIRE,0,0
+        db 10,8,FT_WIRE,0,0
+        db 10,9,FT_OUT,AR_Q,2
+        db 0xFF
 
 t_ldname: db "LDT     "
 t_ld_main: db "CAL",9,"LDT",0
