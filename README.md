@@ -171,7 +171,8 @@ removes the whole block. A block placed on an input inserts itself behind it: th
 position to the right, the input feeds the first input of the new block and the cursor goes to the
 second input. If a block does not fit, it is not placed ("No room for the block"). Wires are
 added automatically between a new block or output and the element on its left. In the simulation inputs,
-outputs and FB blocks are coloured black on bright green when TRUE (negation included).
+outputs and FB blocks are coloured black on bright green when their variable is TRUE (a negation is shown
+only by the `o`).
 
 ## Symbols
 

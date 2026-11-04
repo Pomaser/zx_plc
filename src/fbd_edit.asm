@@ -2131,8 +2131,6 @@ fb_set_state:
         cp FT_FTRIG
         jr nz,.op
 .q1:    ld b,AR_FBM+0x10        ; R_TRIG/F_TRIG: Q
-        xor a
-        ld (fs_t),a             ; (no negation)
 .opc:   ld a,e
         ld (fs_off),a
 .op:    ld a,b
@@ -2144,17 +2142,10 @@ fb_set_state:
         ret nz
         ld hl,(cp_arg)
         ld a,(cp_arg3)
-        and (hl)
-        ld a,(fs_t)             ; negated input / output: inverted
-        jr z,.f
-        rlca
-        jr c,.set0
-        jr .set1
-.f:     rlca
-        jr c,.set1
-.set0:  ld e,ATTR_NORMAL
-        jr .set
-.set1:  ld e,ATTR_FBON
+        and (hl)                ; state of the variable (a negation is
+        ld e,ATTR_NORMAL        ; shown only by the o)
+        jr z,.set
+        ld e,ATTR_FBON
 .set:   ld a,(fs_p)
         ld c,a
         add a,a
