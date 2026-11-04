@@ -286,26 +286,26 @@ sim_inputs:
 .st:    ld (RT_I),hl
         ret
 
-; ---- sim_mark: a line under the 8 LEDs of the selected input byte
+; ---- sim_mark: a line over the 8 numbers of the selected input byte (black:
+;      only in the number cells, the LED cells have the LED colour)
 sim_mark:
-        ld c,LED_COL0
+        ld c,LED_COL0+1
         ld a,(sm_ib)
         or a
         call .grp
-        ld c,LED_COL1
+        ld c,LED_COL1+1
         ld a,(sm_ib)
         xor 1
 .grp:   push af
         ld b,ROW_IN
-        call pix_addr
-        ld de,7*256
-        add hl,de               ; pixel line 7
+        call pix_addr           ; pixel line 0
         pop af
         ld a,0xFF
         jr z,.g
         xor a
-.g:     ld b,16
+.g:     ld b,8
 .l:     ld (hl),a
+        inc l
         inc l
         djnz .l
         ret
