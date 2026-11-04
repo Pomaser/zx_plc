@@ -855,6 +855,8 @@ il_fmt_one:
         jr z,.sym
         cp AR_M
         jr z,.sym
+        cp AR_SX
+        jr z,.sym
         cp AR_FBI
         jr z,.sym
         and AR_MASK
@@ -971,6 +973,8 @@ il_show_comment:
         cp AR_I
         jr z,.ok
         cp AR_Q
+        jr z,.ok
+        cp AR_SX
         jr z,.ok
         cp AR_M
         jr nz,.show

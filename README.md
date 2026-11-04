@@ -118,7 +118,7 @@ edge memory (max. 32 per project).
 
 Edit > Symbols opens the list of defined symbols, sorted by address, with an empty row at the end for a new
 one. Each row: line number (like the IL editor), symbolic name (max. 8 chars, identifier, dark blue),
-physical address (`%IX0.0`, `i0.0`, `%QX0.1`, `m5`, `ton1`, `ctu0` ... I, Q, M and FB instances, black) and comment (max. 30 chars,
+physical address (`%IX0.0`, `i0.0`, `%QX0.1`, `m5`, `ton1`, `ctu0`, `s0.1` ... I, Q, M, step flags and FB instances, black) and comment (max. 30 chars,
 dark green). SPACE moves name -> address -> comment, ENTER/UP/DOWN store the row (the list is re-sorted);
 ENTER at the very start of a row opens an empty row above it (a new symbol is sorted in when stored),
 clearing the name and the comment removes the symbol, Edit > Delete line deletes it too.
@@ -150,12 +150,29 @@ Compile errors are reported with the POU name and line number.
 | Inputs | `%IX0.0` | `I0.0` | 0.0-0.7 |
 | Outputs | `%QX0.0` | `Q0.0` | 0.0-0.7 |
 | Bit memory | `%MX5` | `M5` | 0-63 |
+| Step flags | `%SX0.2` | `S0.2` | 0.0-7.7 |
 | INT words | `%MW3` | `MW3` | 0-15 |
 | Constants | `TRUE`, `FALSE`, `-123`, `T#1s500ms`, `T#2m` | | |
 | FB instances | `TON0`...`TON3`, `TOF`, `TP`, `CTU`, `CTD`, `R_TRIG`, `F_TRIG`, `SR`, `RS` | | |
 | FB members | `TON0.Q`, `CTU1.CV`, `R_TRIG2.CLK` ... | | |
 
 The time base is 20 ms (one frame).
+
+### Step flags
+
+`S0`-`S7` are 8 step bytes for step sequences: in each byte only one bit can be set. Writing TRUE to a
+bit (`ST`, `S`, an LD coil or set coil) clears the other 7 bits of its byte; writing FALSE clears only that
+bit. All step flags are cleared by Reset.
+
+```
+LD   S0.0      // step 0: waiting for start
+AND  %IX0.0
+S    S0.1      // -> step 1 (S0.0 goes off automatically)
+LD   S0.1
+ST   %QX0.0    // step 1: pump on
+AND  %IX0.1
+S    S0.2      // -> step 2
+```
 
 ## Structure
 

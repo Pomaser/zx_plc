@@ -1391,6 +1391,8 @@ ld_ask_operand:
         jr z,.ok
         cp AR_M
         jr z,.ok
+        cp AR_SX
+        jr z,.ok
         cp AR_I
         jr nz,.bad
         ld a,(ld_kind)          ; inputs only for contacts

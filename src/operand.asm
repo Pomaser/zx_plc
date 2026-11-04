@@ -2,6 +2,7 @@
 ; operand.asm - IEC 61131-3 operand parser and formatter
 ; ============================================================
 ; Accepts:  %IX0.n %I0.n I0.n | %QX0.n %Q0.n Q0.n | %MXn %Mn Mn | %MWn MWn
+;           %SXb.n %Sb.n Sb.n (step flags, b = 0-7)
 ;           TRUE FALSE | integer -32768..32767 | T#..  TIME#.. (units m, s, ms)
 ;           TON0..TON3, TOF, TP, CTU, CTD, R_TRIG, F_TRIG, SR, RS (+ .member)
 ;           symbol name, POU name
@@ -60,6 +61,8 @@ op_parse:
         ld b,AR_Q
         cp 'Q'
         jr z,.short_iq
+        cp 'S'
+        jr z,.short_s
         cp 'M'
         jp nz,.fb
         ld a,(hl)
@@ -79,6 +82,11 @@ op_parse:
         call is_digit
         jp c,.fb
         jp .ioaddr
+.short_s:
+        ld a,(hl)
+        call is_digit
+        jp c,.fb
+        jr .sxaddr
 
         ; ---- direct addresses %
 .direct:
@@ -91,6 +99,8 @@ op_parse:
         ld b,AR_Q
         cp 'Q'
         jr z,.diq
+        cp 'S'
+        jr z,.dsx
         cp 'M'
         jp nz,op_err
         ld a,(hl)
@@ -102,6 +112,38 @@ op_parse:
         jr .mx
 .dmw:   inc hl
         jr .mw
+.dsx:   ld a,(hl)
+        cp 'X'
+        jr nz,.sxaddr
+        inc hl
+.sxaddr:                        ; b.n -> index b*8+n
+        ld a,(hl)
+        sub '0'
+        jp c,op_fail_jp
+        cp N_SB
+        jp nc,op_fail_jp
+        add a,a
+        add a,a
+        add a,a
+        ld c,a
+        inc hl
+        ld a,(hl)
+        cp '.'
+        jp nz,op_fail_jp
+        inc hl
+        ld a,(hl)
+        sub '0'
+        jp c,op_fail_jp
+        cp 8
+        jp nc,op_fail_jp
+        or c
+        ld c,a
+        inc hl
+        ld a,(hl)
+        or a
+        jp nz,op_fail_jp
+        ld a,AR_SX
+        jp op_ok
 .diq:   ld a,(hl)
         cp 'X'
         jr nz,.ioaddr
@@ -533,9 +575,27 @@ op_format:
 .f_mw:  ld hl,s_iec_mw
         ld bc,s_sh_mw
         jr .numidx
-.f_s:   ld hl,s_sh_s
-        ld b,h
-        ld c,l
+.f_s:   ld hl,s_iec_s           ; %SXb.n / Sb.n
+        ld bc,s_sh_s
+        call .style
+        call put_str
+        ld a,(op_idx)
+        rrca
+        rrca
+        rrca
+        and 7
+        add a,'0'
+        ld (de),a
+        inc de
+        ld a,'.'
+        ld (de),a
+        inc de
+        ld a,(op_idx)
+        and 7
+        add a,'0'
+        ld (de),a
+        inc de
+        jp .end
 .numidx:
         call .style
         call put_str
@@ -691,6 +751,7 @@ s_iec_i:  db "%IX0.",0
 s_iec_q:  db "%QX0.",0
 s_iec_m:  db "%MX",0
 s_iec_mw: db "%MW",0
+s_iec_s:  db "%SX",0
 s_sh_i:   db "I0.",0
 s_sh_q:   db "Q0.",0
 s_sh_m:   db "M",0

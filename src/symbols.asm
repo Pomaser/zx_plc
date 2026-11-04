@@ -171,6 +171,8 @@ sym_validate:
         jr z,.sym
         cp AR_M
         jr z,.sym
+        cp AR_SX
+        jr z,.sym
         cp AR_FBI
         jr nz,.res
 .sym:   ; a symbol (or address) of the same name: fine only if it is our own

@@ -196,6 +196,8 @@ il_check:
         jp z,ilc_done
         cp AR_M
         jp z,ilc_done
+        cp AR_SX
+        jp z,ilc_done
         cp AR_FBM
         jp z,ilc_done
         jp ilc_notwr

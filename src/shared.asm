@@ -63,6 +63,8 @@ cp_operand_core:
         jr z,.q
         cp AR_M
         jr z,.m
+        cp AR_SX
+        jr z,.sx
         cp AR_MW
         jr z,.mw
         cp AR_KB
@@ -88,7 +90,10 @@ cp_operand_core:
         ld (cp_arg3),a
         ld a,VM_MB
         jp .done
-.m:     ld a,(cp_oidx)
+.sx:    ld bc,RT_STEP           ; step flags: byte idx/8, bit idx&7
+        jr .mbit
+.m:     ld bc,RT_M
+.mbit:  ld a,(cp_oidx)
         ld e,a
         rrca
         rrca
@@ -96,7 +101,6 @@ cp_operand_core:
         and 7
         ld l,a
         ld h,0
-        ld bc,RT_M
         add hl,bc
         ld a,e
         and 7
@@ -152,7 +156,7 @@ cp_operand_core:
         ld a,(hl)
         pop hl
         bit 7,a
-        jr z,.bitn
+        jp z,.bitn
         and 0x7F
         ld e,a
         ld d,0

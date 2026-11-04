@@ -471,6 +471,31 @@ vm_tests:
         or a
         sbc hl,de
         call t_check
+        ; step flags: one active bit per byte
+        ld hl,t_prog5
+        xor a
+        BCALL il_load_text
+        BCALL il_compile
+        call t_nc
+        BCALL vm_reset
+        ld a,0x03               ; ST S0.2, then ST S0.5 -> only bit 5
+        call t_scan_i
+        ld a,(RT_STEP)
+        cp 0x20
+        call t_check
+        ld a,(RT_STEP+1)        ; S S1.0 does not touch S0
+        cp 0x01
+        call t_check
+        ld a,0x05               ; S0.2 on, ST S0.5 FALSE, R S0.5
+        call t_scan_i
+        ld a,(RT_STEP)
+        cp 0x04
+        call t_check
+        ld a,0x06               ; S0.2 off, S0.5 on, then R S0.5
+        call t_scan_i
+        ld a,(RT_STEP)
+        or a
+        call t_check
         ret
 
 ; NC -> pass
@@ -550,6 +575,16 @@ t_prog3:
         db 0xFF
 t_prog4:
         db "JMP",9,"NOWHERE",0
+        db 0xFF
+t_prog5:
+        db "LD",9,"%IX0.0",0
+        db "ST",9,"S0.2",0
+        db "LD",9,"%IX0.1",0
+        db "ST",9,"S0.5",0
+        db "LD",9,"%IX0.2",0
+        db "R",9,"S0.5",0
+        db "LD",9,"TRUE",0
+        db "S",9,"%SX1.0",0
         db 0xFF
 
 ; ---- symbol table
@@ -775,6 +810,23 @@ ld_tests:
         ld a,(RT_Q)
         and 4
         cp 4
+        call t_check
+        ld a,0x20               ; I0.5: set coil S0.3 -> contact S0.3 -> Q0.3
+        call t_scan_i
+        ld a,(RT_STEP)
+        cp 0x08
+        call t_check
+        ld a,(RT_Q)
+        and 8
+        cp 8
+        call t_check
+        ld a,0x40               ; I0.6: set coil S0.5 clears S0.3 -> Q0.3 off
+        call t_scan_i
+        ld a,(RT_STEP)
+        cp 0x20
+        call t_check
+        ld a,(RT_Q)
+        and 8
         jp t_check
 
 t_ldname: db "LDT     "
@@ -823,6 +875,36 @@ t_ld_cells:
         db 4,7,LT_WIRE,0,0
         db 4,8,LT_WIRE,0,0
         db 4,9,LT_COIL,AR_Q,2
+        db 5,0,LT_NO,AR_I,5
+        db 5,1,LT_WIRE,0,0
+        db 5,2,LT_WIRE,0,0
+        db 5,3,LT_WIRE,0,0
+        db 5,4,LT_WIRE,0,0
+        db 5,5,LT_WIRE,0,0
+        db 5,6,LT_WIRE,0,0
+        db 5,7,LT_WIRE,0,0
+        db 5,8,LT_WIRE,0,0
+        db 5,9,LT_SET,AR_SX,3
+        db 6,0,LT_NO,AR_I,6
+        db 6,1,LT_WIRE,0,0
+        db 6,2,LT_WIRE,0,0
+        db 6,3,LT_WIRE,0,0
+        db 6,4,LT_WIRE,0,0
+        db 6,5,LT_WIRE,0,0
+        db 6,6,LT_WIRE,0,0
+        db 6,7,LT_WIRE,0,0
+        db 6,8,LT_WIRE,0,0
+        db 6,9,LT_SET,AR_SX,5
+        db 7,0,LT_NO,AR_SX,3
+        db 7,1,LT_WIRE,0,0
+        db 7,2,LT_WIRE,0,0
+        db 7,3,LT_WIRE,0,0
+        db 7,4,LT_WIRE,0,0
+        db 7,5,LT_WIRE,0,0
+        db 7,6,LT_WIRE,0,0
+        db 7,7,LT_WIRE,0,0
+        db 7,8,LT_WIRE,0,0
+        db 7,9,LT_COIL,AR_Q,3
         db 0xFF
 
     ENDIF
@@ -870,6 +952,12 @@ op_cases:
         db "%I0.1",0,"%IX0.1",0
         db "q0.0",0,"%QX0.0",0
         db "%QX0.6",0,"~Q0.6",0
+        db "S0.2",0,"%SX0.2",0
+        db "%SX7.7",0,"~S7.7",0
+        db "%S3.1",0,"%SX3.1",0
+        db "s1.0",0,"%SX1.0",0
+        db "S8.0",0,0
+        db "S0.8",0,0
         db "%MX63",0,"%MX63",0
         db "M5",0,"%MX5",0
         db "%M12",0,"~M12",0

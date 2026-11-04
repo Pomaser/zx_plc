@@ -124,7 +124,7 @@ AR_I        EQU 1           ; %IX0.n      index 0-7
 AR_Q        EQU 2           ; %QX0.n      index 0-7
 AR_M        EQU 3           ; %MXn        index 0-63
 AR_MW       EQU 4           ; %MWn        index 0-15
-AR_S        EQU 5           ; scratch bit (compiler)
+AR_SX       EQU 5           ; step flag %SXb.n, index = b*8+n (0-63)
 AR_KB       EQU 6           ; TRUE/FALSE  index 1/0
 AR_K16      EQU 7           ; INT constant, value in DE
 AR_KT       EQU 8           ; TIME constant (20 ms ticks), value in DE
@@ -136,6 +136,7 @@ AR_MASK     EQU 0x0F
 N_IN        EQU 8
 N_Q         EQU 8
 N_M         EQU 64
+N_SB        EQU 8           ; step bytes S0-S7
 N_MW        EQU 16
 FB_PER_TYPE EQU 4
 FB_TYPES    EQU 9
