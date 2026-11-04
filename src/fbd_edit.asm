@@ -1035,8 +1035,8 @@ fb_draw_elem:
         ld e,c
         ld d,b
         call fd_setcb
-        ld a,(fd_lrow)          ; top line
-        ld b,a
+        ld a,(fd_srow)          ; top line in the signal row (the label row
+        ld b,a                  ; above the block holds the instance)
         ld a,(fd_x)
         add a,2
         ld c,a
@@ -1044,8 +1044,6 @@ fb_draw_elem:
         ld hl,0x0001
         ld e,PX_SET
         call px_span
-        ld a,(fd_lrow)
-        call fd_sides
         ld a,(fd_srow)
         call fd_sides
         call fd_in_stub
@@ -1064,7 +1062,7 @@ fb_draw_elem:
         ld a,(fd_h)
         dec a
         call z,fd_bottom
-        ; name in the label row, instance in the signal row
+        ; type name inside the block, instance above it
         ld a,(fd_t)
         and FT_MASK
         add a,a
@@ -1076,20 +1074,41 @@ fb_draw_elem:
         inc hl
         ld d,(hl)
         ex de,hl
-        ld a,(fd_lrow)          ; (small letters, as in the LD boxes)
+        ld a,(fd_srow)          ; (small letters, as in the LD boxes)
         ld b,a
         ld a,(fd_x)
         add a,4
         ld c,a
         call fd_tiny
-        ld a,(fd_t)             ; FB blocks: instance label
+        ld a,(fd_t)             ; FB blocks: instance label above the block
         call fb_kind
         ret z
         call fd_fmt
+        ; fall through
+
+; fd_label: FMT_BUF centred in the label row above the element (24 px)
+fd_label:
+        ld a,(fd_x)
+        ld c,a
+        add a,23
+        ld (pt_xmax),a
         ld hl,FMT_BUF
-        ld a,(fd_srow)
+        call pt_width
+        cp 23
+        jr c,.w
+        ld a,22
+.w:     neg
+        add a,24
+        srl a
+        add a,c
+        ld (pt_x),a
+        ld a,(fd_lrow)
         ld (pt_row),a
-        jp fd_text
+        ld hl,FMT_BUF
+        call pt_puts
+        ld a,255
+        ld (pt_xmax),a
+        ret
 
 ; fd_text: HL = text in the block at pt_row (x+4, clipped inside)
 fd_text:
@@ -1553,6 +1572,7 @@ ft_tab:
         db 'A',3, 0x40,0xA0,0xE0,0xA0,0xA0
         db 'D',3, 0xC0,0xA0,0xA0,0xA0,0xC0
         db 'F',3, 0xE0,0x80,0xC0,0x80,0x80
+        db 'G',3, 0x60,0x80,0xA0,0xA0,0x60
         db 'N',4, 0x90,0xD0,0xB0,0x90,0x90
         db 'O',3, 0x40,0xA0,0xA0,0xA0,0x40
         db 'P',3, 0xC0,0xA0,0xC0,0x80,0x80
@@ -1574,8 +1594,8 @@ fdn_xor: db "XOR",0
 fdn_not: db "NOT",0
 fdn_sr:  db "SR",0
 fdn_rs:  db "RS",0
-fdn_rt:  db "R_TR",0
-fdn_ft:  db "F_TR",0
+fdn_rt:  db "RTRG",0
+fdn_ft:  db "FTRG",0
 fdn_ton: db "TON",0
 fdn_tof: db "TOF",0
 fdn_tp:  db "TP",0
