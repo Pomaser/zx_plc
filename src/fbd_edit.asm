@@ -177,7 +177,7 @@ fb_editor:
         inc a
         ld (ld_pos),a
         jp .cur
-.nrow:  call ld_nrows           ; SS+ENTER: start of the next row
+.nrow:  call fb_nrows           ; SS+ENTER: start of the next row
         ld b,a
         ld a,(ld_row)
         cp b
@@ -210,7 +210,7 @@ fb_editor:
         ld a,(ld_row)
         add a,b
         ld c,a
-        call ld_nrows
+        call fb_nrows
         cp c
         jr c,.mv
         ld a,c
@@ -220,7 +220,7 @@ fb_editor:
         jp z,.cur
         dec a
         jr .mv
-.down:  call ld_nrows
+.down:  call fb_nrows
         ld b,a
         ld a,(ld_row)
         cp b
@@ -702,6 +702,41 @@ fb_ask_inputs:
         ret
 .c:     call win_close
         scf
+        ret
+
+; ---- fb_nrows: A = rows of the diagram incl. the rows that blocks of the
+;      last rows reach into (they have no records of their own)
+fb_nrows:
+        call ld_nrows
+        ld (fn_n),a
+        sub FT_MAXIN-1          ; blocks can only start in the last 3 rows
+        jr nc,.r
+        xor a
+.r:     ld (fn_r),a
+.row:   ld a,(fn_r)
+        ld hl,fn_n
+        cp (hl)
+        jr nc,.e
+        ld d,a
+        ld e,0
+.pos:   push de
+        call ld_get
+        ld c,b
+        call fb_height_t
+        pop de
+        add a,d                 ; row + height
+        ld hl,fn_n
+        cp (hl)
+        jr c,.n
+        ld (hl),a
+.n:     inc e
+        ld a,e
+        cp LD_CPOS
+        jr c,.pos
+        ld hl,fn_r
+        inc (hl)
+        jr .row
+.e:     ld a,(fn_n)
         ret
 
 ; ---- fb_fix_top: keeps ld_row visible; NZ = ld_top changed
@@ -1978,6 +2013,8 @@ fb_newt:  db 0
 fb_oldt:  db 0
 fb_kind_v: db 0
 fb_aw:    db 0
+fn_n:     db 0
+fn_r:     db 0
 fb_key:   db 0
 fpt_row:    db 0
 fpt_pos:    db 0
