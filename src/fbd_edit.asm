@@ -761,43 +761,19 @@ fb_make_room:
         jr nz,.chk
         scf                     ; every new input has a free cell
         ret
-.need:  ld a,(ld_row)           ; rows of the block
-        ld (fm_r0),a
-        ld hl,fm_h
-        add a,(hl)
-        dec a
-        ld (fm_r1),a
-        call fm_check
-        jr nc,.shift
-        ld a,1
+.need:  ld a,(ld_pos)            ; the network moves right from the block
+        cp LD_CPOS-1
+        jr nc,.err
+        ld (fm_p),a
+        call fb_net_shift
+        jr nc,.ok
+.err:   ld a,1
         ld (fm_err),a
         ld hl,err_fb_room
         call ui_error
         scf
         ret
-.shift: ld a,(ld_pos)
-        ld (fm_p),a
-        call fb_shift_cols
-        jr .wires
-
-.wires:
-        ld a,(fm_r0)            ; wires in the freed column (old inputs)
-        ld (fm_rr),a
-        ld a,(fm_h0)
-        ld (fm_n),a
-.w:     ld a,(fm_rr)
-        ld d,a
-        ld a,(ld_pos)
-        ld e,a
-        ld a,FT_WIRE
-        ld bc,0
-        BCALL ld_put
-        ld hl,fm_rr
-        inc (hl)
-        ld hl,fm_n
-        dec (hl)
-        jr nz,.w
-        ld a,(fm_r0)            ; cursor: first new input, free cell
+.ok:    ld a,(ld_row)           ; cursor: first new input, free cell
         ld hl,fm_h0
         add a,(hl)
         ld (ld_row),a
@@ -861,6 +837,16 @@ fb_ins_col:
         ret c
         inc a
         ld (fm_p),a
+        call fb_net_shift
+        ret c
+        ld a,(fm_p)
+        ld (ld_pos),a
+        ret
+
+; fb_net_shift: the network of row ld_row moves one position to the right
+;      from fm_p (<= 7); the freed column gets wires where an element on the
+;      left feeds something on the right. C = position 8 used
+fb_net_shift:
         ld a,(ld_row)           ; first row of the network
 .up:    ld (fm_r0),a
         or a
@@ -896,6 +882,9 @@ fb_ins_col:
         inc a
         jr .c8
 .sh:    call fb_shift_cols
+        ld a,(fm_p)
+        or a
+        ret z                   ; (position 0: nothing on the left)
         ld a,(fm_r0)            ; wires in the freed column: an element on
 .w:     ld (fm_rr),a            ; the left and something on the right
         ld d,a
@@ -928,9 +917,7 @@ fb_ins_col:
         jr z,.done
         inc a
         jr .w
-.done:  ld a,(fm_p)
-        ld (ld_pos),a
-        or a
+.done:  or a
         ret
 
 ; fb_net_row: A = row -> C if it belongs to a network (an element that is
@@ -954,57 +941,6 @@ fb_net_row:
         cp LD_CPOS+1
         jr c,.l
         or a
-        ret
-
-; fm_check: C if the rows fm_r0..fm_r1 can not move right from ld_pos:
-;      something at position 8, a block that reaches below fm_r1, or a block
-;      from above covering a cell that would move
-fm_check:
-        ld a,(fm_r0)
-        ld (fm_rr),a
-.row:   ld a,(fm_rr)
-        ld d,a
-        ld e,LD_CPOS-1
-        call ld_get
-        and FT_MASK
-        scf
-        ret nz
-        ld a,(ld_pos)
-        ld e,a
-.pos:   push de
-        call ld_get             ; block reaching below the rows?
-        ld c,b
-        call fb_height_t
-        pop de
-        or a
-        jr z,.cov
-        add a,d
-        dec a
-        ld hl,fm_r1
-        cp (hl)
-        jr z,.cov
-        ccf
-        ret c
-.cov:   ld a,(fm_rr)            ; covered from a block above the rows?
-        ld hl,fm_r0
-        cp (hl)
-        jr nz,.nx
-        push de
-        call fb_owner
-        pop de
-        ccf
-        ret c
-.nx:    inc e
-        ld a,e
-        cp LD_CPOS-1
-        jr c,.pos
-        ld hl,fm_rr
-        ld a,(fm_r1)
-        cp (hl)
-        jr z,.ok
-        inc (hl)
-        jr .row
-.ok:    or a
         ret
 
 ; ---- fb_make_rows: block of A rows at the cursor: every row below it must be
