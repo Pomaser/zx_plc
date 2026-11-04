@@ -20,7 +20,8 @@ RT_FB     EQU RT+42         ; 36 FB instances x 8 bytes
 RT_SCR    EQU RT_FB+36*8    ; LD: power of the rung rows (16 bits)
 RT_EDGE   EQU RT_SCR+2      ; LD: memory of P/N contacts (32 bits)
 RT_STEP   EQU RT_EDGE+4     ; step flags S0-S7 (one active bit per byte)
-RT_DATA_LEN EQU 42+36*8+6+N_SB  ; cleared by Reset
+RT_LGC    EQU RT_STEP+N_SB  ; FBD: results of logic blocks (64 bits, sim)
+RT_DATA_LEN EQU 42+36*8+6+N_SB+8  ; cleared by Reset
 RT_POU    EQU RT+RT_DATA_LEN        ; code address of each POU slot (8 words)
 RT_LBL    EQU RT_POU+16             ; compiler label table (32 x 10 bytes)
 RT_PSTK   EQU RT_LBL+320            ; "(" stack: 8 x 4 bytes

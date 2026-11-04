@@ -289,6 +289,8 @@ fc_elem:
         ld a,OP_ST
         call lc_emit_s
         ret c
+        call fc_mon
+        ret c
         xor a
         jp lc_set_dead
 .lg:    ld b,OP_AND             ; logic op of the box
@@ -324,6 +326,8 @@ fc_elem:
         ld (lc_i),a
         ld a,OP_ST
         call lc_emit_s
+        ret c
+        call fc_mon
         ret c
         xor a
         jp lc_set_dead
@@ -412,6 +416,78 @@ fc_fb:  ld a,(lc_i)
         xor a
         jp lc_set_dead
 
+; ---- fc_mon: logic block at (lc_r0+lc_i, lc_p), result in the accumulator
+;      -> ST to its monitor bit RT_LGC[k], k = number of logic blocks stored
+;      before it; only in the POU the simulation shows (lc_pou). C = error
+fc_mon: ld a,(cp_slot)
+        ld hl,lc_pou
+        cp (hl)
+        jr nz,.no
+        ld a,(lc_r0)
+        ld hl,lc_i
+        add a,(hl)
+        ld d,a
+        ld a,(lc_p)
+        ld e,a
+        ld a,(cp_slot)
+        call pou_body
+        push hl
+        add hl,bc
+        ld (fc_bend),hl
+        pop hl
+        inc hl                  ; (row count)
+        ld c,0
+.l:     push hl
+        push de
+        ld de,(fc_bend)
+        or a
+        sbc hl,de
+        pop de
+        pop hl
+        jr nc,.no
+        ld a,(hl)
+        cp d
+        jr nz,.nx
+        inc hl
+        ld a,(hl)
+        dec hl
+        cp e
+        jr z,.fnd
+.nx:    inc hl
+        inc hl
+        ld a,(hl)
+        dec hl
+        dec hl
+        call fc_is_lg
+        jr nz,.sk
+        inc c
+.sk:    push de
+        call ld_skip            ; (keeps BC)
+        pop de
+        jr .l
+.fnd:   ld a,c
+        cp 64
+        jr nc,.no
+        ld a,OP_ST              ; (lc_emit_bit: op on the stack)
+        push af
+        ld a,c
+        ld hl,RT_LGC
+        jp lc_emit_bit
+.no:    or a
+        ret
+
+; fc_is_lg: A = type -> Z if AND / OR / XOR / NOT
+fc_is_lg:
+        and FT_MASK
+        cp FT_AND
+        ret z
+        cp FT_OR
+        ret z
+        cp FT_XOR
+        ret z
+        cp FT_NOT
+        ret
+
 ; fc_emit_row: A = op with the signal of row lc_i (FALSE when dead)
 fc_emit_row:
         push bc
@@ -438,3 +514,4 @@ fc_op:   db 0
 fc_i0:   db 0
 fc_k:    db 0
 fc_nin:  db 0
+fc_bend: dw 0

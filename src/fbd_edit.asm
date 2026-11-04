@@ -2081,6 +2081,8 @@ fb_set_state:
         or c
         ret z
         inc hl
+        xor a
+        ld (fs_k),a
 .l:     push hl
         ld de,(fs_end)
         or a
@@ -2092,7 +2094,18 @@ fb_set_state:
         pop hl
         call ld_skip
         jr .l
-.rec:   ld a,(ld_top)           ; visible row?
+.rec:   push hl                 ; logic block: its number (monitor bit)
+        inc hl
+        inc hl
+        ld a,(hl)
+        pop hl
+        call fb_is_lg
+        jr nz,.r0
+        ld a,(fs_k)
+        ld (fs_li),a
+        inc a
+        ld (fs_k),a
+.r0:    ld a,(ld_top)           ; visible row?
         ld b,a
         ld a,(hl)
         sub b
@@ -2128,7 +2141,7 @@ fb_set_state:
         ld (fs_off),a
         ld a,(fs_t)             ; FB block: its Q
         call fb_kind
-        ret z
+        jr z,.lgc
         ld a,(fs_t)
         and FT_MASK
         ld b,AR_FBM+0x20        ; Q (TON/TOF/TP), Q1 (SR/RS)
@@ -2179,6 +2192,33 @@ fb_set_state:
         dec d
         jr nz,.fl
         ret
+.lgc:   ld a,(fs_t)             ; logic block: its monitor bit
+        call fb_is_lg
+        ret nz
+        ld a,(fs_li)
+        cp 64
+        ret nc
+        ld c,a
+        rrca
+        rrca
+        rrca
+        and 7
+        ld e,a
+        ld d,0
+        ld hl,RT_LGC
+        add hl,de
+        ld a,c
+        and 7
+        ld e,a
+        push hl
+        ld hl,bit_masks
+        add hl,de
+        ld a,(hl)
+        pop hl
+        and (hl)
+        ld e,ATTR_NORMAL
+        jr z,.blk
+        ld e,ATTR_FBON
 .blk:   ld a,(fs_p)
         ld c,a
         add a,a
@@ -2190,6 +2230,18 @@ fb_set_state:
         ld b,a
         call attr_addr
         ld (hl),e
+        ret
+
+; fb_is_lg: A = type -> Z if AND / OR / XOR / NOT
+fb_is_lg:
+        and FT_MASK
+        cp FT_AND
+        ret z
+        cp FT_OR
+        ret z
+        cp FT_XOR
+        ret z
+        cp FT_NOT
         ret
 
 ; fd_span: A = x where the name of an input / output starts, pt_x = its
@@ -2543,6 +2595,8 @@ fm_q:     db 0
 fm_t:     db 0
 fm_n:     db 0
 fd_tx:    db 0
+fs_k:     db 0
+fs_li:    db 0
 fs_span:  ds 24*10*2
 fm_p:     db 0
 fm_err:   db 0

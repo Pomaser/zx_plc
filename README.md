@@ -172,7 +172,7 @@ position to the right, the input feeds the first input of the new block and the 
 second input. If a block does not fit, it is not placed ("No room for the block"). Wires are
 added automatically between a new block or output and the element on its left. In the simulation inputs,
 outputs (their names) and FB blocks are coloured black on bright green when their variable is TRUE (a negation is shown
-only by the `o`).
+only by the `o`); logic blocks (AND, OR, XOR, NOT) are coloured inside when their result is TRUE.
 
 ## Symbols
 
