@@ -83,6 +83,8 @@ il_editor:
         jp z,.pgup
         cp K_PGDN
         jp z,.pgdn
+        cp K_SSENTER
+        jp z,.ssent
         cp 32
         jr c,.loop
         cp 128
@@ -301,6 +303,9 @@ il_editor:
         cp K_EMPTY
         jr z,.e0
         ld a,1
+        ld (il_atstart),a
+        jr .e0
+.ssent: xor a                   ; SS+ENTER: new line below wherever the cursor is
         ld (il_atstart),a
 .e0:    call il_commit
         jp c,.loop

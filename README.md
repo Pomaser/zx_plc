@@ -36,6 +36,7 @@ Keys are read in the interrupt into an 8-key queue, so typing ahead is not lost.
 | UP / DOWN (CS+7 / CS+6) | move in a submenu or in the POU list |
 | SS + LEFT / RIGHT (CS+SS+5 / 8) | start / end of the line (IL: instruction / end of operand, symbols: name / end of comment, LD: first position / coil) |
 | SS + UP / DOWN (CS+SS+7 / 6) | one screen up / down in the editors, first / last POU in the POU list |
+| SS + ENTER | IL editor: new empty line below (also with the cursor at the start of a line), LD editor: start of the next row |
 | ENTER | execute the item / open the selected POU in the editor |
 | letters | first letter of a title or item (hotkey); N / R / D / L in the POU list |
 
