@@ -1065,6 +1065,7 @@ ld_editor:
         ld a,(ld_pos)
         ld e,a
         call ld_get
+        ld (ld_oldt),a
         and LT_VL               ; keep the link
         ld b,a
         ld a,(ld_newt)
@@ -1084,6 +1085,14 @@ ld_editor:
         call ld_put
         jp c,.redraw
         call ld_autowire
+        ld a,(ld_oldt)          ; new element on an empty position:
+        and LT_MASK             ; the cursor moves on behind it
+        jr nz,.redraw
+        ld a,(ld_pos)
+        cp LD_CPOS
+        jr nc,.redraw
+        inc a
+        ld (ld_pos),a
 .redraw:
         call status_right
         jp .full
@@ -1481,6 +1490,7 @@ ld_p:     db 0
 ld_t:     db 0
 ld_ar:    dw 0              ; area, index of the element operand
 ld_newt:  db 0
+ld_oldt:  db 0              ; element at the position before placing
 ld_kind:  db 0
 ld_aw:    db 0
 ld_lrow:  db 0
