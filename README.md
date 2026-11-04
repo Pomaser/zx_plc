@@ -177,8 +177,8 @@ ENTER at the very start of a row opens an empty row above it (a new symbol is so
 clearing the name and the comment removes the symbol, Edit > Delete line deletes it too.
 
 Symbols can be typed in IL instead of addresses (`LD Start`, `CAL Delay1`, `LD Delay1.Q` for an FB instance); the program stores the address and the
-editor and the simulation show the symbol, so renaming a symbol changes it everywhere (View > Addresses shows
-the addresses instead). In the IL editor the status bar shows the comment of the operand on the current line after the POU name. Names must be unique
+editor and the simulation show the address (default View > Addresses) or, with View > Symbols, the symbol, so
+renaming a symbol changes it everywhere. In the IL editor the status bar shows the comment of the operand on the current line after the POU name. Names must be unique
 and must not clash with addresses, keywords, FB instances, IL instructions or POU names.
 
 ## Simulation (Run)

@@ -5,6 +5,8 @@
 ; Green border = all OK, red = failure. Failing cases are printed.
 ; ============================================================
 run_tests:
+        ld a,1                  ; the tests expect View > Symbols
+        ld (view_sym),a
         ld a,LANG_IL
         call proj_new
     IF TPART==1

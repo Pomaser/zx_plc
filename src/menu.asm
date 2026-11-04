@@ -487,7 +487,7 @@ menu_run:
         jp menu_inv_title
 
 menu_sel:  db 0
-view_sym:  db 1             ; 1 = show symbols, 0 = show addresses
+view_sym:  db 0             ; 1 = show symbols, 0 = show addresses (default)
 drop_list: dw 0
 drop_n:    db 0
 drop_sel:  db 0
