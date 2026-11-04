@@ -387,7 +387,7 @@ input_pou_cmt:
         add a,8
         ld c,a
         ld hl,pl_cbuf
-        ld de,POU_CMAX*256      ; case kept
+        ld de,POU_CMAX*256+4    ; case kept, first letter as with CAPS LOCK
         call ui_input
         push af
         call win_close

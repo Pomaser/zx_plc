@@ -144,7 +144,7 @@ lang_names: db "IL LD FBD"
 ; ---- ui_input: line editor in the proportional font
 ;   HL = buffer (holds initial 0-terminated text), B = char row, C = x (px),
 ;   D = max length, E = flags (bit0 = convert to upper case, bit1 = no underline,
-;   bit2 = first character upper case)
+;   bit2 = first character typed as with CAPS LOCK: case swapped)
 ;   output: NC = ENTER, C = cancelled
 ui_input:
         ld (in_buf),hl
@@ -215,11 +215,15 @@ ui_input:
         ld a,(in_flags)
         bit 0,a
         jr nz,.up
-        bit 2,a                 ; first character only
+        bit 2,a                 ; first character of an empty field
         jr z,.noup0
-        ld a,(in_pos)
+        ld a,(in_len)
         or a
         jr nz,.noup0
+        ld a,c
+        call case_swap
+        ld c,a
+        jr .noup0
 .up:    ld a,c
         call to_upper
         ld c,a
@@ -260,7 +264,7 @@ ui_input:
         jr z,.key
         dec a
         ld (in_pos),a
-        jr .key
+        jp .key
 .right: ld a,(in_pos)
         ld b,a
         ld a,(in_len)

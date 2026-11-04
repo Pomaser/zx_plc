@@ -49,9 +49,9 @@ scr_sym:
         cp K_RIGHT
         jp z,.right
         cp K_HOME
-        jr z,.home
+        jp z,.home
         cp K_END
-        jr z,.end
+        jp z,.end
         cp K_PGUP
         jp z,.pgup
         cp K_PGDN
@@ -74,15 +74,27 @@ scr_sym:
         cp F_OPER
         jp z,.tocomm
         ld a,' '
-.ins:   call ed_insert
+.ins:   ld (il_ch),a            ; first letter of the name / comment:
+        ld a,(ed_field)         ; typed as with CAPS LOCK
+        cp F_OPER
+        jr z,.ins1
+        call ed_field_info
+        ld a,(hl)
+        or a
+        jr nz,.ins1
+        ld a,(il_ch)
+        call case_swap
+        ld (il_ch),a
+.ins1:  ld a,(il_ch)
+        call ed_insert
         jr c,.beep
         ld a,1
         ld (sy_mod),a
 .redraw:
         call sy_draw_edit
-        jr .loop
+        jp .loop
 .beep:  call beep
-        jr .loop
+        jp .loop
 .toname:
         ld a,F_MNEM
         ld hl,ed_m

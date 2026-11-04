@@ -121,14 +121,17 @@ il_editor:
         ld a,3
         ld (ed_pos),a
         jr .redraw
-.ins:   ld a,(ed_field)         ; first letter of a comment after "// ": capital
-        cp F_COMM
+.ins:   ld a,(ed_field)         ; first letter of a comment after "// ":
+        cp F_COMM               ; typed as with CAPS LOCK
         jr nz,.ins1
         ld a,(ed_pos)
         cp 3
         jr nz,.ins1
+        ld a,(ed_c+3)
+        or a
+        jr nz,.ins1
         ld a,(il_ch)
-        call to_upper
+        call case_swap
         ld (il_ch),a
 .ins1:  ld a,(il_ch)
         call ed_insert

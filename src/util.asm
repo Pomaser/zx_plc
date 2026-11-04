@@ -159,6 +159,20 @@ to_upper:
         sub 32
         ret
 
+; ---- case_swap: A = letter -> the other case (other characters unchanged);
+;      the first letter of a name / comment is typed as with CAPS LOCK on
+case_swap:
+        cp 'A'
+        ret c
+        cp 'z'+1
+        ret nc
+        cp 'Z'+1
+        jr c,.sw
+        cp 'a'
+        ret c
+.sw:    xor 0x20
+        ret
+
 ; ---- is_digit: A -> NC if '0'..'9'
 is_digit:
         cp '0'
