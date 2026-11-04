@@ -303,7 +303,30 @@ ld_draw_row:
         call .rail
         ld c,248
         call .rail
-        call ld_cmt_text        ; comment row?
+        ; links down from the row above -> lw_up (bit p = position p)
+        ld hl,0
+        ld a,(ld_r)
+        or a
+        jr z,.nu
+        dec a
+        call ld_row_load
+        ld de,lw_t+LD_CPOS
+        ld b,LD_CPOS+1
+.mk:    add hl,hl
+        ld a,(de)
+        rlca
+        jr nc,.mk0
+        inc l
+.mk0:   dec de
+        djnz .mk
+.nu:    ld (lw_up),hl
+        ld a,(ld_r)             ; this row in one pass
+        call ld_row_load
+        ld a,(lw_t)
+        and LT_MASK
+        cp LT_CMT               ; comment row?
+        jr nz,.elems
+        call ld_cmt_text
         jr c,.elems
         ld a,(ld_srow)          ; "// text" in dark green
         ld b,a
@@ -320,25 +343,27 @@ ld_draw_row:
         jp pt_puts
 .elems: xor a
         ld (ld_p),a
-.pos:   ld a,(ld_r)
-        ld d,a
-        ld a,(ld_p)
+.pos:   ld a,(ld_p)
         ld e,a
-        call ld_get
+        ld d,0
+        ld hl,lw_t
+        add hl,de
+        ld a,(hl)
         ld (ld_t),a
+        ld hl,lw_a
+        add hl,de
+        ld b,(hl)
+        ld hl,lw_i
+        add hl,de
+        ld c,(hl)
         call ld_set_ar
         call ld_draw_elem
         ; incoming link from the row above
-        ld a,(ld_r)
-        or a
-        jr z,.nin
-        dec a
-        ld d,a
-        ld a,(ld_p)
-        ld e,a
-        call ld_get
-        bit 7,a
-        jr z,.nin
+        ld hl,(lw_up)
+        srl h
+        rr l
+        ld (lw_up),hl
+        jr nc,.nin
         ld a,(ld_lrow)
         ld b,a
         ld hl,0x0008
@@ -389,6 +414,55 @@ ld_draw_row:
         ld d,1
         ld e,PX_SET
         jp px_span
+
+; ---- ld_row_load: A = row -> lw_t / lw_a / lw_i [position] = type, area,
+;      index of its records (type 0 = empty); one pass over the row
+ld_row_load:
+        ld (lw_row),a
+        ld hl,lw_t
+        ld b,3*(LD_CPOS+1)
+        xor a
+.z:     ld (hl),a
+        inc hl
+        djnz .z
+        ld a,(lw_row)
+        ld d,a
+        ld e,0
+        call ld_find            ; HL = first record at or after (row, 0)
+.l:     push hl
+        ld de,(lf_end)
+        or a
+        sbc hl,de
+        pop hl
+        ret nc
+        ld a,(lw_row)
+        cp (hl)
+        ret nz                  ; next row reached
+        push hl
+        inc hl
+        ld e,(hl)               ; position
+        ld a,e
+        cp LD_CPOS+1
+        jr nc,.n
+        ld d,0
+        inc hl
+        ld a,(hl)               ; type
+        inc hl
+        ld b,(hl)               ; area
+        inc hl
+        ld c,(hl)               ; index
+        ld hl,lw_t
+        add hl,de
+        ld (hl),a
+        ld hl,lw_a
+        add hl,de
+        ld (hl),b
+        ld hl,lw_i
+        add hl,de
+        ld (hl),c
+.n:     pop hl
+        call ld_skip
+        jr .l
 
 ; ---- ld_draw_elem: ld_t / ld_ar at (ld_r, ld_p): symbol + label
 ld_draw_elem:
@@ -1618,7 +1692,12 @@ ld_p:     db 0
 ld_t:     db 0
 ld_ar:    dw 0              ; area, index of the element operand
 ld_newt:  db 0
-ld_oldt:  db 0              ; element at the position before placing
+ld_oldt:  db 0
+lw_row:   db 0
+lw_up:    dw 0              ; links down from the row above (bit = position)
+lw_t:     ds LD_CPOS+1
+lw_a:     ds LD_CPOS+1
+lw_i:     ds LD_CPOS+1              ; element at the position before placing
 ld_kind:  db 0
 ld_aw:    db 0
 ld_lrow:  db 0

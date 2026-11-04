@@ -78,35 +78,49 @@ pt_putc:
         neg
         add a,8
         ld b,a                  ; lines to draw = 8 - pt_skip - pt_down
-.line:  push bc
-        push hl
-        ld hl,(pt_gp)
-        ld c,(hl)
-        inc hl
-        ld (pt_gp),hl
-        pop hl
-        ld e,0
+        ; shift: jump into the unrolled chain so that pt_sh pairs run
         ld a,(pt_sh)
-        or a
-        jr z,.ns
-        ld b,a
-.sh:    srl c
-        rr e
-        djnz .sh
-.ns:    ld a,(hl)
-        or c
-        ld (hl),a
-        ld a,l
+        cpl
+        add a,8                 ; 7 - sh
+        add a,a
+        add a,a                 ; *4 bytes per pair
+        ld (.shj+1),a
+        ld a,l                  ; last column: the spill byte is dropped
         and 31
         cp 31
-        jr z,.skip
+        ld a,0x79               ; ld a,c
+        jr nz,.ncol
+        ld a,0xAF               ; xor a
+.ncol:  ld (.spill),a
+        ld de,(pt_gp)
+.line:  ld a,(de)               ; glyph line
+        inc de
+        or a
+        jr z,.next              ; empty line: nothing to draw
+        ld c,0
+.shj:   jr .sh0                 ; (offset patched)
+.sh0:   srl a
+        rr c
+        srl a
+        rr c
+        srl a
+        rr c
+        srl a
+        rr c
+        srl a
+        rr c
+        srl a
+        rr c
+        srl a
+        rr c
+        or (hl)
+        ld (hl),a
         inc l
-        ld a,(hl)
-        or e
+.spill: ld a,c                  ; (patched to xor a in the last column)
+        or (hl)
         ld (hl),a
         dec l
-.skip:  inc h
-        pop bc
+.next:  inc h
         djnz .line
 .done:  pop bc
         pop de
@@ -160,13 +174,27 @@ pt_clear_row:
         ld c,0
         call pix_addr
         ld e,8
-.l:     push hl
-        ld b,32
         xor a
-.z:     ld (hl),a
+.l:     ld d,l
+        ld b,4
+.z:     ld (hl),a               ; 8 bytes per pass
+        inc l
+        ld (hl),a
+        inc l
+        ld (hl),a
+        inc l
+        ld (hl),a
+        inc l
+        ld (hl),a
+        inc l
+        ld (hl),a
+        inc l
+        ld (hl),a
+        inc l
+        ld (hl),a
         inc l
         djnz .z
-        pop hl
+        ld l,d
         inc h
         dec e
         jr nz,.l
