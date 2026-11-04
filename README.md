@@ -8,7 +8,7 @@ Projects can be saved to tape.
 
 ```
 make            # -> zxplc.sna  (run in Fuse: make run)
-make test       # test build + headless run (requires the Python package z80)
+make test       # two test builds (TPART=1, 2) + headless runs (requires the Python package z80)
 ```
 
 Requires `sjasmplus` (>= 1.18). Headless tests need the Python package `z80`:

@@ -3,7 +3,7 @@
 ; ZX Spectrum 48K, Z80 assembler (sjasmplus)
 ; ============================================================
 ; Build:       sjasmplus main.asm            -> zxplc.sna
-; Tests:       sjasmplus -DTEST main.asm     -> zxplc_test.sna
+; Tests:       sjasmplus -DTEST -DTPART=1 main.asm -> zxplc_test1.sna (and TPART=2)
 ; ============================================================
 
         DEVICE ZXSPECTRUM48
@@ -29,9 +29,11 @@ START:
         ld a,LANG_IL            ; default language of MAIN
         call proj_new
     IFNDEF NODEMO
+    IFNDEF TEST
         ld hl,demo_main         ; test program
         xor a
         call il_load_text
+    ENDIF
     ENDIF
         ld a,SCR_POU
         ld (cur_screen),a
@@ -126,7 +128,9 @@ frames: dw 0
         INCLUDE "src/ld_edit.asm"
         INCLUDE "src/ld_comp.asm"
     IFNDEF NODEMO
+    IFNDEF TEST
         INCLUDE "src/demo.asm"
+    ENDIF
     ENDIF
     IFDEF TEST
         INCLUDE "src/tests.asm"
@@ -140,7 +144,11 @@ CODE_END:
         ASSERT CODE_END <= PROJ
 
     IFDEF TEST
-        SAVESNA "zxplc_test.sna", START
+    IF TPART==1
+        SAVESNA "zxplc_test1.sna", START
+    ELSE
+        SAVESNA "zxplc_test2.sna", START
+    ENDIF
     ELSE
         SAVESNA "zxplc.sna", START
     ENDIF

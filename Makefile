@@ -9,19 +9,22 @@ all: zxplc.sna
 zxplc.sna: $(SRC)
 	sjasmplus --nologo --fullpath --sym=zxplc.sym main.asm
 
-zxplc_test.sna: $(SRC)
-	sjasmplus --nologo --fullpath -DTEST main.asm
+zxplc_test1.sna: $(SRC)
+	sjasmplus --nologo --fullpath -DTEST -DTPART=1 main.asm
 
-# run the test build headless and check the result (TEST_RES = 0x5B00)
-test: zxplc_test.sna
-	@$(PYTHON) tools/zxrun.py zxplc_test.sna -f 100 --peek 5B00:3 | tee .test.out
-	@grep -q "^.. 00 A5" .test.out && echo "TESTS OK" || (echo "TESTS FAILED"; exit 1)
+zxplc_test2.sna: $(SRC)
+	sjasmplus --nologo --fullpath -DTEST -DTPART=2 main.asm
+
+# run both test builds headless and check the results (TEST_RES = 0x5B00)
+test: zxplc_test1.sna zxplc_test2.sna
+	@for t in 1 2; do $(PYTHON) tools/zxrun.py zxplc_test$$t.sna -f 150 --peek 5B00:3 | tee .test.out; \
+	  grep -q "^.. 00 A5" .test.out || { echo "TESTS FAILED (part $$t)"; exit 1; }; done; echo "TESTS OK"
 
 run: zxplc.sna
 	fuse zxplc.sna &
 
-run-test: zxplc_test.sna
-	fuse zxplc_test.sna &
+run-test: zxplc_test1.sna
+	fuse zxplc_test1.sna &
 
 clean:
 	rm -f *.sna *.sym *.lst .test.out

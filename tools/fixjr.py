@@ -7,7 +7,11 @@ for _ in range(10):
     txt = out.stdout + out.stderr
     hits = re.findall(r"^(\S+?)\((\d+)\): error: \[JR\] Target out of range", txt, re.M)
     if not hits:
-        print(txt.strip()); break
+        # show every error/warning plus the code size line
+        for line in txt.splitlines():
+            if "error" in line or "warning" in line or "Code end" in line:
+                print(line)
+        break
     for f, ln in hits:
         path = f if os.path.exists(f) else os.path.join("src", os.path.basename(f))
         lines = open(path).read().split("\n")

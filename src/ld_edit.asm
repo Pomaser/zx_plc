@@ -866,25 +866,26 @@ ld_editor:
         jp z,.menu
         cp K_EDIT
         jp z,.menu
-        call to_upper
-        cp 'V'
-        jp z,.vlink
+        call to_upper           ; shortcut keys of the picker items
         ld b,a
-        ld hl,ld_keys_c         ; element keys
+        ld hl,ld_pick_c
         ld a,(ld_pos)
         cp LD_CPOS
         jr c,.kl
-        ld hl,ld_keys_q
+        ld hl,ld_pick_q
 .kl:    ld a,(hl)
-        or a
-        jr z,.cur
+        cp 0xFF
+        jp z,.cur
+        inc hl
+        ld a,(hl)
+        dec hl
         cp b
         jr z,.kf
-        inc hl
-        inc hl
+        call lk_next
         jr .kl
-.kf:    inc hl
-        ld a,(hl)
+.kf:    ld a,(hl)
+        cp LT_VLITEM
+        jp z,.vlink
         jp .place
 .left:  ld a,(ld_pos)
         or a
@@ -1019,9 +1020,6 @@ ld_editor:
         call ld_del_row
         jr .redraw
 
-; key -> element type: contacts (positions 0-8), coils (position 9)
-ld_keys_c: db 'C',LT_NO, '/',LT_NC, 'P',LT_P, 'N',LT_N, '-',LT_WIRE, 0
-ld_keys_q: db 'C',LT_COIL, '/',LT_NCOIL, 'S',LT_SET, 'R',LT_RES, 0
 
 ; ---- ld_autowire: fills empty positions left of the new element with wires
 ;      (up to the previous element, the left rail or an incoming link)

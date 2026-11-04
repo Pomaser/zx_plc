@@ -1,14 +1,17 @@
 ; ============================================================
-; tests.asm - automated tests (build with -DTEST)
+; tests.asm - automated tests (build with -DTEST -DTPART=1 and -DTPART=2; each build
+; runs one half of the tests so that it fits next to the whole editor)
 ; Result: TEST_RES+0 = passed, +1 = failed, +2 = 0xA5 done
 ; Green border = all OK, red = failure. Failing cases are printed.
 ; ============================================================
 run_tests:
         ld a,LANG_IL
         call proj_new
-        ld hl,t_motor
+    IF TPART==1
+        ld hl,t_motor           ; POU name for the operand tests
         ld a,LANG_FBD
         call pou_add
+    ENDIF
         xor a
         ld (TEST_RES),a
         ld (TEST_RES+1),a
@@ -16,6 +19,7 @@ run_tests:
         ld bc,0x0200
         ld (cur_col),bc
         ; ---- operand tests
+    IF TPART==1
         ld hl,op_cases
 .lp:    ld a,(hl)
         cp 0xFF
@@ -87,12 +91,17 @@ run_tests:
         jp .lp
 
         ; ---- project tests
-.proj:  call proj_tests
+    ENDIF
+.proj:
+    IF TPART==1
+        call proj_tests
         call ptext_tests
         call il_tests
+    ELSE
         call vm_tests
         call sym_tests
         call ld_tests
+    ENDIF
         ; ---- result
         ld bc,0x0000
         ld (cur_col),bc
@@ -127,6 +136,7 @@ t_check:
 .ok:    inc (hl)
         ret
 
+    IF TPART==1
 proj_tests:
         ; MAIN = 0, MOTOR = 1 ; insert 10 B into MAIN, 5 B into MOTOR
         ld a,0
@@ -355,6 +365,8 @@ il_cases:
         db 0xFF
 
 ; ---- compiler + VM tests
+    ENDIF
+    IF TPART==2
 vm_tests:
         ; program 1: latch with reset
         ld hl,t_prog1
@@ -462,6 +474,7 @@ vm_tests:
         ret
 
 ; NC -> pass
+    ENDIF
 t_nc:   ld a,0
         jr nc,.ok
         inc a
@@ -486,6 +499,7 @@ t_word: ld a,(hl)
         jp t_check
 
 
+    IF TPART==2
 t_prog1:
         db "LD",9,"%IX0.0",0
         db "OR",9,"%QX0.0",0
@@ -657,6 +671,7 @@ t_sym_dly_et: db "delay1.et",0
 t_sym_dly_out: db "LD",9,"Delay1.ET",0
 
 ; t_detok: il_out (binary instruction) -> t_buf = "MNEM" [TAB "OPERAND"]
+    ENDIF
 t_detok:
         ld a,(il_outlen)
         ld c,a
@@ -692,6 +707,7 @@ t_detok:
         ret
 
 ; ---- LD compiler: latch with NC reset, P contact -> (S), NO -> (R)
+    IF TPART==2
 ld_tests:
         ld hl,t_ldname
         ld a,LANG_LD
@@ -786,6 +802,7 @@ t_ld_cells:
         db 3,9,LT_RES,AR_M,0
         db 0xFF
 
+    ENDIF
 memset_hl_keep:
         push hl
         call memset
@@ -822,6 +839,7 @@ t_val:     dw 0
 t_buf:     ds 32
 
 ; input, expected output ("" = error, "~" = short style)
+    IF TPART==1
 op_cases:
         db "%IX0.3",0,"%IX0.3",0
         db "%IX0.7",0,"~I0.7",0
@@ -874,3 +892,4 @@ op_cases:
         db "T#5x",0,0
         db "%Z1",0,0
         db 0xFF
+    ENDIF
