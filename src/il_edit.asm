@@ -1224,19 +1224,39 @@ il_draw_row:
         ld c,0
         ld de,0x0300+ATTR_LNUM
         call scr_fill_attr
+        ld d,5
         ld a,(dr_kind)
         ld e,ATTR_MNEM
         cp K_INSTR
-        jr z,.a1
-        ld e,ATTR_COMMENT
+        jr nz,.a0
+        ld hl,(dr_m)            ; cell 7 stays black unless the instruction
+        call pt_width           ; reaches it (operand cursor sits at x = 63)
+        cp 8*7-IL_X_MNEM+1
+        jr nc,.a1
+        dec d
+        jr .a1
+.a0:    ld e,ATTR_COMMENT
         cp K_COMM
         jr z,.a1
         ld e,ATTR_NORMAL
 .a1:    ld a,(dr_row)
         ld b,a
         ld c,3
-        ld d,5
+        push de
         call scr_fill_attr
+        pop de
+        ld a,(dr_row)           ; the rest of cells 3-7 (black)
+        ld b,a
+        ld a,3
+        add a,d
+        ld c,a
+        ld a,8
+        sub c
+        jr z,.a1b
+        ld d,a
+        ld e,ATTR_NORMAL
+        call scr_fill_attr
+.a1b:
         ld a,(dr_kind)
         ld e,ATTR_COMMENT
         cp K_COMM

@@ -6,7 +6,7 @@ Projects can be saved to tape.
 
 ## Sound
 
-The AY chip of the 128K plays a short soft click for every key and a quiet two-note warning on input
+The AY chip of the 128K plays a short soft click (noise with a fast envelope decay) for every key and a quiet two-note warning on input
 errors (unknown instruction or operand, invalid name, ...). Both are played by the interrupt, so the
 program never waits for them; View > Sound switches them off.
 

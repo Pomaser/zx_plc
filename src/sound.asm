@@ -2,7 +2,7 @@
 ; sound.asm - AY-3-8912 sound effects (128K), played by the ISR
 ; ============================================================
 ; An effect is a table of frames [volume][period lo][period hi];
-; volume 0 ends it. Channel A plays the key click (tone + noise),
+; volume 0 ends it. Channel A plays the key click (noise, fast envelope decay),
 ; channel B the error sound (soft low tone).
 
 AY_SEL  EQU 0xFFFD
@@ -29,15 +29,27 @@ snd_init:
         dec d
         jp p,.l
         ld a,6
-        ld e,3                  ; noise period: high hiss for the click
+        ld e,10                 ; noise period of the click
         jp ay_out
 
 ; ---- snd_click / snd_error: start an effect (keep all registers)
-snd_click:
+snd_click:                      ; (called from the ISR only)
+        push af
+        push de
         push hl
         ld hl,snd_tclick
         ld (snd_a),hl
+        ld a,11                 ; envelope: fast decay (~9 ms)
+        ld e,4
+        call ay_out
+        ld a,12
+        ld e,0
+        call ay_out
+        ld a,13                 ; shape \___, writing it restarts the envelope
+        call ay_out
         pop hl
+        pop de
+        pop af
         ret
 snd_error:
         push hl
@@ -60,7 +72,7 @@ snd_isr:
         ld c,0
         call snd_chan
         jr z,.nb
-        ld d,0xF6               ; tone + noise A
+        ld d,0xF7               ; noise A
 .nb:    ld hl,snd_b
         ld c,1
         call snd_chan
@@ -118,10 +130,9 @@ snd_chan:
         pop de
         ret
 
-; key click: short high tone with noise, quickly fading
+; key click: noise burst shaped by the envelope (volume 16 = envelope)
 snd_tclick:
-        db 9, 0x30,0
-        db 5, 0x38,0
+        db 16, 0,0
         db 0
 ; error: soft two-note "du-dum", fading
 snd_terr:
