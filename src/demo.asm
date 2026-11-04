@@ -150,18 +150,18 @@ dm_skip:
         jr nz,dm_skip
         ret
 
-; A = slot, HL = comment -> stored (pl_cbuf zero padded)
-dm_cmt: push af
+; A = slot, HL = comment -> stored in the POU table (zero padded)
+dm_cmt: push hl
+        call pou_entry
+        ld de,PE_CMT
+        add hl,de
         push hl
-        ld hl,pl_cbuf
-        ld bc,POU_CMAX+1
+        ld bc,POU_CMAX
         xor a
         call memset
+        pop de
         pop hl
-        ld de,pl_cbuf
-        call put_str
-        pop af
-        jp pou_set_cmt
+        jp put_str
 
 dm_area: db 0
 dm_idx:  db 0

@@ -226,8 +226,8 @@ fixed     5B00-5DFF  test results, stack
           8A00-8FFF  runtime data
           9000-BFFF  project, 12 KB (saved to tape)
 C000-FFFF paged banks (each with the IM2 table at FDFD-FF00):
-          bank 0  EDIT  POU list, IL / LD / symbol editors, simulation screen (tests in test builds)
-          bank 4  RUN   IL and LD compilers, VM, bytecode (F000-F7FF)
+          bank 0  EDIT  IL / LD / symbol editors, simulation screen (tests in test builds)
+          bank 4  RUN   IL and LD compilers, VM, bytecode (F000-F7FF), POU list, tape save/load
           bank 1  DATA  cells saved under popup windows
           bank 3  DEMO  demo project image (src/demo_proj.bin)
           bank 7  SPARE copy of the project while loading from tape

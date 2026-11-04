@@ -9,7 +9,11 @@ scr_dispatch:
         jp jump_table
 
 screen_tab:
-        dw scr_pou, scr_edit, scr_run, scr_sym
+        dw scr_pou_b, scr_edit, scr_run, scr_sym
+
+scr_pou_b:                      ; the POU list lives in the RUN bank
+        BCALL scr_pou
+        ret
 
 ; ---- EDIT screen: opens the editor for the current POU language
 scr_edit:

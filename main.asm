@@ -122,13 +122,11 @@ CORE_END:
 
 ; ---- EDIT bank ----------------------------------------------
         MMU 3, BANK_EDIT, BANKED
-        INCLUDE "src/pou.asm"
         INCLUDE "src/app.asm"
         INCLUDE "src/il_edit.asm"
         INCLUDE "src/sym_edit.asm"
         INCLUDE "src/ld_edit.asm"
         INCLUDE "src/sim.asm"
-        INCLUDE "src/tape.asm"
     IFDEF TEST
         INCLUDE "src/tests.asm"     ; tests use the editors' buffers directly
     ENDIF
@@ -145,6 +143,8 @@ EDIT_END:
         INCLUDE "src/il_comp.asm"
         INCLUDE "src/vm.asm"
         INCLUDE "src/ld_comp.asm"
+        INCLUDE "src/pou.asm"           ; POU list screen
+        INCLUDE "src/tape.asm"          ; tape (uncontended bank)
 RUN_END:
         DISPLAY "RUN:   free: ",/D,BCODE-RUN_END
         ASSERT RUN_END <= BCODE
