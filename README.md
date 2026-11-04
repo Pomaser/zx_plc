@@ -77,7 +77,7 @@ it (`AND(`, `ADD(` ...). FB calls: `CAL TON0(IN:=%IX0.0, PT:=T#2s)`; POU calls: 
 
 Opened by ENTER on an LD POU. A row is: left rail, 9 positions for contacts / wires, the coil position on the
 right, right rail. Every element takes 3 character cells: the outer cells hold the leads and the symbol
-(`-| |-`, `-( )-`), the middle cell its content and, in the simulation, its state (green = active).
+(`-| |-`, `-( )-`), the middle cell its content and, in the simulation, its state (dark magenta = active, the same colour as TRUE in the IL simulation).
 The operand label above the element follows View (symbol clipped to the element width, or `I0.0`, `Q0.1`...);
 the full symbol name and comment of the selected element are shown in the status bar.
 
