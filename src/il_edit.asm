@@ -991,13 +991,7 @@ il_show_comment:
         inc hl
         inc hl
         inc hl
-        ld de,il_cmt            ; symbol name (inverted, below the operand
-        ld a,ST_TAB             ; column of the editor), then the comment
-        ld (de),a
-        inc de
-        ld a,IL_X_OPER-2
-        ld (de),a
-        inc de
+        ld de,il_cmt            ; symbol name (inverted), then the comment
         ld a,ST_SYM
         ld (de),a
         inc de
