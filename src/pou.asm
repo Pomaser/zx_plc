@@ -19,6 +19,10 @@ scr_pou:
         jr z,.up
         cp K_DOWN
         jr z,.down
+        cp K_PGUP               ; SS+UP / SS+DOWN: first / last POU
+        jr z,.first
+        cp K_PGDN
+        jr z,.last
         cp K_ENTER
         jr z,.edit
         cp K_BREAK
@@ -39,6 +43,17 @@ scr_pou:
         cp 'C'
         jp z,.cmt
         jr .key
+.first: xor a                   ; MAIN (NC)
+        jr .move
+.last:  ld a,(cur_pou)
+.lst:   push af
+        call pou_next
+        jr c,.lend
+        pop bc
+        jr .lst
+.lend:  pop af
+        or a
+        jr .move
 .up:    ld a,(cur_pou)
         call pou_prev
         jr .move

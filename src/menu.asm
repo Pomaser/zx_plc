@@ -962,6 +962,7 @@ txt_about:
 txt_keys:
         db "BREAK, EDIT",PT_TAB,"menu",0
         db "Arrows",PT_TAB,"move (CS+5..8)",0
+        db "SS+Arrows",PT_TAB,"line start/end, page",0
         db "ENTER",PT_TAB,"confirm",0
         db "DELETE",PT_TAB,"delete (CS+0)",0
         db "Letters",PT_TAB,"hotkeys",0

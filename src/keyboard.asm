@@ -49,7 +49,27 @@ kb_read:
         ld a,e
         cp 0xFF
         jr z,.none
-        ld hl,kt_norm
+        ld a,d                  ; CS+SS+5..8 = SS + cursor key: jumps
+        cp 3
+        jr nz,.tab
+        ld a,e
+        sub 19                  ; key 5
+        jr z,.home
+        sub 3                   ; 8
+        jr z,.end
+        dec a                   ; 7
+        jr z,.pgup
+        dec a                   ; 6
+        jr nz,.tab
+        ld a,K_PGDN
+        ret
+.home:  ld a,K_HOME
+        ret
+.end:   ld a,K_END
+        ret
+.pgup:  ld a,K_PGUP
+        ret
+.tab:   ld hl,kt_norm
         bit 1,d
         jr z,.nss
         ld hl,kt_sym

@@ -922,6 +922,14 @@ ld_editor:
         jp z,.up
         cp K_DOWN
         jp z,.down
+        cp K_HOME
+        jp z,.home
+        cp K_END
+        jp z,.end
+        cp K_PGUP
+        jp z,.pgup
+        cp K_PGDN
+        jp z,.pgdn
         cp K_ENTER
         jp z,.enter
         cp K_DEL
@@ -1003,6 +1011,30 @@ ld_editor:
         inc a
         ld (ld_pos),a
         jp .cur
+.home:  xor a                   ; first position
+        jr .setp
+.end:   ld a,LD_CPOS            ; coil position
+.setp:  ld (ld_pos),a
+        jp .cur
+.pgup:  ld a,(ld_vn)            ; one screen up
+        dec a
+        ld b,a
+        ld a,(ld_row)
+        sub b
+        jr nc,.mv
+        xor a
+        jr .mv
+.pgdn:  ld a,(ld_vn)            ; one screen down (max. the row after the last)
+        dec a
+        ld b,a
+        ld a,(ld_row)
+        add a,b
+        ld c,a
+        call ld_nrows
+        cp c
+        jr c,.mv
+        ld a,c
+        jr .mv
 .up:    ld a,(ld_row)
         or a
         jp z,.cur

@@ -94,6 +94,10 @@ CMD_STOP        EQU 21
 CMD_SOUND       EQU 22
 
 ; ---- key codes ----------------------------------------------
+K_HOME      EQU 1           ; SS + LEFT  (CS+SS+5): start of the line
+K_END       EQU 2           ; SS + RIGHT (CS+SS+8): end of the line
+K_PGUP      EQU 3           ; SS + UP    (CS+SS+7): page up
+K_PGDN      EQU 4           ; SS + DOWN  (CS+SS+6): page down
 K_EDIT      EQU 7
 K_LEFT      EQU 8
 K_RIGHT     EQU 9

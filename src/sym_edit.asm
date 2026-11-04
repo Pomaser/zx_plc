@@ -45,9 +45,17 @@ scr_sym:
         cp K_UP
         jp z,.up
         cp K_LEFT
-        jr z,.left
+        jp z,.left
         cp K_RIGHT
-        jr z,.right
+        jp z,.right
+        cp K_HOME
+        jr z,.home
+        cp K_END
+        jr z,.end
+        cp K_PGUP
+        jp z,.pgup
+        cp K_PGDN
+        jp z,.pgdn
         cp K_DEL
         jp z,.del
         cp K_BREAK
@@ -91,7 +99,27 @@ scr_sym:
         ld (ed_field),a
         call strlen
         ld (ed_pos),a
-        jr .loop
+        jp .loop
+.home:  ld a,(ed_field)         ; SS+LEFT: start of the name
+        cp F_OPER
+        call z,sy_norm_addr     ; (leaving the address field)
+        ld a,F_MNEM
+        ld (ed_field),a
+        xor a
+        ld (ed_pos),a
+        jr .redraw
+.end:   ld a,(ed_field)         ; SS+RIGHT: end of the comment
+        cp F_COMM
+        jr z,.tocomm2
+        cp F_OPER
+        jp z,.tocomm
+        ld a,F_OPER             ; from the name: through the address field
+        ld (ed_field),a
+        jp .tocomm
+.tocomm2:
+        ld hl,ed_c
+        ld a,F_COMM
+        jr .tofield
 .left:  ld a,(ed_pos)
         or a
         jr z,.back
@@ -127,14 +155,36 @@ scr_sym:
         call ed_del_char
         ld a,1
         ld (sy_mod),a
-        jr .redraw
+        jp .redraw
 
 .up:    call sy_commit
         jp c,.loop
         ld hl,(il_cur)
         ld a,h
         or l
-        jr z,.stay
+        jp z,.stay
+        dec hl
+        jp .move
+.pgup:  call sy_commit           ; SS+UP: one screen up
+        jp c,.loop
+        ld hl,(il_cur)
+        ld de,IL_ROWS-1
+        or a
+        sbc hl,de
+        jp nc,.move
+        ld hl,0
+        jr .move
+.pgdn:  call sy_commit           ; SS+DOWN: one screen down
+        jp c,.loop
+        ld hl,(il_cur)
+        ld de,IL_ROWS-1
+        add hl,de
+        ld de,(il_n)
+        or a
+        sbc hl,de
+        add hl,de
+        jr c,.move
+        ex de,hl
         dec hl
         jr .move
 .enter: ; cursor at the very start of a filled row -> empty row above it

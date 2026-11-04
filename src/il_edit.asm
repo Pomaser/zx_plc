@@ -75,6 +75,14 @@ il_editor:
         jp z,.menu
         cp K_EDIT
         jp z,.menu
+        cp K_HOME
+        jp z,.home
+        cp K_END
+        jp z,.end
+        cp K_PGUP
+        jp z,.pgup
+        cp K_PGDN
+        jp z,.pgdn
         cp 32
         jr c,.loop
         cp 128
@@ -181,6 +189,52 @@ il_editor:
         ld (ed_pos),a
         jp .loop
 
+        ; ---- SS+LEFT / SS+RIGHT: start / end of the line
+.home:  ld a,(ed_field)
+        cp F_OPER
+        jr nz,.h1
+        ld a,F_MNEM
+        ld (ed_field),a
+.h1:    xor a
+        ld (ed_pos),a
+        jp .redraw
+.end:   ld a,(ed_field)         ; instruction with an operand: end of it
+        cp F_MNEM
+        jp nz,.en1
+        ld a,(ed_o)
+        or a
+        jp z,.en1
+        ld a,F_OPER
+        ld (ed_field),a
+.en1:   call ed_field_info
+        call strlen
+        ld (ed_pos),a
+        jp .redraw
+
+        ; ---- SS+UP / SS+DOWN: one screen up / down
+.pgup:  call il_commit
+        jp c,.loop
+        ld hl,(il_cur)
+        ld de,IL_ROWS-1
+        or a
+        sbc hl,de
+        jp nc,.move
+        ld hl,0
+        jp .move
+.pgdn:  call il_commit
+        jp c,.loop
+        ld hl,(il_cur)
+        ld de,IL_ROWS-1
+        add hl,de
+        ld de,(il_n)            ; max. the last line
+        or a
+        sbc hl,de
+        add hl,de
+        jp c,.move
+        ex de,hl
+        dec hl
+        jp .move
+
         ; ---- DELETE (backspace)
 .del:   ld a,(ed_pos)
         or a
@@ -200,10 +254,10 @@ il_editor:
         xor a
         ld (de),a
         ld (ed_c),a
-        jr .tomnem
+        jp .tomnem
 .del0:  ld a,(ed_field)
         cp F_OPER
-        jr z,.tomnem
+        jp z,.tomnem
         cp F_MNEM
         jp nz,.loop
         ld a,(ed_m)
@@ -254,7 +308,7 @@ il_editor:
         ld de,IL_MAXLN
         or a
         sbc hl,de
-        jr c,.e1
+        jp c,.e1
         ld hl,err_il_lines
         call ui_error
         jp .loop
