@@ -34,7 +34,7 @@ Keys are read in the interrupt into an 8-key queue, so typing ahead is not lost.
 | Menu | Items |
 |---|---|
 | File | New project, Load..., Save... |
-| POU | Manage, New..., Rename..., Language..., Delete |
+| POU | Manage, New..., Rename/Comment..., Language..., Delete |
 | Edit | Edit POU, Symbols, Insert line, Delete line |
 | View | Symbols, Addresses (how operands are shown in the IL editor and the simulation) |
 | Run | Run, Stop, Step, Reset |

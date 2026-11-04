@@ -90,14 +90,11 @@ scr_pou:
         call input_pou_cmt
         jp .redraw
 
-.rename:
+.rename:                        ; name (not for MAIN) and comment
         ld a,(cur_pou)
         or a
-        jr nz,.r1
-        ld hl,err_main_ren
-        call ui_error
-        jp .key
-.r1:    call pou_entry
+        jr z,.rcmt
+        call pou_entry
         ld de,name_buf
         call name_unpad
         ld a,(cur_pou)
@@ -109,6 +106,9 @@ scr_pou:
         ld hl,name8
         ld bc,8
         ldir
+        call pou_draw_list      ; show the new name before the comment
+.rcmt:  ld a,(cur_pou)
+        call input_pou_cmt
         jp .redraw
 
 .delete:
@@ -394,7 +394,6 @@ txt_cmt_q:  db "Comment for the POU (optional):",0," ",0," ",0,0
 txt_name_q:    db "POU name (A-Z, 0-9, _):",0," ",0," ",0,0
 txt_del_q:     db "Delete selected POU?",0
 err_pou_full:  db "Max. 8 POUs",0
-err_main_ren:  db "MAIN cannot be renamed",0
 err_main_del:  db "MAIN cannot be deleted",0
 err_not_empty: db "POU is not empty",0
 err_bad_name:  db "Invalid name",0

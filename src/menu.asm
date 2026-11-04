@@ -37,7 +37,7 @@ mi_file:
 mi_pou:
         db CMD_POU_MANAGE,'M',"Manage",0
         db CMD_POU_NEW,   'N',"New...",0
-        db CMD_POU_RENAME,'R',"Rename...",0
+        db CMD_POU_RENAME,'R',"Rename/Comment...",0
         db CMD_POU_LANG,  'L',"Language...",0
         db CMD_POU_DELETE,'D',"Delete",0
         db 0
