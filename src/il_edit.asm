@@ -121,7 +121,16 @@ il_editor:
         ld a,3
         ld (ed_pos),a
         jr .redraw
-.ins:   ld a,(il_ch)
+.ins:   ld a,(ed_field)         ; first letter of a comment after "// ": capital
+        cp F_COMM
+        jr nz,.ins1
+        ld a,(ed_pos)
+        cp 3
+        jr nz,.ins1
+        ld a,(il_ch)
+        call to_upper
+        ld (il_ch),a
+.ins1:  ld a,(il_ch)
         call ed_insert
         call c,beep
 .redraw:                        ; text part only (no flicker of the line number)

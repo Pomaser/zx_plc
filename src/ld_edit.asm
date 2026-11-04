@@ -1003,7 +1003,7 @@ ld_editor:
         ld a,(pt_x)
         ld c,a
         ld hl,ld_cbuf
-        ld de,0x2402            ; max 36 chars, case kept, no underline
+        ld de,0x2406            ; max 36 chars, no underline, first letter capital
         call ui_input
         jp c,.full
         call ld_put_cmt

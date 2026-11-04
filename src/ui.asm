@@ -143,7 +143,8 @@ lang_names: db "IL LD FBD"
 
 ; ---- ui_input: line editor in the proportional font
 ;   HL = buffer (holds initial 0-terminated text), B = char row, C = x (px),
-;   D = max length, E = flags (bit0 = convert to upper case, bit1 = no underline)
+;   D = max length, E = flags (bit0 = convert to upper case, bit1 = no underline,
+;   bit2 = first character upper case)
 ;   output: NC = ENTER, C = cancelled
 ui_input:
         ld (in_buf),hl
@@ -213,9 +214,16 @@ ui_input:
         ld c,a
         ld a,(in_flags)
         bit 0,a
-        ld a,c
-        jr z,.noup
+        jr nz,.up
+        bit 2,a                 ; first character only
+        jr z,.noup0
+        ld a,(in_pos)
+        or a
+        jr nz,.noup0
+.up:    ld a,c
         call to_upper
+        ld c,a
+.noup0: ld a,c
 .noup:  ld c,a
         ld a,(in_len)
         ld b,a
@@ -257,7 +265,7 @@ ui_input:
         ld b,a
         ld a,(in_len)
         cp b
-        jr z,.key
+        jp z,.key
         ld a,b
         inc a
         ld (in_pos),a
