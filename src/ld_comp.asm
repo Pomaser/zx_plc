@@ -7,6 +7,7 @@
 ;   empty     S = FALSE            wire      -
 ;   NO / NC   S = S AND op / S AND NOT op
 ;   P / N     S = S AND (op rising / falling), edge memory E (RT_EDGE)
+;   timer box IN = S, PT = preset, CAL, S = Q
 ;   link      S of all linked rows = OR of them
 ;   coils     LD S / ST, STN, S, R op
 ; ============================================================
@@ -139,6 +140,8 @@ lc_get: ld a,(lc_r0)
         ld (lc_area),a
         ld a,c
         ld (lc_idx),a
+        ld hl,(ld_gpt)
+        ld (lc_pt),hl
         pop af
         ret
 
@@ -217,6 +220,9 @@ lc_elem:
         ld a,1
         jp lc_set_dead
 .cont:  ld (lc_t),a
+        call ld_isbox
+        jr z,.box
+        ld a,(lc_t)
         cp LT_P
         jr nc,.edge
         call lc_is_dead
@@ -269,6 +275,60 @@ lc_elem:
         inc (hl)
         or a
         ret
+
+.box:   call lc_is_dead         ; IN := power of the row
+        jr z,.bpw
+        ld a,OP_LD
+        ld hl,0
+        call lc_emit_k
+        jr .bin
+.bpw:   ld a,OP_LD
+        call lc_emit_s
+.bin:   ret c
+        ld a,OP_ST
+        ld b,0                  ; member IN
+        call lc_emit_mem
+        ret c
+        ld hl,(lc_pt)           ; PT := preset time
+        ld (cp_arg),hl
+        xor a
+        ld (cp_arg3),a
+        ld a,VM_MII
+        ld (cp_mode),a
+        ld a,OP_LD
+        call cp_emit
+        ret c
+        ld a,OP_ST
+        ld b,1                  ; member PT
+        call lc_emit_mem
+        ret c
+        ld a,(lc_idx)           ; CAL instance
+        ld l,a
+        rrca
+        rrca
+        and 0x3F
+        ld (cp_mode),a
+        ld h,0
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        ld de,RT_FB
+        add hl,de
+        ld (cp_arg),hl
+        xor a
+        ld (cp_arg3),a
+        ld a,OP_CALFB
+        call cp_emit
+        ret c
+        ld a,OP_LD
+        ld b,2                  ; power := Q
+        call lc_emit_mem
+        ret c
+        ld a,OP_ST
+        call lc_emit_s
+        ret c
+        xor a
+        jp lc_set_dead
 
 ; ---- lc_links: vertical links at the right edge of column lc_p
 lc_links:
@@ -362,6 +422,16 @@ lc_coil:
 .ops:   db OP_ST, OP_ST|VM_N, OP_S, OP_R
 
 ; ---- emit helpers
+; lc_emit_mem: A = op, B = member of the FB instance lc_idx
+lc_emit_mem:
+        push af
+        ld a,b
+        rlca
+        rlca
+        rlca
+        rlca
+        or AR_FBM
+        jr lc_emit_av
 ; lc_emit_s: A = op, operand S[lc_i]
 lc_emit_s:
         push af
@@ -409,9 +479,12 @@ lc_emit_k:
 ; lc_emit_op: A = op, operand lc_area/lc_idx
 lc_emit_op:
         push af
+        ld a,(lc_area)
+lc_emit_av:
+        push af
         ld a,(lc_idx)
         ld c,a
-        ld a,(lc_area)
+        pop af
         ld de,0
         call cp_operand_av
         pop bc
@@ -435,4 +508,5 @@ lc_g1:    db 0
 lc_edges: db 0
 lc_area:  db 0
 lc_idx:   db 0
+lc_pt:    dw 0
 lc_dead:  ds LC_MAXRR

@@ -84,6 +84,12 @@ The letter keys below work as shortcuts both in the editor and in the picker.
 | `P` / `N` | rising / falling edge contact | |
 | `S` / `R` | | set / reset coil |
 | `-` (SS+J) | wire | |
+| `T` / `F` / `U` | TON / TOF / TP timer box | |
+
+Timer boxes `[TON]`, `[TOF]`, `[TP]` sit on a contact position: the power from the left is the input IN, the
+output Q powers the rest of the row. The box asks for the instance (`TON1` or its symbol) and the preset time
+PT (`T#4s`); the instance is shown above the box, PT in the status bar, and in the simulation the middle cell
+shows Q.
 
 Arrows move, DELETE clears the position, `V` toggles a vertical
 link at the right edge of the position (parallel branches), Edit > Insert line / Delete line insert or delete

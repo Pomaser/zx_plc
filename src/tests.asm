@@ -713,6 +713,8 @@ ld_tests:
         ld a,LANG_LD
         call pou_add
         ld (cur_pou),a
+        ld hl,5                 ; PT of the timer box (5 ticks)
+        ld (ld_ppt),hl
         ld hl,t_ld_cells
 .cell:  ld a,(hl)
         cp 0xFF
@@ -762,6 +764,17 @@ ld_tests:
         call t_scan_i
         ld a,(RT_M)
         and 1
+        call t_check
+        ld a,0x10               ; I0.4 -> TON2 (PT 5, dt 3): not yet
+        call t_scan_i
+        ld a,(RT_Q)
+        and 4
+        call t_check
+        ld a,0x10               ; ET 6 >= 5 -> Q0.2
+        call t_scan_i
+        ld a,(RT_Q)
+        and 4
+        cp 4
         jp t_check
 
 t_ldname: db "LDT     "
@@ -800,6 +813,16 @@ t_ld_cells:
         db 3,7,LT_WIRE,0,0
         db 3,8,LT_WIRE,0,0
         db 3,9,LT_RES,AR_M,0
+        db 4,0,LT_NO,AR_I,4
+        db 4,1,LT_TON,AR_FBI,2
+        db 4,2,LT_WIRE,0,0
+        db 4,3,LT_WIRE,0,0
+        db 4,4,LT_WIRE,0,0
+        db 4,5,LT_WIRE,0,0
+        db 4,6,LT_WIRE,0,0
+        db 4,7,LT_WIRE,0,0
+        db 4,8,LT_WIRE,0,0
+        db 4,9,LT_COIL,AR_Q,2
         db 0xFF
 
     ENDIF

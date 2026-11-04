@@ -2,7 +2,7 @@
 ; ld_edit.asm - Ladder Diagram editor
 ; ============================================================
 ; POU body: [number of rows] + records [row][pos][type][area][index],
-; sorted by (row, pos). type bit 7 = vertical link down at the right
+; timer boxes have 2 more bytes [PT lo][PT hi]; sorted by (row, pos). type bit 7 = vertical link down at the right
 ; edge of the position. Row = left rail, positions 0-8 (contacts,
 ; wires), position 9 (coil), right rail. One element = 3 cells:
 ; leads + symbol in the outer cells, the middle cell shows the state
@@ -18,7 +18,10 @@ LT_COIL   EQU 8
 LT_NCOIL  EQU 9
 LT_SET    EQU 10
 LT_RES    EQU 11
-LT_VLITEM EQU 12            ; picker item: toggle the vertical link
+LT_TON    EQU 6             ; timer boxes (record + PT)
+LT_TOF    EQU 7
+LT_TP     EQU 12
+LT_VLITEM EQU 13            ; picker item: toggle the vertical link
 LT_VL     EQU 0x80          ; vertical link down
 LT_MASK   EQU 0x0F
 LD_CPOS   EQU 9             ; coil position
@@ -55,6 +58,37 @@ ld_hdr: ld a,(cur_pou)
         or a
         ret
 
+; ---- ld_isbox: A = type -> Z if it is a timer box (keeps BC, DE, HL)
+ld_isbox:
+        and LT_MASK
+        cp LT_TON
+        ret z
+        cp LT_TOF
+        ret z
+        cp LT_TP
+        ret
+
+; ---- ld_tlen: A = type -> A = record length (keeps BC, DE, HL)
+ld_tlen:
+        call ld_isbox
+        ld a,7
+        ret z
+        ld a,5
+        ret
+
+; ---- ld_skip: HL = record -> next record (keeps BC)
+ld_skip:
+        push hl
+        inc hl
+        inc hl
+        ld a,(hl)
+        pop hl
+        call ld_tlen
+        ld e,a
+        ld d,0
+        add hl,de
+        ret
+
 ; ---- ld_find: D = row, E = pos -> NC: HL = record; C: HL = insertion point
 ld_find:
         ld (lf_pos),de
@@ -85,8 +119,7 @@ ld_find:
         dec hl
         jr c,.nf
         jr z,.f
-.n:     ld de,5
-        add hl,de
+.n:     call ld_skip
         jr .l
 .f:     or a
         ret
@@ -106,6 +139,17 @@ ld_get: push de
         ld b,(hl)
         inc hl
         ld c,(hl)
+        inc hl
+        push af
+        call ld_isbox
+        jr nz,.nb
+        push de
+        ld e,(hl)               ; PT of a timer box
+        inc hl
+        ld d,(hl)
+        ld (ld_gpt),de
+        pop de
+.nb:    pop af
         ret
 .none:  xor a
         ld b,a
@@ -115,6 +159,10 @@ ld_get: push de
 ; ---- ld_put: D = row, E = pos, A = type, B = area, C = index
 ;      type 0 without a link removes the record. C = out of memory (shown)
 ld_put: ld (lp_rec+2),a
+        push hl
+        ld hl,(ld_ppt)
+        ld (lp_rec+5),hl
+        pop hl
         ld a,b
         ld (lp_rec+3),a
         ld a,c
@@ -124,7 +172,7 @@ ld_put: ld (lp_rec+2),a
         ld a,e
         ld (lp_rec+1),a
         call ld_hdr
-        jr c,.mem
+        jp c,.mem
         ld a,(lp_rec)
         ld d,a
         ld a,(lp_rec+1)
@@ -134,13 +182,39 @@ ld_put: ld (lp_rec+2),a
         ld a,(lp_rec+2)
         or a
         jr z,.del
-        ex de,hl                ; overwrite
+        push hl                 ; same length -> overwrite
+        inc hl
+        inc hl
+        ld a,(hl)
+        pop hl
+        call ld_tlen
+        ld b,a
+        ld a,(lp_rec+2)
+        call ld_tlen
+        cp b
+        jr nz,.repl
+        ex de,hl
         ld hl,lp_rec
-        ld bc,5
+        ld c,a
+        ld b,0
         ldir
         jr .rows
-.del:   call il_offset
-        ld bc,5
+.repl:  call .del               ; length changes: remove, then insert
+        ld a,(lp_rec)
+        ld d,a
+        ld a,(lp_rec+1)
+        ld e,a
+        call ld_find
+        jr .ins
+.del:   push hl
+        inc hl
+        inc hl
+        ld a,(hl)
+        pop hl
+        call ld_tlen
+        ld c,a
+        ld b,0
+        call il_offset
         ld a,(cur_pou)
         call pou_delete
         or a
@@ -148,14 +222,18 @@ ld_put: ld (lp_rec+2),a
 .new:   ld a,(lp_rec+2)
         or a
         ret z
-        call il_offset
-        ld bc,5
+.ins:   call il_offset
+        ld a,(lp_rec+2)
+        call ld_tlen
+        ld c,a
+        ld b,0
+        push bc
         ld a,(cur_pou)
         call pou_insert
+        pop bc
         jr c,.mem
         ex de,hl
         ld hl,lp_rec
-        ld bc,5
         ldir
 .rows:  ld a,(cur_pou)          ; the row count covers this row
         call pou_body
@@ -205,8 +283,15 @@ ld_del_row:
         jr z,.rm
         call ld_rec_next
         jr .f
-.rm:    call il_offset
-        ld bc,5
+.rm:    push hl
+        inc hl
+        inc hl
+        ld a,(hl)
+        pop hl
+        call ld_tlen
+        ld c,a
+        ld b,0
+        call il_offset
         ld a,(cur_pou)
         call pou_delete
         jr .again
@@ -241,8 +326,7 @@ ld_rec_loop:
         jr ld_rec_chk
 ; ld_rec_next: HL = next record, C if not at the end
 ld_rec_next:
-        ld de,5
-        add hl,de
+        call ld_skip
 ld_rec_chk:
         push hl
         ld de,(lf_end)
@@ -268,6 +352,12 @@ G_OR    EQU 8
 G_S     EQU 9
 G_R     EQU 10
 G_VL    EQU 11
+G_BXL   EQU 12
+G_TO    EQU 13
+G_TPG   EQU 14
+G_BRN   EQU 15
+G_BRF   EQU 16
+G_BR    EQU 17
 ld_gfx:
         db 0x00,0x00,0x00,0x00,0xFF,0x00,0x00,0x00      ; wire
         db 0x00,0x02,0x02,0x02,0xFE,0x02,0x02,0x02      ; --|
@@ -281,11 +371,18 @@ ld_gfx:
         db 0x00,0x00,0x1C,0x20,0x18,0x04,0x38,0x00      ; S
         db 0x00,0x00,0x38,0x24,0x38,0x28,0x24,0x00      ; R
         db 0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01      ; vertical link (right edge)
-; glyphs (left, middle, right) per element type 0-12
+        db 0x00,0x30,0x20,0x20,0xE0,0x20,0x20,0x30      ; -[
+        db 0x00,0x00,0xE4,0x4A,0x4A,0x4A,0x44,0x00      ; TO
+        db 0x00,0x00,0xEC,0x4A,0x4C,0x48,0x48,0x00      ; TP
+        db 0x00,0x0C,0xA4,0xE4,0xE7,0xA4,0xA4,0x0C      ; N]-
+        db 0x00,0x0C,0xE4,0x84,0xC7,0x84,0x84,0x0C      ; F]-
+        db 0x00,0x0C,0x04,0x04,0x07,0x04,0x04,0x0C      ; ]-
+; glyphs (left, middle, right) per element type 0-13
 ld_types:
         db G_BL,G_BL,G_BL, G_WIRE,G_WIRE,G_WIRE, G_CL,G_BL,G_CR, G_CL,G_SL,G_CR
-        db G_CL,G_P,G_CR,  G_CL,G_N,G_CR,      G_BL,G_BL,G_BL, G_BL,G_BL,G_BL
+        db G_CL,G_P,G_CR,  G_CL,G_N,G_CR,      G_BXL,G_TO,G_BRN, G_BXL,G_TO,G_BRF
         db G_OL,G_BL,G_OR, G_OL,G_SL,G_OR,     G_OL,G_S,G_OR,  G_OL,G_R,G_OR
+        db G_BXL,G_TPG,G_BR                     ; TP
         db G_BL,G_BL,G_VL                       ; picker: vertical link
 
 ; ---- ld_draw_view: rows ld_top.. on screen rows ld_vbase.. (ld_vn rows)
@@ -688,6 +785,9 @@ ld_pick_c:
         db LT_N,    'N',"Falling edge",0
         db LT_WIRE, '-',"Wire",0
         db LT_VLITEM,'V',"Vertical link",0
+        db LT_TON,  'T',"TON timer",0
+        db LT_TOF,  'F',"TOF timer",0
+        db LT_TP,   'U',"TP pulse",0
         db 0xFF
 ld_pick_q:
         db LT_COIL, 'C',"Coil",0
@@ -791,8 +891,11 @@ ld_set_state:
         cp LT_NO
         jr c,.n
         push hl
+        call ld_isbox
         ld a,b
-        ld de,0
+        jr nz,.op
+        ld a,AR_FBM+0x20        ; timer box: state = Q
+.op:    ld de,0
         call cp_operand_av
         ld e,ATTR_NORMAL
         ld a,(cp_mode)
@@ -927,10 +1030,20 @@ ld_editor:
         ld e,a
         call ld_get
         call ld_set_ar
+        ld hl,50                ; default PT T#1s, kept from an existing box
+        call ld_isbox
+        jr nz,.dpt
+        ld hl,(ld_gpt)
+.dpt:   ld (ld_ppt),hl
         ld a,(ld_newt)
         call ld_ask_operand
         jp c,.redraw
         call ld_set_ar
+        ld a,(ld_newt)
+        call ld_isbox
+        jr nz,.pl3
+        call ld_ask_pt          ; timer box: preset time
+        jp c,.redraw
         jr .pl3
 .pl2:   ld bc,0
         call ld_set_ar
@@ -1096,7 +1209,29 @@ ld_ask_operand:
         ld a,(hl)
         or a
         jr nz,.bad
+        ld a,(ld_kind)          ; timer box: an instance of the same FB type
+        call ld_isbox
+        jr nz,.nbox
         ld a,b
+        cp AR_FBI
+        jr nz,.bad
+        ld a,(ld_kind)
+        ld e,FBT_TON
+        cp LT_TON
+        jr z,.bt
+        ld e,FBT_TOF
+        cp LT_TOF
+        jr z,.bt
+        ld e,FBT_TP
+.bt:    ld a,c
+        rrca
+        rrca
+        and 0x3F
+        cp e
+        jr nz,.bad
+        or a
+        ret
+.nbox:  ld a,b
         and AR_MASK
         cp AR_FBM
         jr z,.fbm
@@ -1148,6 +1283,48 @@ ld_set_ar:
         ld (ld_ar+1),a
         ret
 
+; ---- ld_ask_pt: popup for the preset time of a timer box (ld_ppt)
+;      C = cancelled
+ld_ask_pt:
+        ld hl,(ld_ppt)          ; initial text: current PT
+        ld de,ld_obuf
+        ld a,AR_KT
+        ld bc,0
+        call op_format
+.ask:   ld hl,txt_ld_ptq
+        call popup_open
+        ld a,(win_r)
+        add a,2
+        ld b,a
+        ld a,(win_bx)
+        add a,8
+        ld c,a
+        ld hl,ld_obuf
+        ld de,0x0C00
+        call ui_input
+        push af
+        call win_close
+        pop af
+        ret c
+        ld hl,ld_obuf
+        call op_parse
+        jr c,.bad
+        ld b,a
+        ld a,(hl)
+        or a
+        jr nz,.bad
+        ld a,b
+        cp AR_KT
+        jr z,.ok
+        cp AR_K16
+        jr nz,.bad
+.ok:    ld (ld_ppt),de
+        or a
+        ret
+.bad:   ld hl,err_ld_pt
+        call ui_error
+        jr .ask
+
 ; ---- ld_info: status bar: symbol name and comment of the current element
 ld_info:
         ld hl,0
@@ -1157,6 +1334,33 @@ ld_info:
         ld a,(ld_pos)
         ld e,a
         call ld_get
+        ld de,ld_infob
+        ld (ld_infop),de
+        push af
+        push bc
+        call ld_isbox
+        jr nz,.nbx
+        call ld_set_ar          ; "TON1 PT=T#4s  " in front of the comment
+        ld hl,ld_ar
+        call il_fmt_one
+        ld hl,txt_ld_pt
+        call put_str
+        ld hl,(ld_gpt)
+        ld a,AR_KT
+        ld bc,0
+        call op_format
+        ld a,' '
+        ld (de),a
+        inc de
+        ld (de),a
+        inc de
+        xor a
+        ld (de),a
+        ld (ld_infop),de
+        ld hl,ld_infob
+        ld (st_left),hl
+.nbx:   pop bc
+        pop af
         and LT_MASK
         cp LT_NO
         jr c,.show
@@ -1177,7 +1381,7 @@ ld_info:
         inc hl
         inc hl
         inc hl
-        ld de,ld_infob
+        ld de,(ld_infop)
 .n:     ld a,(hl)
         inc hl
         or a
@@ -1209,6 +1413,9 @@ ld_info:
 
 txt_ld_opq: db "Operand (address or symbol):",0," ",0," ",0,0
 err_ld_op:  db "Invalid operand for this element",0
+err_ld_pt:  db "Invalid time",0
+txt_ld_ptq: db "PT (time, e.g. T#4s):",0," ",0," ",0,0
+txt_ld_pt:  db " PT=",0
 
 ld_pou:   db 0xFF
 ld_row:   db 0
@@ -1230,7 +1437,10 @@ lf_pos:   db 0              ; ld_find key (must be followed by lf_row)
 lf_row:   db 0
 lf_end:   dw 0
 lr_row:   db 0
-lp_rec:   ds 5
+lp_rec:   ds 7
+ld_gpt:   dw 0              ; PT of the last ld_get box
+ld_ppt:   dw 0              ; PT for ld_put
+ld_infop: dw 0
 ld_lbl:   ds 16
 lg_row:   dw 0              ; ld_put_glyphs: cell, row
 lk_cur:   db 0
