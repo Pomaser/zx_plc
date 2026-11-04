@@ -5,6 +5,7 @@ POU_LIST_ROW EQU 3            ; header on row 2
 
 scr_pou:
         call screen_begin
+        call pou_draw_header
         call pou_draw_list
         ld hl,pou_pending       ; command requested from another screen
         ld a,(hl)
@@ -40,14 +41,17 @@ scr_pou:
         jr .key
 .up:    ld a,(cur_pou)
         call pou_prev
-        jr c,.key
-        ld (cur_pou),a
-        jr .redraw
+        jr .move
 .down:  ld a,(cur_pou)
         call pou_next
-        jr c,.key
+.move:  jp c,.key
+        push af                 ; only the selection bar moves
+        call pou_inv_sel
+        pop af
         ld (cur_pou),a
-        jr .redraw
+        call pou_inv_sel
+        call status_left        ; (redraws only if the text changed)
+        jp .key
 .edit:  ld a,CMD_EDIT
         ret
 .menu:  call menu_handle
@@ -67,7 +71,7 @@ scr_pou:
         jr c,.n1
         ld hl,err_pou_full
         call ui_error
-        jr .key
+        jp .key
 .n1:    xor a
         ld (name_buf),a
         ld a,0xFF
@@ -218,7 +222,7 @@ PL_X_NAME EQU 8
 PL_X_LANG EQU 60
 PL_X_SIZE EQU 128             ; right edge of the Size column
 PL_X_CMT  EQU 136
-pou_draw_list:
+pou_draw_header:
         ld bc,(POU_LIST_ROW-1)*256      ; column names in dark blue
         ld de,0x2000+ATTR_TITLE
         call scr_fill_attr
@@ -240,7 +244,9 @@ pou_draw_list:
         ld a,PL_X_CMT
         ld (pt_x),a
         ld hl,txt_h_cmt
-        call pt_puts
+        jp pt_puts
+
+pou_draw_list:
         ; clear the list rows
         ld b,POU_LIST_ROW
 .clr:   push bc
@@ -300,27 +306,36 @@ pou_draw_list:
         ld (pt_x),a
         ld hl,pl_cbuf
         call pt_puts
-        ; selection
-        ld a,(cur_pou)
-        ld b,a
-        ld a,(pl_slot)
-        cp b
-        jr nz,.nsel
-        ld a,(pt_row)
-        ld b,a
-        ld c,4
-        ld d,248
-        ld hl,0x0008
-        ld e,PX_XOR
-        call px_span
-.nsel:  ld hl,pt_row
+        ld hl,pt_row
         inc (hl)
 .next:  pop bc
         inc b
         ld a,b
         cp MAX_POU
         jp c,.slot
-        jp status_draw
+        call pou_inv_sel
+        call status_left        ; status parts redraw only when they change
+        jp status_right
+
+; ---- pou_inv_sel: XORs the selection bar of the current POU
+pou_inv_sel:
+        ld c,POU_LIST_ROW       ; row = list row + used slots before cur_pou
+        ld b,0
+.l:     ld a,(cur_pou)
+        cp b
+        jr z,.go
+        ld a,b
+        call pou_used
+        jr z,.n
+        inc c
+.n:     inc b
+        jr .l
+.go:    ld b,c
+        ld c,4
+        ld d,248
+        ld hl,0x0008
+        ld e,PX_XOR
+        jp px_span
 
 ; ---- pou_cmt: A = slot -> pl_cbuf = its comment (0-terminated)
 pou_cmt:
