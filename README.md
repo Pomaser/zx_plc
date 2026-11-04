@@ -71,6 +71,11 @@ right, right rail. Every element takes 3 character cells: the outer cells hold t
 The operand label above the element follows View (symbol clipped to the element width, or `I0.0`, `Q0.1`...);
 the full symbol name and comment of the selected element are shown in the status bar.
 
+ENTER on a position opens the element picker: a window listing the elements as their LD symbols
+(contacts on positions 0-8, coils on the coil position); choose with UP/DOWN and ENTER, then type the operand.
+The current element is preselected, so ENTER on an element also changes its type or operand.
+The letter keys below work as shortcuts both in the editor and in the picker.
+
 | Key | Contact positions 0-8 | Coil position 9 |
 |---|---|---|
 | `C` | normally open contact `-| |-` | coil `-( )-` |
@@ -79,7 +84,7 @@ the full symbol name and comment of the selected element are shown in the status
 | `S` / `R` | | set / reset coil |
 | `-` (SS+J) | wire | |
 
-Arrows move, ENTER edits the operand (address or symbol), DELETE clears the position, `V` toggles a vertical
+Arrows move, DELETE clears the position, `V` toggles a vertical
 link at the right edge of the position (parallel branches), Edit > Insert line / Delete line insert or delete
 a row. Placing an element fills the empty positions to its left with wires (up to the previous element, the
 rail or an incoming link). Rungs (rows joined by links) are compiled column by column; P/N contacts keep their

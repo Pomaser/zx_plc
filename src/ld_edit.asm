@@ -413,49 +413,16 @@ ld_draw_row:
 
 ; ---- ld_draw_elem: ld_t / ld_ar at (ld_r, ld_p): symbol + label
 ld_draw_elem:
-        ld a,(ld_t)
-        and LT_MASK
-        cp 12
-        ret nc
-        ld c,a
-        add a,a
-        add a,c                 ; *3
-        ld e,a
-        ld d,0
-        ld hl,ld_types
-        add hl,de
         ld a,(ld_p)
         ld c,a
         add a,a
         add a,c
         inc a                   ; first cell 1+3p
         ld c,a
-        ld b,3
-.g:     push bc
-        push hl
-        ld a,(hl)               ; glyph -> 8 bytes
-        add a,a
-        add a,a
-        add a,a
-        ld e,a
-        ld d,0
-        ld hl,ld_gfx
-        add hl,de
-        ex de,hl
         ld a,(ld_srow)
         ld b,a
-        call pix_addr
-        ld b,8
-.gl:    ld a,(de)
-        ld (hl),a
-        inc de
-        inc h
-        djnz .gl
-        pop hl
-        pop bc
-        inc hl
-        inc c
-        djnz .g
+        ld a,(ld_t)
+        call ld_put_glyphs
         ; label
         ld a,(ld_t)
         and LT_MASK
@@ -497,6 +464,232 @@ ld_draw_elem:
         ld a,255
         ld (pt_xmax),a
         ret
+
+; ---- ld_put_glyphs: A = element type, B = char row, C = first cell
+;      draws the 3 cells of the element symbol
+ld_put_glyphs:
+        and LT_MASK
+        cp 12
+        ret nc
+        ld (lg_row),bc          ; C = cell, B = row
+        ld c,a
+        add a,a
+        add a,c                 ; *3
+        ld e,a
+        ld d,0
+        ld hl,ld_types
+        add hl,de
+        ld b,3
+.g:     push bc
+        push hl
+        ld a,(hl)               ; glyph -> 8 bytes
+        add a,a
+        add a,a
+        add a,a
+        ld e,a
+        ld d,0
+        ld hl,ld_gfx
+        add hl,de
+        ex de,hl
+        ld bc,(lg_row)
+        call pix_addr
+        ld b,8
+.gl:    ld a,(de)
+        ld (hl),a
+        inc de
+        inc h
+        djnz .gl
+        ld hl,lg_row
+        inc (hl)                ; next cell
+        pop hl
+        pop bc
+        inc hl
+        djnz .g
+        ret
+
+; ---- ld_pick: element picker. A = current type -> NC: A = chosen type;
+;      C = cancelled. Items of the current column (contacts or coils).
+LP_COLS EQU 14
+ld_pick:
+        and LT_MASK
+        ld (lk_cur),a
+        ld hl,ld_pick_c
+        ld a,(ld_pos)
+        cp LD_CPOS
+        jr c,.l
+        ld hl,ld_pick_q
+.l:     ld (lk_list),hl
+        ; number of items, preselected item
+        ld bc,0                 ; B = count, C = selection
+.cnt:   ld a,(hl)
+        cp 0xFF
+        jr z,.cd
+        ld e,a
+        ld a,(lk_cur)
+        cp e
+        jr nz,.cn
+        ld c,b
+.cn:    inc b
+        call lk_next
+        jr .cnt
+.cd:    ld a,b
+        ld (lk_n),a
+        ld a,c
+        ld (lk_sel),a
+        ; window
+        ld a,b
+        add a,2
+        ld d,a
+        ld a,24
+        sub d
+        srl a
+        ld b,a
+        ld c,(32-LP_COLS)/2
+        ld e,LP_COLS
+        call win_open
+        ; items: icon + label
+        ld hl,(lk_list)
+        ld a,(win_r)
+        inc a
+        ld (lk_row),a
+.it:    ld a,(hl)
+        cp 0xFF
+        jr z,.drawn
+        push hl
+        ld e,a
+        ld a,(lk_row)
+        ld b,a
+        ld a,(win_c)
+        inc a
+        ld c,a
+        ld a,e
+        call ld_put_glyphs
+        pop hl
+        push hl
+        inc hl
+        inc hl
+        ld a,(lk_row)
+        ld (pt_row),a
+        ld a,(win_c)
+        add a,5
+        add a,a
+        add a,a
+        add a,a
+        ld (pt_x),a
+        call pt_puts
+        pop hl
+        call lk_next
+        ld a,(lk_row)
+        inc a
+        ld (lk_row),a
+        jr .it
+.drawn: call lk_inv
+.key:   call kb_wait
+        cp K_UP
+        jr z,.up
+        cp K_DOWN
+        jr z,.down
+        cp K_ENTER
+        jr z,.ok
+        cp K_BREAK
+        jr z,.cancel
+        cp K_EDIT
+        jr z,.cancel
+        call to_upper           ; shortcut letter
+        ld c,a
+        ld hl,(lk_list)
+        ld b,0
+.hk:    ld a,(hl)
+        cp 0xFF
+        jr z,.key
+        inc hl
+        ld a,(hl)
+        dec hl
+        cp c
+        jr z,.hkf
+        call lk_next
+        inc b
+        jr .hk
+.hkf:   ld a,b
+        ld (lk_sel),a
+        jr .ok
+.up:    call lk_inv
+        ld a,(lk_sel)
+        or a
+        jr nz,.u1
+        ld a,(lk_n)
+.u1:    dec a
+        jr .mv
+.down:  call lk_inv
+        ld a,(lk_sel)
+        inc a
+        ld hl,lk_n
+        cp (hl)
+        jr c,.mv
+        xor a
+.mv:    ld (lk_sel),a
+        call lk_inv
+        jr .key
+.ok:    ld hl,(lk_list)         ; type of the selected item
+        ld a,(lk_sel)
+        or a
+        jr z,.o2
+        ld b,a
+.o1:    call lk_next
+        djnz .o1
+.o2:    ld a,(hl)
+        push af
+        call win_close
+        pop af
+        or a
+        ret
+.cancel:
+        call win_close
+        scf
+        ret
+
+; lk_next: HL = item -> next item ([type][hotkey][label 0])
+lk_next:
+        inc hl
+        inc hl
+.l:     ld a,(hl)
+        inc hl
+        or a
+        jr nz,.l
+        ret
+
+; lk_inv: inverts the selected item row of the picker
+lk_inv: ld a,(win_r)
+        inc a
+        ld b,a
+        ld a,(lk_sel)
+        add a,b
+        ld b,a
+        ld a,(win_c)
+        add a,a
+        add a,a
+        add a,a
+        add a,2
+        ld c,a
+        ld d,LP_COLS*8-4
+        ld hl,0x0008
+        ld e,PX_XOR
+        jp px_span
+
+; picker items: type, shortcut key, label
+ld_pick_c:
+        db LT_NO,   'C',"NO contact",0
+        db LT_NC,   '/',"NC contact",0
+        db LT_P,    'P',"Rising edge",0
+        db LT_N,    'N',"Falling edge",0
+        db LT_WIRE, '-',"Wire",0
+        db 0xFF
+ld_pick_q:
+        db LT_COIL, 'C',"Coil",0
+        db LT_NCOIL,'/',"Negated coil",0
+        db LT_SET,  'S',"Set coil",0
+        db LT_RES,  'R',"Reset coil",0
+        db 0xFF
 
 ; ---- ld_cursor: XORs the symbol cells of the cursor position
 ld_cursor:
@@ -764,13 +957,12 @@ ld_editor:
         jp .full
 
         ; ---- ENTER: operand of the current element
-.enter: ld a,(ld_row)
+.enter: ld a,(ld_row)              ; element picker
         ld d,a
         ld a,(ld_pos)
         ld e,a
         call ld_get
-        and LT_MASK
-        cp LT_NO
+        call ld_pick
         jp c,.cur
         jp .place
 
@@ -1035,5 +1227,11 @@ lf_end:   dw 0
 lr_row:   db 0
 lp_rec:   ds 5
 ld_lbl:   ds 16
+lg_row:   dw 0              ; ld_put_glyphs: cell, row
+lk_cur:   db 0
+lk_list:  dw 0
+lk_n:     db 0
+lk_sel:   db 0
+lk_row:   db 0
 ld_obuf:  ds 14
 ld_infob: ds 44
