@@ -1076,9 +1076,12 @@ fb_draw_elem:
         inc hl
         ld d,(hl)
         ex de,hl
-        ld a,(fd_lrow)
-        ld (pt_row),a
-        call fd_text
+        ld a,(fd_lrow)          ; (small letters, as in the LD boxes)
+        ld b,a
+        ld a,(fd_x)
+        add a,4
+        ld c,a
+        call fd_tiny
         ld a,(fd_t)             ; FB blocks: instance label
         call fb_kind
         ret z
@@ -1118,9 +1121,12 @@ fb_draw_cov:
         call ld_isbox
         jr nz,.np
         ld a,(fd_srow)
-        ld (pt_row),a
+        ld b,a
+        ld a,(fd_x)
+        add a,4
+        ld c,a
         ld hl,txt_fb_ptl
-        call fd_text
+        call fd_tiny
 .np:    pop af
         or a
         ret nz
@@ -1477,6 +1483,87 @@ fd_out_lim:
 .e:     ld a,c
         ret
 
+; ---- fd_tiny: HL = text, B = char row, C = x -> small letters (3-4 px wide,
+;      pixel lines 2-6, the same size as the letters of the LD boxes)
+fd_tiny:
+        ld a,(hl)
+        or a
+        ret z
+        inc hl
+        push hl
+        call ft_glyph           ; HL = [width][5 rows], Z = unknown
+        jr z,.skip
+        ld a,(hl)
+        ld (ft_w),a
+        inc hl
+        ld e,2                  ; first pixel line
+.row:   ld a,(hl)
+        inc hl
+        push hl
+        push bc
+        ld d,a                  ; bits, bit 7 = leftmost pixel
+.px:    sla d
+        jr nc,.n
+        push de
+        push bc
+        ld h,e
+        ld l,1
+        ld d,1
+        ld e,PX_SET
+        call px_span
+        pop bc
+        pop de
+.n:     inc c
+        ld a,d
+        or a
+        jr nz,.px
+        pop bc
+        pop hl
+        inc e
+        ld a,e
+        cp 7
+        jr c,.row
+        ld a,(ft_w)             ; next letter: width + 1 px gap
+        inc a
+        add a,c
+        ld c,a
+.skip:  pop hl
+        jr fd_tiny
+
+; ft_glyph: A = char -> NZ: HL = its glyph [width][5 rows]; Z = no glyph
+ft_glyph:
+        ld e,a
+        ld hl,ft_tab
+.l:     ld a,(hl)
+        or a
+        ret z
+        inc hl
+        cp e
+        jr z,.f
+        push de
+        ld de,6
+        add hl,de
+        pop de
+        jr .l
+.f:     or a                    ; NZ (a printable char)
+        ret
+
+; small letters: char, width, 5 rows (bit 7 = leftmost)
+ft_tab:
+        db 'A',3, 0x40,0xA0,0xE0,0xA0,0xA0
+        db 'D',3, 0xC0,0xA0,0xA0,0xA0,0xC0
+        db 'F',3, 0xE0,0x80,0xC0,0x80,0x80
+        db 'N',4, 0x90,0xD0,0xB0,0x90,0x90
+        db 'O',3, 0x40,0xA0,0xA0,0xA0,0x40
+        db 'P',3, 0xC0,0xA0,0xC0,0x80,0x80
+        db 'R',3, 0xC0,0xA0,0xC0,0xA0,0xA0
+        db 'S',3, 0x60,0x80,0x40,0x20,0xC0
+        db 'T',3, 0xE0,0x40,0x40,0x40,0x40
+        db 'X',3, 0xA0,0xA0,0x40,0xA0,0xA0
+        db '_',3, 0x00,0x00,0x00,0x00,0xE0
+        db 0
+ft_w:   db 0
+
 ; block names by type
 fd_names:
         dw 0, 0, 0, 0, fdn_and, fdn_or, fdn_ton, fdn_tof
@@ -1487,8 +1574,8 @@ fdn_xor: db "XOR",0
 fdn_not: db "NOT",0
 fdn_sr:  db "SR",0
 fdn_rs:  db "RS",0
-fdn_rt:  db "R_T",0
-fdn_ft:  db "F_T",0
+fdn_rt:  db "R_TR",0
+fdn_ft:  db "F_TR",0
 fdn_ton: db "TON",0
 fdn_tof: db "TOF",0
 fdn_tp:  db "TP",0
