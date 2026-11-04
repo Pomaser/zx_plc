@@ -1,12 +1,10 @@
 ; ============================================================
 ; pou.asm - POU management screen
 ; ============================================================
-POU_LIST_ROW EQU 5
+POU_LIST_ROW EQU 3            ; header on row 2
 
 scr_pou:
         call screen_begin
-        ld hl,txt_pou_title
-        call ui_title
         call pou_draw_list
         ld hl,pou_pending       ; command requested from another screen
         ld a,(hl)
@@ -221,6 +219,9 @@ PL_X_LANG EQU 60
 PL_X_SIZE EQU 128             ; right edge of the Size column
 PL_X_CMT  EQU 136
 pou_draw_list:
+        ld bc,(POU_LIST_ROW-1)*256      ; column names in dark blue
+        ld de,0x2000+ATTR_TITLE
+        call scr_fill_attr
         ld b,POU_LIST_ROW-1
         call pt_clear_row
         ld a,POU_LIST_ROW-1
@@ -370,7 +371,6 @@ pl_slot: db 0
 pl_cbuf: ds POU_CMAX+1
 pl_buf: ds 10
 
-txt_pou_title: db "Program Organization Units",0
 txt_h_name: db "POU Name",0
 txt_h_lang: db "Language",0
 txt_h_size: db "Size",0
