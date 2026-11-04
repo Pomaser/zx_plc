@@ -157,7 +157,7 @@ st_x0:  db 0
 
 ; ---- status_right: redraws only the right part of the status bar (free
 ;      memory, or st_right text if set) and only when the text changed
-ST_RCOL EQU 24              ; first cell of the right part
+ST_RCOL EQU 25              ; first cell of the right part ("Mem 12288B" fits)
 status_right:
         ld de,st_buf
         ld hl,(st_right)
@@ -224,7 +224,7 @@ str_eq: ld a,(de)
 
 txt_st_pou:  db "POU: ",0
 txt_st_open: db " (",0
-txt_st_free: db "Free ",0
-txt_st_b:    db " B",0
+txt_st_free: db "Mem ",0
+txt_st_b:    db "B",0
 st_left:     dw 0             ; text for the left part (0 = POU info)
 st_right:    dw 0             ; text for the right part (0 = free memory)
