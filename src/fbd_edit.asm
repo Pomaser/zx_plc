@@ -305,7 +305,7 @@ fb_editor:
         call fb_height_t
         or a
         jr z,.put
-        call fb_room
+        call fb_make_rows       ; free rows below (rows inserted if needed)
         jr c,.noroom
         ld a,(fb_newt)          ; timer: its PT input needs the cell on the
         call ld_isbox           ; left of the PT row
@@ -329,6 +329,8 @@ fb_editor:
 .put:   call fb_cur_get         ; old element (for the cursor move)
         ld a,(fb_t)
         ld (fb_oldt),a
+        ld a,b
+        ld (fb_olda),a
         ld a,(ld_row)
         ld d,a
         ld a,(ld_pos)
@@ -341,6 +343,8 @@ fb_editor:
         BCALL ld_put
         jp c,.redraw
         call fb_rows_fit        ; the row count covers the whole block
+        call fb_make_room       ; new inputs without a free cell: shift
+        jp nc,.redraw           ; (NC: shifted, cursor on the new input)
         call fb_autowire
         ld a,(fb_oldt)          ; new element on an empty position:
         and FT_MASK             ; the cursor moves on behind it
@@ -553,30 +557,269 @@ fb_to_owner:
         ld (ld_row),a
         ret
 
-; ---- fb_room: block of A rows at the cursor -> C if a cell below is used
-;      or the block would leave the grid
-fb_room:
-        ld b,a
-        ld a,(ld_row)
-        add a,b
-        cp LD_MAXROWS+1
+; ---- fb_make_room: after placing a logic block at the cursor: if one of its
+;      new input rows has no free cell on the left (another block there, or
+;      position 0), the block and everything right of it in its rows moves
+;      one position to the right; the old inputs get a wire in the freed
+;      column and the cursor goes to the free cell of the first new input.
+;      NC = shifted, C = nothing to do (or not possible: message shown)
+fb_make_room:
+        call fb_cur_get
+        and FT_MASK
+        cp FT_AND
+        jr z,.lg
+        cp FT_OR
+        jr z,.lg
+        cp FT_XOR
+        scf
+        ret nz
+.lg:    ld a,b                  ; new number of inputs
+        ld (fm_h),a
+        ld a,(fb_oldt)          ; inputs that already had a connection
+        and FT_MASK
+        ld c,1
+        cp FT_AND
+        jr z,.old
+        cp FT_OR
+        jr z,.old
+        cp FT_XOR
+        jr nz,.o1
+.old:   ld a,(fb_olda)
+        ld c,a
+.o1:    ld a,c
+        ld (fm_h0),a
+        ld hl,fm_h              ; first new input row .. last
+        cp (hl)
         ccf
-        ret c
-        ld a,(ld_row)
-        ld d,a
-.l:     dec b
-        ret z                   ; NC
-        inc d
+        ret c                   ; no new inputs
         ld a,(ld_pos)
+        or a
+        jr z,.need              ; position 0: no cell on the left
+        ld a,(fm_h0)
+        ld b,a
+.chk:   ld a,(ld_row)           ; new input row: covered cell on the left?
+        add a,b
+        ld d,a
+        ld a,(ld_pos)
+        dec a
         ld e,a
         push bc
-        push de
-        call ld_get
-        pop de
+        call fb_owner
         pop bc
-        and FT_MASK
-        jr z,.l
+        jr nc,.need
+        inc b
+        ld a,(fm_h)
+        cp b
+        jr nz,.chk
+        scf                     ; every new input has a free cell
+        ret
+.need:  ld a,(ld_row)           ; rows of the block
+        ld (fm_r0),a
+        ld hl,fm_h
+        add a,(hl)
+        dec a
+        ld (fm_r1),a
+        call fm_check
+        jr nc,.shift
+        ld hl,err_fb_room
+        call ui_error
         scf
+        ret
+.shift: ld a,LD_CPOS-2          ; move positions 7 .. cursor one to the right
+.qcol:  ld (fm_q),a
+        ld a,(fm_r0)
+        ld (fm_rr),a
+.qrow:  ld a,(fm_rr)
+        ld d,a
+        ld a,(fm_q)
+        ld e,a
+        call ld_get
+        or a
+        jr z,.qn
+        ld (fm_t),a
+        ld hl,(ld_gpt)
+        ld (ld_ppt),hl
+        ld a,(fm_rr)
+        ld d,a
+        ld a,(fm_q)
+        inc a
+        ld e,a
+        ld a,(fm_t)
+        BCALL ld_put            ; (B, C passed through)
+        ld a,(fm_rr)
+        ld d,a
+        ld a,(fm_q)
+        ld e,a
+        xor a
+        ld bc,0
+        BCALL ld_put
+.qn:    ld hl,fm_rr
+        ld a,(fm_r1)
+        cp (hl)
+        jr z,.qe
+        inc (hl)
+        jr .qrow
+.qe:    ld a,(ld_pos)
+        ld b,a
+        ld a,(fm_q)
+        cp b
+        jr z,.wires
+        dec a
+        jr .qcol
+.wires: ld a,(fm_r0)            ; wires in the freed column (old inputs)
+        ld (fm_rr),a
+        ld a,(fm_h0)
+        ld (fm_n),a
+.w:     ld a,(fm_rr)
+        ld d,a
+        ld a,(ld_pos)
+        ld e,a
+        ld a,FT_WIRE
+        ld bc,0
+        BCALL ld_put
+        ld hl,fm_rr
+        inc (hl)
+        ld hl,fm_n
+        dec (hl)
+        jr nz,.w
+        ld a,(fm_r0)            ; cursor: first new input, free cell
+        ld hl,fm_h0
+        add a,(hl)
+        ld (ld_row),a
+        or a                    ; NC
+        ret
+
+; fm_check: C if the rows fm_r0..fm_r1 can not move right from ld_pos:
+;      something at position 8, a block that reaches below fm_r1, or a block
+;      from above covering a cell that would move
+fm_check:
+        ld a,(fm_r0)
+        ld (fm_rr),a
+.row:   ld a,(fm_rr)
+        ld d,a
+        ld e,LD_CPOS-1
+        call ld_get
+        and FT_MASK
+        scf
+        ret nz
+        ld a,(ld_pos)
+        ld e,a
+.pos:   push de
+        call ld_get             ; block reaching below the rows?
+        ld c,b
+        call fb_height_t
+        pop de
+        or a
+        jr z,.cov
+        add a,d
+        dec a
+        ld hl,fm_r1
+        cp (hl)
+        jr z,.cov
+        ccf
+        ret c
+.cov:   ld a,(fm_rr)            ; covered from a block above the rows?
+        ld hl,fm_r0
+        cp (hl)
+        jr nz,.nx
+        push de
+        call fb_owner
+        pop de
+        ccf
+        ret c
+.nx:    inc e
+        ld a,e
+        cp LD_CPOS-1
+        jr c,.pos
+        ld hl,fm_rr
+        ld a,(fm_r1)
+        cp (hl)
+        jr z,.ok
+        inc (hl)
+        jr .row
+.ok:    or a
+        ret
+
+; ---- fb_make_rows: block of A rows at the cursor: every row below it must be
+;      free at its position (no element, no comment row, not inside another
+;      block); a row that is not gets an empty row inserted in front of it
+;      (the rows below move down). C = not possible (grid full, or the new row
+;      would split another block)
+fb_make_rows:
+        ld (fr_h),a
+        ld a,1
+        ld (fr_k),a
+.l:     ld a,(fr_k)
+        ld hl,fr_h
+        cp (hl)
+        jr nc,.ok
+        ld a,(ld_row)
+        ld hl,fr_k
+        add a,(hl)
+        ld (fr_x),a
+        cp LD_MAXROWS
+        ccf
+        ret c
+        call .free
+        jr nc,.nx
+        call .cross
+        ret c
+        ld a,(fr_x)
+        ld d,a
+        BCALL ld_ins_row
+        call .free              ; (nothing inserted: grid full)
+        ret c
+.nx:    ld hl,fr_k
+        inc (hl)
+        jr .l
+.ok:    or a
+        ret
+; NC if row fr_x is free at the cursor position
+.free:  ld a,(fr_x)
+        call fb_cmt_text
+        ccf
+        ret c                   ; comment row
+        ld a,(fr_x)
+        ld d,a
+        ld a,(ld_pos)
+        ld e,a
+        call ld_get
+        and FT_MASK
+        scf
+        ret nz
+        ld a,(fr_x)
+        ld d,a
+        ld a,(ld_pos)
+        ld e,a
+        call fb_owner
+        jr c,.f                 ; not covered
+        ld hl,ld_row            ; covered by this block itself: free
+        cp (hl)
+        scf
+        ret nz
+.f:     or a
+        ret
+; C if another block spans across row fr_x (an inserted row would split it)
+.cross: ld e,0
+.cl:    ld a,(fr_x)
+        ld d,a
+        push de
+        call fb_owner
+        pop de
+        jr c,.cn
+        ld hl,ld_row            ; (this block itself)
+        cp (hl)
+        jr nz,.cy
+        ld a,(ld_pos)
+        cp e
+        jr nz,.cy
+.cn:    inc e
+        ld a,e
+        cp LD_CPOS
+        jr c,.cl
+        or a
+        ret
+.cy:    scf
         ret
 
 ; ---- fb_rows_fit: the row count covers the block at the cursor
@@ -2013,6 +2256,18 @@ fb_newt:  db 0
 fb_oldt:  db 0
 fb_kind_v: db 0
 fb_aw:    db 0
+fr_h:     db 0
+fr_k:     db 0
+fr_x:     db 0
+fb_olda:  db 0
+fm_h:     db 0
+fm_h0:    db 0
+fm_r0:    db 0
+fm_r1:    db 0
+fm_rr:    db 0
+fm_q:     db 0
+fm_t:     db 0
+fm_n:     db 0
 fn_n:     db 0
 fn_r:     db 0
 fb_key:   db 0
