@@ -108,7 +108,7 @@ it (`AND(`, `ADD(` ...). FB calls: `CAL TON0(IN:=%IX0.0, PT:=T#2s)`; POU calls: 
 
 Opened by ENTER on an LD POU. A row is: left rail, 9 positions for contacts / wires, the coil position on the
 right, right rail. Every element takes 3 character cells: the outer cells hold the leads and the symbol
-(`-| |-`, `-( )-`), the middle cell its content and, in the simulation, its state (dark magenta = active, the same colour as TRUE in the IL simulation).
+(`-| |-`, `-( )-`), the middle cell its content and, in the simulation, its state (black on bright green = active, the same colour as TRUE in the IL and FBD simulation).
 The operand label above the element follows View (symbol clipped to the element width, or `I0.0`, `Q0.1`...);
 the full symbol name and comment of the selected element are shown in the status bar.
 
@@ -165,7 +165,7 @@ A block with h inputs covers h rows: input k comes from the left on the k-th row
 top row to the right, so blocks can be chained (e.g. an OR one row lower feeding the second input of an
 AND). Placing a block needs free cells below it; DELETE inside a block removes the whole block. Wires are
 added automatically between a new block or output and the element on its left. In the simulation inputs,
-outputs and FB blocks are coloured dark magenta when TRUE (negation included).
+outputs and FB blocks are coloured black on bright green when TRUE (negation included).
 
 ## Symbols
 
@@ -187,7 +187,7 @@ Run > Run (or R on the Run screen) compiles all POUs to bytecode and runs MAIN o
 Compile errors are reported with the POU name and line number.
 
 * Upper part: listing of the monitored IL or LD POU (the current POU, or MAIN) with the live value of each
-  operand on the right (`TRUE` inverted, `FALSE` - both dark magenta -, numbers; PT/ET of timers as
+  operand on the right (`TRUE` black on bright green, `FALSE`, numbers; PT/ET of timers as
   `T#...`). UP/DOWN scroll.
 * Lower part: input LEDs %IX0.0-0.7 (green) and output LEDs %QX0.0-0.7 (red).
 * Keys: `0`-`7` toggle inputs %IX0.0-0.7 (key = bit number), SYMBOL SHIFT + `0`-`7` push button (input on while held),

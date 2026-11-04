@@ -10,7 +10,7 @@
 ; editor are used through BCALL (their variables are in shared.asm).
 ; ============================================================
 
-ATTR_FBON EQU 0x1F           ; white on dark magenta: TRUE (as in LD / IL)
+ATTR_FBON EQU ATTR_ON        ; TRUE (as in LD / IL)
 
 ; ---- fb_editor: edits the FBD POU cur_pou, returns a menu command
 fb_editor:
@@ -1582,7 +1582,7 @@ fb_row_load:
 
 ; ---- fb_set_state: simulation colours of the visible inputs, outputs
 ;      and FB blocks (signal row: input line, output start, block middle):
-;      TRUE = dark magenta
+;      TRUE = black on bright green
 fb_set_state:
         ld a,(cur_pou)
         call pou_body

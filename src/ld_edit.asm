@@ -28,7 +28,7 @@ LT_VL     EQU 0x80          ; vertical link down
 LT_MASK   EQU 0x0F
 LD_CPOS   EQU 9             ; coil position
 LD_MAXROWS EQU 99
-ATTR_LD_ON EQU 0x1F         ; white on dark magenta: active element (as TRUE in IL)
+ATTR_LD_ON EQU ATTR_ON      ; active element (as TRUE in IL / FBD)
 
 ; ============================================================
 ; storage
