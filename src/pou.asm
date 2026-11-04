@@ -65,7 +65,7 @@ scr_pou:
         pop af
         ld (cur_pou),a
         call pou_inv_sel
-        call status_left        ; (redraws only if the text changed)
+        call menu_pou           ; (redraws only if the text changed)
         jp .key
 .edit:  ld a,CMD_EDIT
         ret
@@ -332,7 +332,8 @@ pou_draw_list:
         cp MAX_POU
         jp c,.slot
         call pou_inv_sel
-        call status_left        ; status parts redraw only when they change
+        call menu_pou           ; these parts redraw only when they change
+        call status_left
         jp status_right
 
 ; ---- pou_inv_sel: XORs the selection bar of the current POU

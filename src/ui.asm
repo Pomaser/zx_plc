@@ -6,6 +6,8 @@
 screen_begin:
         ld hl,0
         ld (st_left),hl
+        ld a,ST_RCOL
+        ld (st_rcol),a
         ld a,ATTR_NORMAL
         ld (cur_attr),a
         call scr_cls

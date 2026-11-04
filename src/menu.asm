@@ -137,7 +137,62 @@ menu_draw_bar:
 .sep:   ld (hl),0xFF
         inc l
         djnz .sep
+        xor a
+        ld (mp_last),a          ; force the POU name
+        ; fall through
+
+; ---- menu_pou: "NAME (LANG)" of the current POU flush right in the menu
+;      bar; redrawn only when it changes
+MP_COL  EQU 22              ; first cell of the name area (behind the titles)
+menu_pou:
+        ld de,st_buf
+        ld a,(cur_pou)
+        call pou_entry
+        call name_unpad
+        ld hl,txt_st_open
+        call put_str
+        ld a,(cur_pou)
+        call pou_lang
+        call lang_copy
+        ld a,')'
+        ld (de),a
+        inc de
+        xor a
+        ld (de),a
+        ld hl,st_buf
+        ld de,mp_last
+        call str_eq
+        ret z
+        ld hl,st_buf
+        ld de,mp_last
+        call put_str
+        xor a
+        ld (de),a
+        ld bc,MP_COL            ; clear lines 0-6 (line 7 = separator)
+        call pix_addr
+        ld e,7
+.cl:    push hl
+        ld b,32-MP_COL
+        xor a
+.z:     ld (hl),a
+        inc l
+        djnz .z
+        pop hl
+        inc h
+        dec e
+        jr nz,.cl
+        xor a
+        ld (pt_row),a
+        inc a
+        ld (pt_skip),a          ; 1 px up, as the titles
+        ld hl,st_buf
+        xor a                   ; flush right
+        call pt_puts_r
+        xor a
+        ld (pt_skip),a
         ret
+
+mp_last: ds 16
 
 ; A = item -> HL = title string, A = x (preserves BC)
 menu_title_xy:

@@ -27,7 +27,7 @@ RT_LBL    EQU RT_POU+16             ; compiler label table (32 x 10 bytes)
 RT_PSTK   EQU RT_LBL+320            ; "(" stack: 8 x 4 bytes
 RT_CSTK   EQU RT_PSTK+32            ; call stack: 8 x 2 bytes
 RT_MON    EQU RT_CSTK+16            ; monitor cache (sim.asm)
-RT_FREE   EQU RT_MON+18*6
+RT_FREE   EQU RT_MON+19*6
 ; work buffers (not part of the code image)
 rec_buf   EQU RT_FREE           ; 72  line record being built
 il_out    EQU rec_buf+72        ; 64  output of il_check

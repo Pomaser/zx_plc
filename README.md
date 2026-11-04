@@ -55,8 +55,9 @@ or `make test PYTHON=/path/to/python`. The `.scratch/` folder is ignored by Git.
 
 The top menu bar (`File  POU  Edit  View  Run  Help`) uses a proportional 6x8 font, black on white;
 the selection is shown by inversion and the bar is separated from the content by a line. Each title opens a drop-down submenu.
-The bottom status bar shows the current POU (left; in the editors followed by the symbol name of the current
-operand, inverted, and its comment) and free project memory (right).
+The name and language of the current POU are shown at the right end of the menu bar.
+The bottom status bar shows, in the editors, the symbol name of the current operand (inverted) and its comment
+(left) and free project memory (right); in the simulation the keys (left) and RUN / STOP (right).
 Messages, questions, name input and language choice appear in popup windows.
 Keys are read in the interrupt into an 8-key queue, so typing ahead is not lost.
 
@@ -186,7 +187,7 @@ clearing the name and the comment removes the symbol, Edit > Delete line deletes
 
 Symbols can be typed in IL instead of addresses (`LD Start`, `CAL Delay1`, `LD Delay1.Q` for an FB instance); the program stores the address and the
 editor and the simulation show the address (default View > Addresses) or, with View > Symbols, the symbol, so
-renaming a symbol changes it everywhere. In the IL editor the status bar shows the comment of the operand on the current line after the POU name. Names must be unique
+renaming a symbol changes it everywhere. In the IL editor the status bar shows the symbol and comment of the operand on the current line. Names must be unique
 and must not clash with addresses, keywords, FB instances, IL instructions or POU names.
 
 ## Simulation (Run)
@@ -201,7 +202,7 @@ Compile errors are reported with the POU name and line number.
   bit numbers 0-7 of byte 0, then 0-7 of byte 1; the input byte the keys act on has a line over it.
 * Keys: `0`-`7` toggle inputs %IXb.0-b.7 of the selected byte b (key = bit number), `B` selects byte 0 / 1,
   SYMBOL SHIFT + `0`-`7` push button (input on while held),
-  `R` run/stop, `S` single scan, `E` reset all data. The status bar shows RUN / STOP.
+  `R` run/stop, `S` single scan, `E` reset all data. The status bar shows these keys and RUN / STOP.
 * Standard FBs: TON, TOF, TP, CTU, CTD, R_TRIG (instances `RT0`-`RT3`), F_TRIG (`RF0`-`RF3`), SR, RS. Calls of other POUs: max. depth 8.
   A watchdog stops a scan that executes more than 30000 instructions.
 * FBD POUs are not compiled yet (a call of such a POU does nothing).

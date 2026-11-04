@@ -2,7 +2,8 @@
 ; status.asm - bottom status bar (char row 23)
 ; ============================================================
 ; Separator line on pixel line 0, 1 px gap, text one line lower
-; (descender line is dropped). Left: current POU, right: free memory.
+; (descender line is dropped). Left: st_left text (element info, key hints),
+; right: free memory or st_right. The POU name is in the menu bar (menu_pou).
 ; ============================================================
 ST_ROW  EQU 23
 
@@ -32,32 +33,15 @@ status_draw:
         call status_left
         jp status_right
 
-; ---- status_left: left part (cells 0-23): "POU: name (lang)" followed by the
-;      st_left text if set (comment of the current element); redrawn only on change
+; ---- status_left: left part (cells 0 .. st_rcol-1): the st_left text (info
+;      of the current element, key hints); redrawn only on change
 status_left:
         ld de,st_buf
-        ld a,(cur_pou)
-        call pou_entry
-        call name_unpad
-        ld hl,txt_st_open
-        call put_str
-        ld a,(cur_pou)
-        call pou_lang
-        call lang_copy
-        ld a,')'
-        ld (de),a
-        inc de
-        ld hl,(st_left)         ; comment of the current element
+        ld hl,(st_left)
         ld a,h
         or l
-        jr z,.term
-        ld a,' '
-        ld (de),a
-        inc de
-        ld (de),a
-        inc de
-        call put_str
-.term:  xor a
+        call nz,put_str
+        xor a
         ld (de),a
         ld hl,st_buf
         ld de,st_llast
@@ -69,9 +53,10 @@ status_left:
         xor a
         ld (de),a
         ld c,0
-        ld b,ST_RCOL
+        ld a,(st_rcol)
+        ld b,a
         call st_clear
-        ld a,ST_RCOL*8-4        ; clip before the right part
+        call st_lim             ; clip before the right part
         ld (pt_xmax),a
         xor a                   ; flush left
         call st_print
@@ -133,11 +118,13 @@ st_print:
         ld (pt_x),a
         jr .l
 .off:   push hl
+        call st_lim             ; not into the right part
+        ld b,a
         ld a,(pt_x)
         add a,2
-        cp ST_RCOL*8-4          ; not into the right part
+        cp b
         jr c,.w
-        ld a,ST_RCOL*8-4
+        ld a,b
 .w:     ld (pt_x),a
         ld hl,st_x0
         sub (hl)
@@ -161,6 +148,14 @@ st_print:
         ret
 
 st_x0:  db 0
+
+; st_lim: A = last x of the left part (4 px before the right part)
+st_lim: ld a,(st_rcol)
+        add a,a
+        add a,a
+        add a,a
+        sub 4
+        ret
 
 ; ---- status_right: redraws only the right part of the status bar (free
 ;      memory, or st_right text if set) and only when the text changed
@@ -194,12 +189,17 @@ status_right:
         xor a
         ld (de),a
         ; clear pixel lines 1-7 of the right part (line 0 = separator)
-        ld bc,ST_ROW*256+ST_RCOL
+        ld a,(st_rcol)
+        ld c,a
+        ld b,ST_ROW
         call pix_addr
         inc h
         ld e,7
 .cl:    push hl
-        ld b,32-ST_RCOL
+        ld a,(st_rcol)
+        neg
+        add a,32
+        ld b,a
         xor a
 .z:     ld (hl),a
         inc l
@@ -234,3 +234,4 @@ txt_st_free: db "Mem ",0
 txt_st_b:    db "B",0
 st_left:     dw 0             ; text for the left part (0 = POU info)
 st_right:    dw 0             ; text for the right part (0 = free memory)
+st_rcol:     db ST_RCOL       ; first cell of the right part

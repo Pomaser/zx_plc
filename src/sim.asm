@@ -1,17 +1,17 @@
 ; ============================================================
 ; sim.asm - RUN screen: simulation with live monitoring
 ; ============================================================
-; Rows 1-18: IL listing of the monitored POU, current operand
-; values on the right. Row 19 separator, rows 20/21 input and output
-; LEDs, row 22 key hints. One PLC scan per frame while running.
+; Rows 1-19: listing of the monitored POU, current operand
+; values on the right. Row 20 separator, rows 21/22 input and output
+; LEDs; the key hints are in the status bar. One PLC scan per frame while running.
 ; ============================================================
-SIM_ROWS  EQU 18
+SIM_ROWS  EQU 19
 SIM_VCOL  EQU 25            ; first cell of the value column
 SIM_X_VAL EQU 252
-ROW_SEP   EQU 19
-ROW_IN    EQU 20
-ROW_OUT   EQU 21
-ROW_HINT  EQU 22
+ROW_SEP   EQU 20
+ROW_IN    EQU 21
+ROW_OUT   EQU 22
+SM_RCOL   EQU 29            ; status bar: hints left, RUN / STOP from here
 LED_COL0  EQU 0             ; cell of the first LED (LED + number: 2 cells)
 LED_COL1  EQU 16            ; first LED of byte 1
 ATTR_LED_I EQU 0x3C         ; green ink
@@ -19,6 +19,13 @@ ATTR_LED_Q EQU 0x3A         ; red ink
 
 scr_run:
         call screen_begin
+        ld hl,txt_sm_hint       ; status bar: key hints, RUN / STOP right
+        ld (st_left),hl
+        ld hl,txt_sm_stop
+        ld (st_right),hl
+        ld a,SM_RCOL
+        ld (st_rcol),a
+        call status_draw
         ; monitored POU: the current one if IL, else MAIN if IL        xor a
         ld (sm_mon),a
         ld a,(cur_pou)          ; (every language can be monitored)
@@ -377,12 +384,6 @@ sim_draw_panel:
         ld b,ROW_OUT
         ld e,ATTR_LED_Q
         call .row
-        ld a,ROW_HINT
-        ld (pt_row),a
-        ld a,4
-        ld (pt_x),a
-        ld hl,txt_sm_hint
-        call pt_puts
         ld a,0xFF               ; force the LEDs to be drawn
         ld (sm_lf),a
         jp sim_mark
@@ -421,7 +422,7 @@ sim_draw_panel:
         jr c,.lbl
         ret
 
-; ---- sim_draw_list: listing rows 1-18 + monitor descriptors
+; ---- sim_draw_list: listing rows 1-19 + monitor descriptors
 sim_draw_list:
         ld a,(sm_mon)
         cp 2
@@ -706,7 +707,7 @@ sim_draw_val:
 txt_sm_run:   db "RUN",0
 txt_sm_stop:  db "STOP",0
 txt_sm_true:  db "TRUE",0
-txt_sm_hint:  db "0-7 toggle, SS+0-7 push, B I0/I1, R run, S step, E reset",0
+txt_sm_hint:  db "0-7 toggle, SS+n push, B I0/I1, R run, S step, E reset",0
 txt_sm_nomon: db "No IL or LD POU to monitor.",0
 txt_sm_err:   db "Error in ",0
 txt_sm_line:  db ", line ",0
