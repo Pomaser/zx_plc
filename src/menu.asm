@@ -334,21 +334,27 @@ menu_inv_item:
         ld b,a
         ld a,(win_r)
         add a,b
-        ld b,a                  ; char row
-        ld h,0
-        ld l,8
-        ld a,(drop_sel)
-        or a
-        jr nz,.nf
-        inc h                   ; first item: skip top frame line
-        dec l
-.nf:    ld a,(win_bx)
+        ld b,a                  ; char row (whole cell: the drop-down has no
+        ld a,(win_bx)           ; top frame line, the bar separator is above)
         inc a
         ld c,a
         ld a,(win_bw)
         sub 2
         ld d,a
+        ld hl,0x0008
         ld e,PX_XOR
+        push bc
+        push de
+        call px_span
+        pop de
+        pop bc
+        ld a,(drop_n)           ; last item: also the gap line above the frame
+        dec a
+        ld hl,drop_sel
+        cp (hl)
+        ret nz
+        inc b
+        ld hl,0x0001
         jp px_span
 
 ; ---- menu_run: interactive menu. A = command or 0 (cancelled)
