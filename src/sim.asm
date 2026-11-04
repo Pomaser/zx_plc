@@ -67,6 +67,7 @@ scr_run:
         ld a,(sm_ok)
         or a
         call z,sim_cerr
+        call nz,sim_chk_called
         ; command requested from another screen
         ld hl,sim_pending
         ld a,(hl)
@@ -291,6 +292,49 @@ sim_cerr:
         ld hl,sm_msg
         call beep
         jp msg_box
+
+; ---- sim_chk_called: the monitored POU is not MAIN and nothing calls it
+;      -> popup (only MAIN runs in the simulation)
+sim_chk_called:
+        ld a,(cur_pou)
+        or a
+        ret z
+        ld b,a
+        ld hl,BCODE             ; look for CALL <slot> in the bytecode
+.l:     push hl
+        ld de,(cp_pc)
+        or a
+        sbc hl,de
+        pop hl
+        jr nc,.warn
+        ld a,(hl)
+        and 0x3F
+        cp OP_CALL
+        jr nz,.n
+        inc hl
+        ld a,(hl)
+        dec hl
+        cp b
+        ret z                   ; called
+.n:     ld de,5
+        add hl,de
+        jr .l
+.warn:  ld de,sm_msg            ; "NAME is not called by MAIN." ...
+        ld a,(cur_pou)
+        call pou_entry
+        call name_unpad
+        ld hl,txt_sm_ncall
+        ld bc,txt_sm_ncall_e-txt_sm_ncall
+        ldir
+        ld hl,sm_msg
+        jp msg_box
+
+txt_sm_ncall:
+        db " is not called by MAIN.",0
+        db "Only MAIN runs in the simulation,",0
+        db "call this POU from MAIN (IL: CAL).",0
+        db 0
+txt_sm_ncall_e:
 
 ; ---- sim_draw_panel: separator, LED rows, hints
 sim_draw_panel:
@@ -639,4 +683,4 @@ sm_top:     dw 0
 sm_lastf:   dw 0
 sm_savecur: dw 0
 sm_num:     ds 16
-sm_msg:     ds 64
+sm_msg:     ds 100
