@@ -236,10 +236,10 @@ name_buf: ds 10
 
 ; ---- pou_draw_list: header and the used POUs in the proportional font,
 ;      selected row inverted, black on white
-PL_X_NAME EQU 8
-PL_X_LANG EQU 60
-PL_X_SIZE EQU 128             ; right edge of the Size column
-PL_X_CMT  EQU 136
+PL_X_NAME EQU 3               ; aligned with the File title
+PL_X_LANG EQU 56
+PL_X_SIZE EQU 124             ; right edge of the Size column
+PL_X_CMT  EQU 130
 pou_draw_header:
         ld bc,(POU_LIST_ROW-1)*256      ; column names in dark blue
         ld de,0x2000+ATTR_TITLE
@@ -350,8 +350,8 @@ pou_inv_sel:
 .n:     inc b
         jr .l
 .go:    ld b,c
-        ld c,4
-        ld d,248
+        ld c,0
+        ld d,255
         ld hl,0x0008
         ld e,PX_XOR
         jp px_span
