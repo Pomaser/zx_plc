@@ -36,6 +36,25 @@ proj_new:
         ld (cur_pou),a
         ret
 
+; ---- proj_load_demo: copies the demo project from the DEMO bank
+proj_load_demo:
+        ld a,(cur_bank)
+        push af
+        ld a,BANK_DEMO
+        call bank_set
+        ld hl,demo_img
+        ld de,PROJ
+        ld bc,DEMO_LEN
+        ld a,b
+        or c
+        jr z,.e                 ; (no image in the builder build)
+        ldir
+.e:     pop af
+        call bank_set
+        xor a
+        ld (cur_pou),a
+        ret
+
 proj_sig:  db "ZXPLC"
 name_main: db "MAIN    "
 

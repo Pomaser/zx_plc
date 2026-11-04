@@ -701,6 +701,7 @@ ld_cmt_text:
         ret
 
 ; ---- ld_put_cmt: row ld_row <- comment text ld_cbuf (empty: removed)
+;      C = out of memory
 ld_put_cmt:
         ld a,(ld_row)           ; remove the old record of position 0
         ld d,a
@@ -748,8 +749,9 @@ ld_put_cmt:
         ld a,(ld_row)
         inc a
         cp (hl)
-        ret c
+        jr c,.ok
         ld (hl),a
+.ok:    or a                    ; NC: stored
         ret
 
 ; ---- ld_cursor: XORs the symbol cells of the cursor position

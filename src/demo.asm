@@ -1,30 +1,329 @@
 ; ============================================================
-; demo.asm - test program loaded into MAIN at start-up
-; (build with -DNODEMO to start with an empty project)
+; demo.asm - builds the demo project (only in the -DMKDEMO build)
 ; ============================================================
-; ---- demo_load: puts the demo program into MAIN
-demo_load:
-        ld hl,demo_main
-        xor a
-        jp il_load_text
+; tools/mkdemo.py runs zxplc_mkdemo.sna, which builds the project with
+; the normal editor routines and stops; the script saves the project
+; memory to src/demo_proj.bin, which the normal build puts into the DEMO
+; bank (File > Open demo, loaded at start-up).
+; TEST_RES+2 = 0xA5 when done, 0xEE on an error (TEST_RES+3 = step).
 
-demo_main:
-        db "// Start motor",0
-        db "LD",9,"%IX0.0",0
-        db "ST",9,"%QX0.0",0
+demo_build:
+        ld a,LANG_IL
+        call proj_new
+        ld a,1
+        ld (TEST_RES+3),a
+        ld hl,dm_n_il           ; slot 1
+        ld a,LANG_IL
+        call pou_add
+        jp c,dm_fail
+        ld hl,dm_n_ld           ; slot 2
+        ld a,LANG_LD
+        call pou_add
+        jp c,dm_fail
+        ; symbols (before the code, which refers to them)
+        ld a,2
+        ld (TEST_RES+3),a
+        ld hl,dm_syms
+.sy:    ld a,(hl)
+        cp 0xFF
+        jr z,.sye
+        ld (dm_area),a
+        inc hl
+        ld a,(hl)
+        ld (dm_idx),a
+        inc hl
+        ld (dm_name),hl
+        call dm_skip            ; -> comment
+        ld d,h
+        ld e,l
+        call dm_skip            ; -> next record
+        push hl
+        ld hl,(dm_name)
+        ld a,(dm_idx)
+        ld c,a
+        ld a,(dm_area)
+        call sym_store
+        pop hl
+        jr nc,.sy
+        jp dm_fail
+.sye:   ; IL code
+        ld a,3
+        ld (TEST_RES+3),a
+        ld hl,dm_main
+        xor a
+        call il_load_text
+        jp c,dm_fail
+        ld a,4
+        ld (TEST_RES+3),a
+        ld hl,dm_il
+        ld a,1
+        call il_load_text
+        jp c,dm_fail
+        ; LD cells: row, pos, type, area, index, PT
+        ld a,5
+        ld (TEST_RES+3),a
+        ld a,2
+        ld (cur_pou),a
+        ld hl,dm_ld
+.ld:    ld a,(hl)
+        cp 0xFF
+        jr z,.lde
+        ld d,a
+        inc hl
+        ld e,(hl)
+        inc hl
+        ld a,(hl)
+        inc hl
+        ld b,(hl)
+        inc hl
+        ld c,(hl)
+        inc hl
+        push af
+        ld a,(hl)
+        inc hl
+        ld (ld_ppt),a
+        ld a,(hl)
+        inc hl
+        ld (ld_ppt+1),a
+        pop af
+        push hl
+        call ld_put
+        pop hl
+        jr nc,.ld
+        jp dm_fail
+.lde:   ; LD network comments: row, text
+        ld a,6
+        ld (TEST_RES+3),a
+        ld hl,dm_ldc
+.lc:    ld a,(hl)
+        cp 0xFF
+        jr z,.lce
+        ld (ld_row),a
+        inc hl
+        ld de,ld_cbuf
+        call put_str
+        xor a
+        ld (de),a
+        inc hl
+        push hl
+        call ld_put_cmt
+        pop hl
+        jr nc,.lc
+        jp dm_fail
+.lce:   ; POU comments
+        ld a,7
+        ld (TEST_RES+3),a
+        ld hl,dm_c_main
+        xor a
+        call dm_cmt
+        ld hl,dm_c_il
+        ld a,1
+        call dm_cmt
+        ld hl,dm_c_ld
+        ld a,2
+        call dm_cmt
+        ; everything must compile
+        ld a,8
+        ld (TEST_RES+3),a
+        BCALL il_compile
+        jr c,dm_fail
+        xor a
+        ld (cur_pou),a
+        ld a,0xA5
+        ld (TEST_RES+2),a
+        ld a,4
+        jr dm_halt
+dm_fail:
+        ld a,0xEE
+        ld (TEST_RES+2),a
+        ld a,2
+dm_halt:
+        out (0xFE),a
+.h:     halt
+        jr .h
+
+; HL = string -> HL past its 0
+dm_skip:
+        ld a,(hl)
+        inc hl
+        or a
+        jr nz,dm_skip
+        ret
+
+; A = slot, HL = comment -> stored (pl_cbuf zero padded)
+dm_cmt: push af
+        push hl
+        ld hl,pl_cbuf
+        ld bc,POU_CMAX+1
+        xor a
+        call memset
+        pop hl
+        ld de,pl_cbuf
+        call put_str
+        pop af
+        jp pou_set_cmt
+
+dm_area: db 0
+dm_idx:  db 0
+dm_name: dw 0
+
+dm_n_il: db "DEMO_IL "
+dm_n_ld: db "DEMO_LD "
+dm_c_main: db "Calls both demos",0
+dm_c_il:   db "Traffic light (IL)",0
+dm_c_ld:   db "Pump and fan (LD)",0
+
+; ---- symbols: area, index, name, comment
+dm_syms:
+        db AR_I,0,"TL_Start",0,"Traffic light start",0
+        db AR_I,1,"TL_Stop",0,"Traffic light stop",0
+        db AR_I,4,"Start",0,"Pump start button",0
+        db AR_I,5,"Stop",0,"Pump stop button (NC)",0
+        db AR_I,6,"Fault",0,"Fault signal",0
+        db AR_I,7,"Ack",0,"Fault acknowledge",0
+        db AR_Q,0,"Red",0,"Red light",0
+        db AR_Q,1,"Yellow",0,"Yellow light",0
+        db AR_Q,2,"Green",0,"Green light",0
+        db AR_Q,4,"Pump",0,"Pump contactor",0
+        db AR_Q,5,"Fan",0,"Cooling fan",0
+        db AR_Q,6,"Lamp",0,"Fault lamp",0
+        db AR_M,0,"Alert",0,"Stored fault",0
+        db AR_M,1,"BlOn",0,"Blink: lamp phase",0
+        db AR_M,2,"BlOff",0,"Blink: dark phase",0
+        db AR_SX,0,"S_Off",0,"Step: lights off",0
+        db AR_SX,1,"S_Red",0,"Step: red",0
+        db AR_SX,2,"S_RedYel",0,"Step: red + yellow",0
+        db AR_SX,3,"S_Green",0,"Step: green",0
+        db AR_SX,4,"S_Yellow",0,"Step: yellow",0
+        db AR_FBI,FBT_TON*FB_PER_TYPE+0,"T_Red",0,"Red time",0
+        db AR_FBI,FBT_TON*FB_PER_TYPE+1,"T_RedYel",0,"Red + yellow time",0
+        db AR_FBI,FBT_TON*FB_PER_TYPE+2,"T_Green",0,"Green time",0
+        db AR_FBI,FBT_TON*FB_PER_TYPE+3,"T_Yellow",0,"Yellow time",0
+        db AR_FBI,FBT_TOF*FB_PER_TYPE+0,"TFan",0,"Fan run-on time",0
+        db AR_FBI,FBT_TP*FB_PER_TYPE+0,"POn",0,"Blink: lamp pulse",0
+        db AR_FBI,FBT_TP*FB_PER_TYPE+1,"POff",0,"Blink: dark pulse",0
+        db 0xFF
+
+; ---- MAIN
+dm_main:
+        db "// Demo project: MAIN runs the",0
+        db "// traffic light and the pump",0
+        db "CAL",9,"DEMO_IL",0
+        db "CAL",9,"DEMO_LD",0
+        db 0xFF
+
+; ---- DEMO_IL: traffic light as a step sequence (one step active in S0)
+dm_il:
+        db "// No step active: lights off",0
+        db "LDN",9,"S_Red",0
+        db "ANDN",9,"S_RedYel",0
+        db "ANDN",9,"S_Green",0
+        db "ANDN",9,"S_Yellow",0
+        db "S",9,"S_Off",0
         db 0
-        db "// Set timer",0
-        db "LD",9,"%QX0.0",0
-        db "ST",9,"TON1.IN",0
-        db "LD",9,"T#4s",0
-        db "ST",9,"TON1.PT",0
-        db "CAL",9,"TON1",0
+        db "// Start and stop",0
+        db "LD",9,"TL_Start",0
+        db "AND",9,"S_Off",0
+        db "S",9,"S_Red",0
+        db "LD",9,"TL_Stop",0
+        db "S",9,"S_Off",0
         db 0
-        db "// Stop motor",0
-        db "LD",9,"TON1.Q",0
-        db "R",9,"%QX0.0",0
+        db "// Step times",0
+        db "CAL",9,"T_Red(IN:=S_Red, PT:=T#4s)",0
+        db "CAL",9,"T_RedYel(IN:=S_RedYel, PT:=T#1s)",0
+        db "CAL",9,"T_Green(IN:=S_Green, PT:=T#4s)",0
+        db "CAL",9,"T_Yellow(IN:=S_Yellow, PT:=T#2s)",0
         db 0
-        db "// Current time",0
-        db "LD",9,"TON1.ET",0
-        db "ST",9,"%MW1",0
+        db "// Next step when the time is up",0
+        db "LD",9,"T_Red.Q",0
+        db "S",9,"S_RedYel",0
+        db "LD",9,"T_RedYel.Q",0
+        db "S",9,"S_Green",0
+        db "LD",9,"T_Green.Q",0
+        db "S",9,"S_Yellow",0
+        db "LD",9,"T_Yellow.Q",0
+        db "S",9,"S_Red",0
+        db 0
+        db "// Lights",0
+        db "LD",9,"S_Red",0
+        db "OR",9,"S_RedYel",0
+        db "ST",9,"Red",0
+        db "LD",9,"S_RedYel",0
+        db "OR",9,"S_Yellow",0
+        db "ST",9,"Yellow",0
+        db "LD",9,"S_Green",0
+        db "ST",9,"Green",0
+        db 0xFF
+
+; ---- DEMO_LD: row, pos, type, area, index, PT (20 ms ticks)
+    MACRO DM_WIRES row, from, to
+.p = from
+        WHILE .p <= to
+        db row,.p,LT_WIRE,0,0
+        dw 0
+.p = .p + 1
+        ENDW
+    ENDM
+dm_ld:
+        ; pump with self-holding: (Start OR Pump) AND NOT Stop
+        db 1,0,LT_NO|LT_VL,AR_I,4
+        dw 0
+        db 1,1,LT_NC,AR_I,5
+        dw 0
+        DM_WIRES 1,2,8
+        db 1,9,LT_COIL,AR_Q,4
+        dw 0
+        db 2,0,LT_NO,AR_Q,4
+        dw 0
+        ; fan runs on 5 s after the pump stops
+        db 4,0,LT_NO,AR_Q,4
+        dw 0
+        db 4,1,LT_TOF,AR_FBI,FBT_TOF*FB_PER_TYPE+0
+        dw 250
+        DM_WIRES 4,2,8
+        db 4,9,LT_COIL,AR_Q,5
+        dw 0
+        ; fault memory: set by a rising fault edge, reset by acknowledge
+        db 6,0,LT_P,AR_I,6
+        dw 0
+        DM_WIRES 6,1,8
+        db 6,9,LT_SET,AR_M,0
+        dw 0
+        db 7,0,LT_P,AR_I,7
+        dw 0
+        DM_WIRES 7,1,8
+        db 7,9,LT_RES,AR_M,0
+        dw 0
+        ; blinking: two pulse timers start each other
+        db 9,0,LT_NO,AR_M,0
+        dw 0
+        db 9,1,LT_NC,AR_M,2
+        dw 0
+        db 9,2,LT_TP,AR_FBI,FBT_TP*FB_PER_TYPE+0
+        dw 25
+        DM_WIRES 9,3,8
+        db 9,9,LT_COIL,AR_M,1
+        dw 0
+        db 10,0,LT_NO,AR_M,0
+        dw 0
+        db 10,1,LT_NC,AR_M,1
+        dw 0
+        db 10,2,LT_TP,AR_FBI,FBT_TP*FB_PER_TYPE+1
+        dw 25
+        DM_WIRES 10,3,8
+        db 10,9,LT_COIL,AR_M,2
+        dw 0
+        db 11,0,LT_NO,AR_M,1
+        dw 0
+        DM_WIRES 11,1,8
+        db 11,9,LT_COIL,AR_Q,6
+        dw 0
+        db 0xFF
+
+; ---- DEMO_LD network comments: row, text
+dm_ldc:
+        db 0,"Pump with self-holding",0
+        db 3,"Fan runs on 5 s after the pump",0
+        db 5,"Alert: fault edge, acknowledge",0
+        db 8,"Blinking fault lamp (2 x TP)",0
         db 0xFF

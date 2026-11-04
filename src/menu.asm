@@ -31,6 +31,7 @@ mt_help: db "Help",0
 ; (the last label of a list must not use descenders - it touches the frame)
 mi_file:
         db CMD_NEW,  'N',"New project",0
+        db CMD_DEMO, 'O',"Open demo",0
         db CMD_LOAD, 'L',"Load...",0
         db CMD_SAVE, 'S',"Save...",0
         db 0
@@ -912,6 +913,8 @@ menu_handle:
         jr z,.todo
         cp CMD_NEW
         jr z,.new
+        cp CMD_DEMO
+        jr z,.demo
         cp CMD_VIEW_SYM
         jr z,.vsym
         cp CMD_VIEW_ADDR
@@ -943,6 +946,13 @@ menu_handle:
 .todo:  ld hl,err_todo
         call ui_error
         xor a
+        ret
+.demo:  ld hl,txt_new_q
+        call ui_confirm
+        jr nz,.no
+        call proj_load_demo
+        ld a,CMD_POU_MANAGE
+        or a
         ret
 .new:   ld hl,txt_new_q
         call ui_confirm

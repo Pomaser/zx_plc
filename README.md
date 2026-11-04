@@ -4,6 +4,19 @@ A PLC program editor and simulator following IEC 61131-3 (IL, LD, FBD) for the *
 written in Z80 assembler. Programs are not downloaded to any real PLC; they run in a built-in simulation.
 Projects can be saved to tape.
 
+## Demo project
+
+The program starts with a demo project (also File > Open demo); File > New project starts an empty one.
+
+* **MAIN** calls the two demo POUs.
+* **DEMO_IL** - a traffic light as a step sequence: step flags `S_Off`, `S_Red`, `S_RedYel`, `S_Green`,
+  `S_Yellow` (S0.0-S0.4), one TON per step (`T_Red` ...), lights `Red` / `Yellow` / `Green` (Q0.0-Q0.2).
+  In the simulation `0` (TL_Start) starts it, `1` (TL_Stop) switches it off.
+* **DEMO_LD** - a pump with self-holding (`4` Start, `5` Stop as a normally closed contact, Q0.4), a fan
+  running on 5 s after the pump (TOF, Q0.5), a fault memory set by the rising edge of `6` (Fault) and
+  reset by `7` (Ack), and a fault lamp blinking with two TP pulse timers (Q0.6).
+* A complete symbol table for all inputs, outputs, flags, steps and timers.
+
 ## Sound
 
 The AY chip of the 128K plays a short soft click (noise with a fast envelope decay) for every key and a quiet two-note warning on input
@@ -42,7 +55,7 @@ Keys are read in the interrupt into an 8-key queue, so typing ahead is not lost.
 
 | Menu | Items |
 |---|---|
-| File | New project, Load..., Save... |
+| File | New project, Open demo, Load..., Save... |
 | POU | Manage, New..., Rename/Comment..., Language..., Delete |
 | Edit | Edit POU, Symbols, Insert line, Delete line |
 | View | Symbols, Addresses (how operands are shown in the IL editor and the simulation), Sound (on/off) |
@@ -183,6 +196,8 @@ S    S0.2      // -> step 2
 * `src/` - modules (screen, keyboard, ui, ptext, menu, status, project, operand, pou, app, il_parse, il_edit,
   il_comp (IL -> bytecode), vm (interpreter + standard FBs), sim (Run screen), symbols, sym_edit, tests)
 * `src/font6.asm` - generated from `tools/font6.txt` by `tools/mkfont.py` (edit the .txt, then run the script)
+* `src/demo.asm` - builds the demo project (`-DMKDEMO` build), `tools/mkdemo.py` - runs it and saves the
+  project image `src/demo_proj.bin` (`make` does both when the sources change)
 * `tools/zxrun.py` - headless 48K/128K emulator for tests and screenshots (`--ay` lists AY writes), `tools/fixjr.py` - converts
   out-of-range JR to JP, `tools/xref.py --check MAP` - reports references across banks not made through `BCALL`
 
@@ -198,5 +213,6 @@ C000-FFFF paged banks (each with the IM2 table at FDFD-FF00):
           bank 0  EDIT  POU list, IL / LD / symbol editors, simulation screen (tests in test builds)
           bank 4  RUN   IL and LD compilers, VM, bytecode (F000-F7FF)
           bank 1  DATA  cells saved under popup windows
+          bank 3  DEMO  demo project image (src/demo_proj.bin)
 ```
 The build prints the free space of the core and of each bank.

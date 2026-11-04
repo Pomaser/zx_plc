@@ -29,12 +29,13 @@ START:
     IFDEF TEST
         jp run_tests            ; (EDIT bank)
     ENDIF
+    IFDEF MKDEMO
+        jp demo_build           ; builds the demo project (EDIT bank)
+    ENDIF
         ld a,LANG_IL            ; default language of MAIN
         call proj_new
     IFNDEF NODEMO
-    IFNDEF TEST
-        BCALL demo_load         ; test program
-    ENDIF
+        call proj_load_demo     ; start with the demo project
     ENDIF
         ld a,SCR_POU
         ld (cur_screen),a
@@ -127,10 +128,11 @@ CORE_END:
         INCLUDE "src/sym_edit.asm"
         INCLUDE "src/ld_edit.asm"
         INCLUDE "src/sim.asm"
-    IFNDEF TEST
-        INCLUDE "src/demo.asm"
-    ELSE
+    IFDEF TEST
         INCLUDE "src/tests.asm"     ; tests use the editors' buffers directly
+    ENDIF
+    IFDEF MKDEMO
+        INCLUDE "src/demo.asm"      ; demo project builder
     ENDIF
 EDIT_END:
         DISPLAY "EDIT:  free: ",/D,IM2_JP-EDIT_END
@@ -152,9 +154,17 @@ RUN_END:
 win_save: ds 9*WIN_MAXC     ; cells saved under a popup window
         IM2STUB
 
-; unused banks get the interrupt table too
-        MMU 3, 3, BANKED
+; ---- DEMO bank: the demo project image (made by tools/mkdemo.py)
+        MMU 3, BANK_DEMO, BANKED
+demo_img:
+    IFNDEF MKDEMO
+        INCBIN "src/demo_proj.bin"
+    ENDIF
+DEMO_LEN EQU $-demo_img
+        ASSERT DEMO_LEN <= PROJ_END-PROJ
         IM2STUB
+
+; unused banks get the interrupt table too
         MMU 3, 6, BANKED
         IM2STUB
         MMU 3, 7, BANKED
@@ -168,5 +178,9 @@ win_save: ds 9*WIN_MAXC     ; cells saved under a popup window
         SAVESNA "zxplc_test2.sna", START
     ENDIF
     ELSE
+    IFDEF MKDEMO
+        SAVESNA "zxplc_mkdemo.sna", START
+    ELSE
         SAVESNA "zxplc.sna", START
+    ENDIF
     ENDIF

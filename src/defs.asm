@@ -21,6 +21,7 @@ IM2_TAB     EQU 0xFE00      ; 257 B vector table (in every paged bank)
 BANK_EDIT   EQU 0           ; POU list, IL / LD / symbol editors, simulation screen
 BANK_RUN    EQU 4           ; compilers, VM, bytecode
 BANK_DATA   EQU 1           ; buffers (popup save area)
+BANK_DEMO   EQU 3           ; demo project image
 BANK_ROM48  EQU 0x10        ; port 0x7FFD: ROM 1 = 48 BASIC (tape routines)
 
 ; BCALL label: calls a routine in another paged bank (registers pass
@@ -92,6 +93,7 @@ CMD_VIEW_ADDR   EQU 19
 CMD_REDRAW      EQU 20
 CMD_STOP        EQU 21
 CMD_SOUND       EQU 22
+CMD_DEMO        EQU 23
 
 ; ---- key codes ----------------------------------------------
 K_HOME      EQU 1           ; SS + LEFT  (CS+SS+5): start of the line
