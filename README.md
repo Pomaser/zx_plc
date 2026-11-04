@@ -72,7 +72,8 @@ The operand label above the element follows View (symbol clipped to the element 
 the full symbol name and comment of the selected element are shown in the status bar.
 
 ENTER on a position opens the element picker: a window listing the elements as their LD symbols
-(contacts on positions 0-8, coils on the coil position); choose with UP/DOWN and ENTER, then type the operand.
+(contacts, wire and vertical link on positions 0-8, coils on the coil position); choose with UP/DOWN and
+ENTER, then type the operand (choosing "Vertical link" toggles the link at the right edge of the position).
 The current element is preselected, so ENTER on an element also changes its type or operand.
 The letter keys below work as shortcuts both in the editor and in the picker.
 

@@ -18,6 +18,7 @@ LT_COIL   EQU 8
 LT_NCOIL  EQU 9
 LT_SET    EQU 10
 LT_RES    EQU 11
+LT_VLITEM EQU 12            ; picker item: toggle the vertical link
 LT_VL     EQU 0x80          ; vertical link down
 LT_MASK   EQU 0x0F
 LD_CPOS   EQU 9             ; coil position
@@ -266,6 +267,7 @@ G_OL    EQU 7
 G_OR    EQU 8
 G_S     EQU 9
 G_R     EQU 10
+G_VL    EQU 11
 ld_gfx:
         db 0x00,0x00,0x00,0x00,0xFF,0x00,0x00,0x00      ; wire
         db 0x00,0x02,0x02,0x02,0xFE,0x02,0x02,0x02      ; --|
@@ -278,11 +280,13 @@ ld_gfx:
         db 0x00,0x40,0x20,0x20,0x3F,0x20,0x20,0x40      ; )--
         db 0x00,0x00,0x1C,0x20,0x18,0x04,0x38,0x00      ; S
         db 0x00,0x00,0x38,0x24,0x38,0x28,0x24,0x00      ; R
-; glyphs (left, middle, right) per element type 0-11
+        db 0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01      ; vertical link (right edge)
+; glyphs (left, middle, right) per element type 0-12
 ld_types:
         db G_BL,G_BL,G_BL, G_WIRE,G_WIRE,G_WIRE, G_CL,G_BL,G_CR, G_CL,G_SL,G_CR
         db G_CL,G_P,G_CR,  G_CL,G_N,G_CR,      G_BL,G_BL,G_BL, G_BL,G_BL,G_BL
         db G_OL,G_BL,G_OR, G_OL,G_SL,G_OR,     G_OL,G_S,G_OR,  G_OL,G_R,G_OR
+        db G_BL,G_BL,G_VL                       ; picker: vertical link
 
 ; ---- ld_draw_view: rows ld_top.. on screen rows ld_vbase.. (ld_vn rows)
 ld_draw_view:
@@ -469,7 +473,7 @@ ld_draw_elem:
 ;      draws the 3 cells of the element symbol
 ld_put_glyphs:
         and LT_MASK
-        cp 12
+        cp LT_VLITEM+1
         ret nc
         ld (lg_row),bc          ; C = cell, B = row
         ld c,a
@@ -683,6 +687,7 @@ ld_pick_c:
         db LT_P,    'P',"Rising edge",0
         db LT_N,    'N',"Falling edge",0
         db LT_WIRE, '-',"Wire",0
+        db LT_VLITEM,'V',"Vertical link",0
         db 0xFF
 ld_pick_q:
         db LT_COIL, 'C',"Coil",0
@@ -964,6 +969,8 @@ ld_editor:
         call ld_get
         call ld_pick
         jp c,.cur
+        cp LT_VLITEM
+        jp z,.vlink
         jp .place
 
         ; ---- DELETE: clear the position (the link stays)
