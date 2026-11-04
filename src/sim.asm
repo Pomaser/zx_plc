@@ -12,7 +12,8 @@ ROW_SEP   EQU 19
 ROW_IN    EQU 20
 ROW_OUT   EQU 21
 ROW_HINT  EQU 22
-LED_COL0  EQU 9             ; cell of the first LED
+LED_COL0  EQU 0             ; cell of the first LED (LED + number: 2 cells)
+LED_COL1  EQU 16            ; first LED of byte 1
 ATTR_LED_I EQU 0x3C         ; green ink
 ATTR_LED_Q EQU 0x3A         ; red ink
 
@@ -291,7 +292,7 @@ sim_mark:
         ld a,(sm_ib)
         or a
         call .grp
-        ld c,LED_COL0+9
+        ld c,LED_COL1
         ld a,(sm_ib)
         xor 1
 .grp:   push af
@@ -303,7 +304,7 @@ sim_mark:
         ld a,0xFF
         jr z,.g
         xor a
-.g:     ld b,8
+.g:     ld b,16
 .l:     ld (hl),a
         inc l
         djnz .l
@@ -369,11 +370,9 @@ sim_draw_panel:
 .sep:   ld (hl),0xFF
         inc l
         djnz .sep
-        ld hl,txt_sm_in
         ld b,ROW_IN
         ld e,ATTR_LED_I
         call .row
-        ld hl,txt_sm_out
         ld b,ROW_OUT
         ld e,ATTR_LED_Q
         call .row
@@ -386,26 +385,40 @@ sim_draw_panel:
         ld a,0xFF               ; force the LEDs to be drawn
         ld (sm_lf),a
         jp sim_mark
-.row:   push de
-        ld a,b
+.row:   ld a,b                  ; 16 LEDs (bytes 0, 1), numbers 0-7 next to them
         ld (pt_row),a
-        ld a,4
-        ld (pt_x),a
-        push bc
-        call pt_puts
-        pop bc
-        pop de
-        ; LED cells coloured: bytes 0 and 1, 8 LEDs each
-        push bc
+        ld c,0
+.lbl:   push bc
         push de
-        ld c,LED_COL0
-        ld d,8
+        ld a,c
+        add a,a
+        add a,LED_COL0
+        ld c,a
+        ld d,1
         call scr_fill_attr
         pop de
         pop bc
-        ld c,LED_COL0+9
-        ld d,8
-        jp scr_fill_attr
+        ld a,c
+        add a,a
+        add a,LED_COL0+1
+        add a,a
+        add a,a
+        add a,a
+        inc a
+        ld (pt_x),a
+        ld a,c
+        and 7
+        add a,'0'
+        push bc
+        push de
+        call pt_putc
+        pop de
+        pop bc
+        inc c
+        ld a,c
+        cp 16
+        jr c,.lbl
+        ret
 
 ; ---- sim_draw_list: listing rows 1-18 + monitor descriptors
 sim_draw_list:
@@ -604,7 +617,7 @@ sim_update:
         call .led8
         ld a,(sm_lv+1)
         ld c,a
-        ld e,LED_COL0+9
+        ld e,LED_COL1
 .led8:  ld b,8
 .lb:    push bc
         push de
@@ -629,6 +642,7 @@ sim_update:
         jr nc,.off
         ld a,CH_LEDON
 .off:   call pt_putc
+        inc e
         inc e
         djnz .lb
         ret
@@ -691,8 +705,6 @@ sim_draw_val:
 txt_sm_run:   db "RUN",0
 txt_sm_stop:  db "STOP",0
 txt_sm_true:  db "TRUE",0
-txt_sm_in:    db "Inputs",0
-txt_sm_out:   db "Outputs",0
 txt_sm_hint:  db "0-7 toggle, SS+0-7 push, B I0/I1, R run, S step, E reset",0
 txt_sm_nomon: db "No IL or LD POU to monitor.",0
 txt_sm_err:   db "Error in ",0
