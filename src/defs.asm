@@ -152,7 +152,8 @@ ATTR_COMMENT EQU 0x3C       ; dark green on white (comments)
 
 ; ---- operand areas ("area" byte) ----------------------------
 AR_NONE     EQU 0
-AR_I        EQU 1           ; %IX0.n      index 0-7
+AR_I        EQU 1           ; %IXb.n      index b*8+n (0-15)
+N_IOB       EQU 2           ; I / Q bytes (%IX0.0-1.7, %QX0.0-1.7)
 AR_Q        EQU 2           ; %QX0.n      index 0-7
 AR_M        EQU 3           ; %MXn        index 0-63
 AR_MW       EQU 4           ; %MWn        index 0-15

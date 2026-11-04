@@ -1,7 +1,7 @@
 ; ============================================================
 ; operand.asm - IEC 61131-3 operand parser and formatter
 ; ============================================================
-; Accepts:  %IX0.n %I0.n I0.n | %QX0.n %Q0.n Q0.n | %MXn %Mn Mn | %MWn MWn
+; Accepts:  %IXb.n %Ib.n Ib.n | %QXb.n %Qb.n Qb.n (b = 0-1) | %MXn %Mn Mn | %MWn MWn
 ;           %SXb.n %Sb.n Sb.n (step flags, b = 0-7)
 ;           TRUE FALSE | integer -32768..32767 | T#..  TIME#.. (units m, s, ms)
 ;           TON0..TON3, TOF, TP, CTU, CTD, RT (R_TRIG), RF (F_TRIG), SR, RS (+ .member)
@@ -148,10 +148,16 @@ op_parse:
         cp 'X'
         jr nz,.ioaddr
         inc hl
-.ioaddr:
+.ioaddr:                        ; b.n -> index b*8+n
         ld a,(hl)
-        cp '0'
-        jp nz,op_fail_jp
+        sub '0'
+        jp c,op_fail_jp
+        cp N_IOB
+        jp nc,op_fail_jp
+        add a,a
+        add a,a
+        add a,a
+        ld c,a
         inc hl
         ld a,(hl)
         cp '.'
@@ -162,6 +168,7 @@ op_parse:
         jp c,op_fail_jp
         cp 8
         jp nc,op_fail_jp
+        or c
         ld c,a
         inc hl
         ld a,(hl)
@@ -564,11 +571,7 @@ op_format:
         ld bc,s_sh_q
 .bit:   call .style
         call put_str
-        ld a,(op_idx)
-        add a,'0'
-        ld (de),a
-        inc de
-        jp .end
+        jr .bn
 .f_m:   ld hl,s_iec_m
         ld bc,s_sh_m
         jr .numidx
@@ -579,7 +582,7 @@ op_format:
         ld bc,s_sh_s
         call .style
         call put_str
-        ld a,(op_idx)
+.bn:    ld a,(op_idx)           ; b.n
         rrca
         rrca
         rrca
@@ -747,13 +750,13 @@ kw_false: db "FALSE",0
 kw_t:     db "T#",0
 kw_time:  db "TIME#",0
 s_qq:     db "???",0
-s_iec_i:  db "%IX0.",0
-s_iec_q:  db "%QX0.",0
+s_iec_i:  db "%IX",0
+s_iec_q:  db "%QX",0
 s_iec_m:  db "%MX",0
 s_iec_mw: db "%MW",0
 s_iec_s:  db "%SX",0
-s_sh_i:   db "I0.",0
-s_sh_q:   db "Q0.",0
+s_sh_i:   db "I",0
+s_sh_q:   db "Q",0
 s_sh_m:   db "M",0
 s_sh_mw:  db "MW",0
 s_sh_s:   db "S",0

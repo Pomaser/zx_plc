@@ -197,8 +197,10 @@ Compile errors are reported with the POU name and line number.
 * Upper part: listing of the monitored IL or LD POU (the current POU, or MAIN) with the live value of each
   operand on the right (`TRUE` black on bright green, `FALSE`, numbers; PT/ET of timers as
   `T#...`). UP/DOWN scroll.
-* Lower part: input LEDs %IX0.0-0.7 (green) and output LEDs %QX0.0-0.7 (red).
-* Keys: `0`-`7` toggle inputs %IX0.0-0.7 (key = bit number), SYMBOL SHIFT + `0`-`7` push button (input on while held),
+* Lower part: input LEDs %IX0.0-1.7 (green) and output LEDs %QX0.0-1.7 (red), two groups of 8 per row
+  (byte 0, byte 1); the input byte the keys act on is underlined.
+* Keys: `0`-`7` toggle inputs %IXb.0-b.7 of the selected byte b (key = bit number), `B` selects byte 0 / 1,
+  SYMBOL SHIFT + `0`-`7` push button (input on while held),
   `R` run/stop, `S` single scan, `E` reset all data. The status bar shows RUN / STOP.
 * Standard FBs: TON, TOF, TP, CTU, CTD, R_TRIG (instances `RT0`-`RT3`), F_TRIG (`RF0`-`RF3`), SR, RS. Calls of other POUs: max. depth 8.
   A watchdog stops a scan that executes more than 30000 instructions.
@@ -208,8 +210,8 @@ Compile errors are reported with the POU name and line number.
 
 | Area | IEC | Short | Range |
 |---|---|---|---|
-| Inputs | `%IX0.0` | `I0.0` | 0.0-0.7 |
-| Outputs | `%QX0.0` | `Q0.0` | 0.0-0.7 |
+| Inputs | `%IX0.0` | `I0.0` | 0.0-1.7 |
+| Outputs | `%QX0.0` | `Q0.0` | 0.0-1.7 |
 | Bit memory | `%MX5` | `M5` | 0-63 |
 | Step flags | `%SX0.2` | `S0.2` | 0.0-7.7 |
 | INT words | `%MW3` | `MW3` | 0-15 |

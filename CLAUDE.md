@@ -41,7 +41,7 @@ on tape. See README.md for the user-facing description of every editor and key.
 - **Fixed memory:**
   - 0x5B00 TEST_RES; the stack below 0x5E00.
   - Core code at 0x5E00. The build prints the free space; it is small, keep the core lean.
-  - RT runtime data at 0x8A00. These are EQUs in `src/vm.asm`: I/Q/M/MW, FB instances, scratch bits,
+  - RT runtime data at 0x8A00. These are EQUs in `src/vm.asm`: I/Q (2 bytes each, %IX0.0-1.7)/M/MW, FB instances, scratch bits,
     step flags, and the shared buffers `popup_buf`, `st_buf`, `rec_buf`, `il_out`, `cp_text`
     (FMT_BUF).
   - The project at 0x9000-0xBFFF (12 KB).

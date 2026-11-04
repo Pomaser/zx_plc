@@ -77,10 +77,10 @@ cp_operand_core:
         jr z,.fbm
 .bad:   ld hl,err_il_op
         jp cp_fail
-.i:     ld hl,RT_I
-        jr .bit
-.q:     ld hl,RT_Q
-.bit:   ld a,(cp_oidx)
+.i:     ld bc,RT_I              ; byte idx/8, bit idx&7
+        jr .mbit
+.q:     ld bc,RT_Q
+        jr .mbit
 .bitn:  ld (cp_arg),hl
         ld e,a
         ld d,0

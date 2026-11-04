@@ -43,6 +43,8 @@ scr_run:
         BCALL vm_reset
         xor a
         ld (sim_tog),a
+        ld (sim_tog+1),a
+        ld (sm_ib),a
         ld (sm_run),a
         call sim_state
         BCALL il_compile
@@ -91,24 +93,37 @@ scr_run:
         cp K_DOWN
         jr z,.down
         cp K_BREAK
-        jr z,.menu
+        jp z,.menu
         cp K_EDIT
-        jr z,.menu
+        jp z,.menu
         cp '0'
         jr c,.letter
         cp '8'
         jr nc,.letter
-        sub '0'                 ; key n toggles input %IX0.n
+        sub '0'                 ; key n toggles input %IXb.n (b = sm_ib)
         ld e,a
         ld d,0
         ld hl,bit_masks
         add hl,de
-        ld a,(sim_tog)
-        xor (hl)
-        ld (sim_tog),a
+        ld c,(hl)
+        ld a,(sm_ib)
+        ld e,a
+        ld hl,sim_tog
+        add hl,de
+        ld a,(hl)
+        xor c
+        ld (hl),a
         jr .loop
 .letter:
         call to_upper
+        cp 'B'                  ; B: the other input byte
+        jr nz,.nb
+        ld a,(sm_ib)
+        xor 1
+        ld (sm_ib),a
+        call sim_mark
+        jr .loop
+.nb:
         cp 'R'                  ; R toggles run / stop
         jr nz,.nr
         ld b,CMD_RUN
@@ -125,7 +140,7 @@ scr_run:
         jr z,.c
         ld b,CMD_RESET
         cp 'E'
-        jr nz,.loop
+        jp nz,.loop
 .c:     ld a,b
         call sim_cmd
         jp .loop
@@ -205,6 +220,7 @@ sim_cmd:
 .reset: BCALL vm_reset
         xor a
         ld (sim_tog),a
+        ld (sim_tog+1),a
         ret
 
 ; ---- sim_state: RUN / STOP in the status bar
@@ -255,9 +271,42 @@ sim_inputs:
 .k7:    bit 3,a
         jr z,.no
         set 7,e
-.no:    ld a,(sim_tog)
+.no:    ld hl,(sim_tog)         ; push buttons on the selected byte
+        ld a,(sm_ib)
+        or a
+        jr nz,.b1
+        ld a,l
         or e
-        ld (RT_I),a
+        ld l,a
+        jr .st
+.b1:    ld a,h
+        or e
+        ld h,a
+.st:    ld (RT_I),hl
+        ret
+
+; ---- sim_mark: a line under the 8 LEDs of the selected input byte
+sim_mark:
+        ld c,LED_COL0
+        ld a,(sm_ib)
+        or a
+        call .grp
+        ld c,LED_COL0+9
+        ld a,(sm_ib)
+        xor 1
+.grp:   push af
+        ld b,ROW_IN
+        call pix_addr
+        ld de,7*256
+        add hl,de               ; pixel line 7
+        pop af
+        ld a,0xFF
+        jr z,.g
+        xor a
+.g:     ld b,8
+.l:     ld (hl),a
+        inc l
+        djnz .l
         ret
 
 ; ---- sim_cerr: compile error popup "Error in NAME, line 012" + message
@@ -335,9 +384,8 @@ sim_draw_panel:
         ld hl,txt_sm_hint
         call pt_puts
         ld a,0xFF               ; force the LEDs to be drawn
-        ld (sm_li),a
-        ld (sm_lq),a
-        ret
+        ld (sm_lf),a
+        jp sim_mark
 .row:   push de
         ld a,b
         ld (pt_row),a
@@ -347,34 +395,17 @@ sim_draw_panel:
         call pt_puts
         pop bc
         pop de
-        ; LED cells coloured, labels 0-7 next to them
-        ld c,0
-.lbl:   push bc
+        ; LED cells coloured: bytes 0 and 1, 8 LEDs each
+        push bc
         push de
-        ld a,c
-        add a,a
-        add a,LED_COL0
-        ld c,a
-        ld d,1
+        ld c,LED_COL0
+        ld d,8
         call scr_fill_attr
         pop de
         pop bc
-        ld a,c
-        add a,a
-        add a,LED_COL0+1
-        add a,a
-        add a,a
-        add a,a
-        inc a
-        ld (pt_x),a
-        ld a,c
-        add a,'0'
-        call pt_putc
-        inc c
-        ld a,c
-        cp 8
-        jr c,.lbl
-        ret
+        ld c,LED_COL0+9
+        ld d,8
+        jp scr_fill_attr
 
 ; ---- sim_draw_list: listing rows 1-18 + monitor descriptors
 sim_draw_list:
@@ -535,21 +566,46 @@ sim_update:
         ld a,(hl)
         cp SIM_ROWS
         jr c,.l
-.leds:  ld a,(RT_I)
-        ld hl,sm_li
+.leds:  ld hl,(RT_I)
+        ld de,sm_li
         ld b,ROW_IN
-        call .led8
-        ld a,(RT_Q)
-        ld hl,sm_lq
+        call .led16
+        ld hl,(RT_Q)
+        ld de,sm_lq
         ld b,ROW_OUT
-.led8:  cp (hl)
+        call .led16
+        xor a
+        ld (sm_lf),a
+        jp sim_mark             ; (the LEDs clear their cells)
+.led16: ld (sm_lv),hl           ; HL = state, DE = last drawn state
+        ld a,(sm_lf)
+        or a
+        jr nz,.chg
+        ex de,hl
+        ld a,(sm_lv)
+        cp (hl)
+        jr nz,.chg0
+        inc hl
+        ld a,(sm_lv+1)
+        cp (hl)
+        dec hl
         ret z
-        ld (hl),a
-        ld c,a
+.chg0:  ex de,hl
+.chg:   ld hl,(sm_lv)
+        ex de,hl
+        ld (hl),e
+        inc hl
+        ld (hl),d
         ld a,b
         ld (pt_row),a
-        ld b,8
+        ld a,(sm_lv)
+        ld c,a
         ld e,LED_COL0
+        call .led8
+        ld a,(sm_lv+1)
+        ld c,a
+        ld e,LED_COL0+9
+.led8:  ld b,8
 .lb:    push bc
         push de
         ld a,(pt_row)
@@ -573,7 +629,6 @@ sim_update:
         jr nc,.off
         ld a,CH_LEDON
 .off:   call pt_putc
-        inc e
         inc e
         djnz .lb
         ret
@@ -638,18 +693,21 @@ txt_sm_stop:  db "STOP",0
 txt_sm_true:  db "TRUE",0
 txt_sm_in:    db "Inputs",0
 txt_sm_out:   db "Outputs",0
-txt_sm_hint:  db "0-7 toggle, SS+0-7 push, R run/stop, S step, E reset",0
+txt_sm_hint:  db "0-7 toggle, SS+0-7 push, B I0/I1, R run, S step, E reset",0
 txt_sm_nomon: db "No IL or LD POU to monitor.",0
 txt_sm_err:   db "Error in ",0
 txt_sm_line:  db ", line ",0
 
-sim_tog:    db 0
+sim_tog:    dw 0              ; toggled inputs I0, I1
+sm_ib:      db 0              ; input byte of the keys 0-7
+sm_lf:      db 0              ; LEDs: redraw all
+sm_lv:      dw 0
 sm_mon:     db 0
 sm_ok:      db 0
 sm_run:     db 0
 sm_r:       db 0
-sm_li:      db 0
-sm_lq:      db 0
+sm_li:      dw 0
+sm_lq:      dw 0
 sm_top:     dw 0
 sm_lastf:   dw 0
 sm_savecur: dw 0

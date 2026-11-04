@@ -1115,11 +1115,14 @@ op_cases:
         db "RF0.Q",0,"RF0.Q",0
         db "SR1.S1",0,"SR1.S1",0
         db "RS2.R1",0,"RS2.R1",0
+        db "i1.7",0,"%IX1.7",0
+        db "%QX1.0",0,"%QX1.0",0
         db "MAIN",0,"MAIN",0
         db "MOTOR",0,"MOTOR",0
         ; errors
         db "%IX0.8",0,0
-        db "%IX1.0",0,0
+        db "%IX2.0",0,0
+        db "Q2.1",0,0
         db "M64",0,0
         db "MW16",0,0
         db "TON4",0,0
