@@ -1988,8 +1988,8 @@ fb_pick_l:
         db FT_NOT,       '!',"NOT",0
         db FT_SR,        'S',"SR flip-flop",0
         db FT_RS,        'R',"RS flip-flop",0
-        db FT_RTRIG,     'P',"R_TRIG edge",0
-        db FT_FTRIG,     'E',"F_TRIG edge",0
+        db FT_RTRIG,     'P',"RT rising edge",0
+        db FT_FTRIG,     'E',"RF falling edge",0
         db FT_TON,       'T',"TON timer",0
         db FT_TOF,       'F',"TOF timer",0
         db FT_TP,        'U',"TP pulse",0

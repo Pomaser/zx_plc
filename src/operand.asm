@@ -4,7 +4,7 @@
 ; Accepts:  %IX0.n %I0.n I0.n | %QX0.n %Q0.n Q0.n | %MXn %Mn Mn | %MWn MWn
 ;           %SXb.n %Sb.n Sb.n (step flags, b = 0-7)
 ;           TRUE FALSE | integer -32768..32767 | T#..  TIME#.. (units m, s, ms)
-;           TON0..TON3, TOF, TP, CTU, CTD, R_TRIG, F_TRIG, SR, RS (+ .member)
+;           TON0..TON3, TOF, TP, CTU, CTD, RT (R_TRIG), RF (F_TRIG), SR, RS (+ .member)
 ;           symbol name, POU name
 ; ============================================================
 OP_TOKMAX EQU 31
@@ -774,8 +774,8 @@ fb_names:
         db "TP",0,0,0,0,0
         db "CTU",0,0,0,0
         db "CTD",0,0,0,0
-        db "R_TRIG",0
-        db "F_TRIG",0
+        db "RT",0,0,0,0,0          ; R_TRIG (rising edge)
+        db "RF",0,0,0,0,0          ; F_TRIG (falling edge)
         db "SR",0,0,0,0,0
         db "RS",0,0,0,0,0
 ; members: 5 records of 4 B per type

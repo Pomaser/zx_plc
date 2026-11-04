@@ -16,7 +16,7 @@ The program starts with a demo project (also File > Open demo); File > New proje
   running on 5 s after the pump (TOF, Q0.5), a fault memory set by the rising edge of `6` (Fault) and
   reset by `7` (Ack), and a fault lamp blinking with two TP pulse timers (Q0.6).
 * **DEMO_FBD** - an alarm horn (Fault OR Alert) AND NOT Ack (Q0.7) and a 2 s light (Q0.3) from the rising
-  edge of TL_Start (R_TRIG -> TP).
+  edge of TL_Start (RT -> TP).
 * A complete symbol table for all inputs, outputs, flags, steps and timers.
 
 ## Saving to tape
@@ -157,7 +157,7 @@ ENTER opens the picker (shortcut keys in brackets):
 |---|---|
 | input (I), negated input (N, the `o` is drawn at the block input it leads to), wire (-) | output (Q), negated output (N, the `o` is drawn at the output of the block it comes from) |
 | AND (A), OR (O), XOR (X) with 2-4 inputs, NOT (!) | |
-| SR (S), RS (R), R_TRIG (P), F_TRIG (E) - an FB instance | |
+| SR (S), RS (R), RT rising edge (P), RF falling edge (E) - an FB instance | |
 | output (Q), negated output (W) - e.g. right behind a block | |
 | TON (T), TOF (F), TP (U) - two rows: IN and the PT input (`T#4s--PT` on the left of the second row); ENTER or `T` on the PT input or `T` on the timer edits PT | |
 
@@ -192,7 +192,7 @@ Compile errors are reported with the POU name and line number.
 * Lower part: input LEDs %IX0.0-0.7 (green) and output LEDs %QX0.0-0.7 (red).
 * Keys: `0`-`7` toggle inputs %IX0.0-0.7 (key = bit number), SYMBOL SHIFT + `0`-`7` push button (input on while held),
   `R` run/stop, `S` single scan, `E` reset all data. The status bar shows RUN / STOP.
-* Standard FBs: TON, TOF, TP, CTU, CTD, R_TRIG, F_TRIG, SR, RS. Calls of other POUs: max. depth 8.
+* Standard FBs: TON, TOF, TP, CTU, CTD, R_TRIG (instances `RT0`-`RT3`), F_TRIG (`RF0`-`RF3`), SR, RS. Calls of other POUs: max. depth 8.
   A watchdog stops a scan that executes more than 30000 instructions.
 * FBD POUs are not compiled yet (a call of such a POU does nothing).
 
@@ -206,8 +206,8 @@ Compile errors are reported with the POU name and line number.
 | Step flags | `%SX0.2` | `S0.2` | 0.0-7.7 |
 | INT words | `%MW3` | `MW3` | 0-15 |
 | Constants | `TRUE`, `FALSE`, `-123`, `T#1s500ms`, `T#2m` | | |
-| FB instances | `TON0`...`TON3`, `TOF`, `TP`, `CTU`, `CTD`, `R_TRIG`, `F_TRIG`, `SR`, `RS` | | |
-| FB members | `TON0.Q`, `CTU1.CV`, `R_TRIG2.CLK` ... | | |
+| FB instances | `TON0`...`TON3`, `TOF`, `TP`, `CTU`, `CTD`, `RT` (R_TRIG), `RF` (F_TRIG), `SR`, `RS` | | |
+| FB members | `TON0.Q`, `CTU1.CV`, `RT2.CLK` ... | | |
 
 The time base is 20 ms (one frame).
 

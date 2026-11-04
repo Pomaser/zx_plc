@@ -1109,8 +1109,8 @@ op_cases:
         db "TP1.PT",0,"TP1.PT",0
         db "CTU2.CV",0,"CTU2.CV",0
         db "CTD0.LD",0,"CTD0.LD",0
-        db "R_TRIG3.CLK",0,"R_TRIG3.CLK",0
-        db "F_TRIG0.Q",0,"F_TRIG0.Q",0
+        db "RT3.CLK",0,"RT3.CLK",0
+        db "RF0.Q",0,"RF0.Q",0
         db "SR1.S1",0,"SR1.S1",0
         db "RS2.R1",0,"RS2.R1",0
         db "MAIN",0,"MAIN",0
