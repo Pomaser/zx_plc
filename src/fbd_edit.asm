@@ -896,20 +896,22 @@ fb_draw_elem:
 .nw:    cp FT_IN
         jr nz,.nin
         call fd_label
-        ld a,(fd_t)             ; line, "o" at the end when negated
-        rlca
-        ld d,24
-        jr nc,.inl
-        ld d,19
-.inl:   ld a,(fd_x)
+        ld a,(fd_t)             ; negated: "o" at the end of the line, or at
+        rlca                    ; the block input when it leads into a block
+        jr nc,.inp
+        call fd_dst_block
+        jr nz,.inp
+        ld a,(fd_x)
         ld c,a
+        ld d,19
         call fd_hline
-        ld a,(fd_t)
-        rlca
-        ret nc
         ld a,(fd_x)
         add a,19
         jp fd_circle
+.inp:   ld a,(fd_x)
+        ld c,a
+        ld d,24
+        jp fd_hline
 .nin:   cp FT_OUT
         jr nz,.nout
         call fd_label
@@ -955,7 +957,7 @@ fb_draw_elem:
         call fd_sides
         ld a,(fd_srow)
         call fd_sides
-        call fd_stubs
+        call fd_in_stub
         ld a,(fd_x)             ; output stub
         add a,21
         ld c,a
@@ -1008,7 +1010,7 @@ fb_draw_cov:
         call fd_sides
         ld a,(fd_srow)
         call fd_sides
-        call fd_stubs
+        call fd_in_stub
         pop af
         or a
         ret nz
@@ -1045,6 +1047,83 @@ fd_sides:
         ld hl,0x0008
         ld e,PX_SET
         jp px_span
+
+; fd_in_stub: input of the block on this row: "o" right in front of the
+;      block edge when the signal comes from a negated input, else a stub
+fd_in_stub:
+        call fd_src_neg
+        jr z,fd_stubs
+        ld a,(fd_srow)          ; clear the line inside the circle
+        ld b,a
+        ld a,(fd_x)
+        dec a
+        ld c,a
+        ld d,3
+        ld hl,0x0401
+        ld e,PX_CLR
+        call px_span
+        ld a,(fd_x)
+        sub 2
+        jp fd_circle
+
+; fd_src_neg: NZ if the signal of this row at fd_p comes (through wires)
+;      from a negated input
+fd_src_neg:
+        ld a,(fd_p)
+.l:     or a
+        jr z,.no
+        dec a
+        ld e,a
+        ld d,0
+        ld hl,fw_t
+        add hl,de
+        ld a,(hl)
+        ld b,a
+        and FT_MASK
+        cp FT_WIRE
+        jr nz,.nw
+        ld a,e
+        jr .l
+.nw:    cp FT_IN
+        jr nz,.no
+        ld a,b
+        and FT_NEG
+        ret
+.no:    xor a
+        ret
+
+; fd_dst_block: NZ if the signal of this row at fd_p leads (through wires)
+;      into a block (its first row or a row it covers)
+fd_dst_block:
+        ld a,(fd_p)
+.l:     inc a
+        cp LD_CPOS
+        jr nc,.no
+        ld e,a
+        ld d,0
+        ld hl,fd_cov
+        add hl,de
+        ld a,(hl)
+        or a
+        ret nz                  ; covered by a block from above
+        ld hl,fw_t
+        add hl,de
+        ld b,(hl)
+        ld hl,fw_a
+        add hl,de
+        ld c,(hl)
+        ld a,b
+        and FT_MASK
+        cp FT_WIRE
+        jr nz,.nw
+        ld a,e
+        jr .l
+.nw:    ld a,b
+        call fb_height_t
+        or a
+        ret
+.no:    xor a
+        ret
 
 ; fd_stubs: input stub of this row (left of the block)
 fd_stubs:
