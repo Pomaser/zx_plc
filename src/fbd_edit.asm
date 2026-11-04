@@ -135,7 +135,7 @@ fb_editor:
         pop bc
         ld a,b
         ld (pt_row),a
-        ld a,12
+        ld a,8                  ; comments start at the element column
         ld (pt_x),a
         ld hl,txt_fb_sl
         call pt_puts
@@ -685,7 +685,7 @@ fb_scr_row:
         ret
 
 ; ---- fb_cursor: XORs the signal cells of the cursor position
-;      (comment row: a 1 px text cursor in front of "//")
+;      (comment row: a 1 px text cursor behind the end of the comment)
 fb_cursor:
         ld a,(ld_row)
         call fb_cmt_text
@@ -696,7 +696,14 @@ fb_cursor:
         ld b,a
         pop af
         jr c,.elem
-        ld c,10
+        ld hl,txt_fb_sl       ; behind the end of the comment text
+        call pt_width           ; (where editing continues)
+        ld c,a
+        ld hl,ld_cbuf
+        call pt_width
+        add a,c
+        add a,8-1
+        ld c,a
         ld d,1
         jr .draw
 .elem:  ld a,(ld_pos)
@@ -832,7 +839,7 @@ fb_draw_row:
         call scr_fill_attr
         ld a,(fd_srow)
         ld (pt_row),a
-        ld a,12
+        ld a,8                  ; comments start at the element column
         ld (pt_x),a
         ld hl,txt_fb_sl
         call pt_puts

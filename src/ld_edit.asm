@@ -335,7 +335,7 @@ ld_draw_row:
         call scr_fill_attr
         ld a,(ld_srow)
         ld (pt_row),a
-        ld a,12
+        ld a,8                  ; comments start at the element column
         ld (pt_x),a
         ld hl,txt_ld_sl
         call pt_puts
@@ -829,7 +829,7 @@ ld_put_cmt:
         ret
 
 ; ---- ld_cursor: XORs the symbol cells of the cursor position
-;      (comment row: a 1 px text cursor in front of "//")
+;      (comment row: a 1 px text cursor behind the end of the comment)
 ld_cursor:
         ld a,(ld_row)
         ld (ld_r),a
@@ -849,7 +849,14 @@ ld_cursor:
         ld b,a
         pop af
         jr c,.elem
-        ld c,10
+        ld hl,txt_ld_sl       ; behind the end of the comment text
+        call pt_width           ; (where editing continues)
+        ld c,a
+        ld hl,ld_cbuf
+        call pt_width
+        add a,c
+        add a,8-1
+        ld c,a
         ld d,1
         jr .draw
 .elem:  ld a,(ld_pos)
@@ -1123,7 +1130,7 @@ ld_editor:
         pop bc
         ld a,b                  ; "// " drawn as in the row, text typed after it
         ld (pt_row),a
-        ld a,12
+        ld a,8                  ; comments start at the element column
         ld (pt_x),a
         ld hl,txt_ld_sl
         call pt_puts
