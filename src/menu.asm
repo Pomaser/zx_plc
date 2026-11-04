@@ -910,7 +910,7 @@ menu_handle:
         cp CMD_LOAD
         jr z,.todo
         cp CMD_SAVE
-        jr z,.todo
+        jr z,.save
         cp CMD_NEW
         jr z,.new
         cp CMD_DEMO
@@ -941,6 +941,9 @@ menu_handle:
         ret
 .keys:  ld hl,txt_keys
         call msg_box
+        xor a
+        ret
+.save:  BCALL tape_save         ; (EDIT bank)
         xor a
         ret
 .todo:  ld hl,err_todo

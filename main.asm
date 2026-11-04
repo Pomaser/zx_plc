@@ -128,6 +128,7 @@ CORE_END:
         INCLUDE "src/sym_edit.asm"
         INCLUDE "src/ld_edit.asm"
         INCLUDE "src/sim.asm"
+        INCLUDE "src/tape.asm"
     IFDEF TEST
         INCLUDE "src/tests.asm"     ; tests use the editors' buffers directly
     ENDIF

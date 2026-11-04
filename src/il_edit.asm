@@ -991,7 +991,13 @@ il_show_comment:
         inc hl
         inc hl
         inc hl
-        ld de,il_cmt            ; symbol name in dark blue, then the comment
+        ld de,il_cmt            ; symbol name (inverted, below the operand
+        ld a,ST_TAB             ; column of the editor), then the comment
+        ld (de),a
+        inc de
+        ld a,IL_X_OPER-2
+        ld (de),a
+        inc de
         ld a,ST_SYM
         ld (de),a
         inc de
@@ -1022,7 +1028,7 @@ il_show_comment:
         ld (st_left),hl
 .show:  jp status_left
 
-il_cmt: ds SYM_NMAX+SYM_CMAX+3
+il_cmt: ds SYM_NMAX+SYM_CMAX+5
 
 il_load_buf:
         ld hl,ed_m

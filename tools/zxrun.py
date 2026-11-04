@@ -31,6 +31,8 @@ class Spectrum:
         self.banks = None
         self.port7ffd = 0
         self.ay_reg = 0
+        self.mic = 0
+        self.edges = []                 # T-state times of MIC edges (saving)
         self.ay_log = []                # (frame, register, value)
         self.m.set_input_callback(self.inp)
         self.m.set_output_callback(self.out)
@@ -114,6 +116,10 @@ class Spectrum:
     def out(self, port, val):
         if not port & 1:
             self.border = val & 7
+            mic = val & 8
+            if mic != self.mic:         # tape output: time of each MIC edge
+                self.mic = mic
+                self.edges.append(self.frames * 69888 + 69888 - self.m.ticks_to_stop)
         if self.is128 and not (port & 0x8002):
             self.page(val)
         if self.is128 and not (port & 2) and port & 0x8000:
@@ -151,6 +157,34 @@ class Spectrum:
             else:
                 m.pc = 0x38
         self.frames += 1
+
+    def tap_blocks(self):
+        """decodes the saved MIC signal into tape blocks (lists of bytes)"""
+        d = [b - a for a, b in zip(self.edges, self.edges[1:])]
+        blocks, i = [], 0
+        while i < len(d):
+            n = 0                       # pilot: many half periods ~2168 T
+            while i < len(d) and 1900 < d[i] < 2450:
+                n += 1
+                i += 1
+            if n < 200:
+                i += 1
+                continue
+            i += 2                      # sync pulses
+            bits = []
+            while i + 1 < len(d) and d[i] < 2000 and d[i + 1] < 2000:
+                bits.append(1 if d[i] + d[i + 1] > 2560 else 0)
+                i += 2
+            data = [int("".join(map(str, bits[k:k + 8])), 2) for k in range(0, len(bits) - 7, 8)]
+            blocks.append(data)
+        return blocks
+
+    def save_tap(self, path):
+        out = bytearray()
+        for b in self.tap_blocks():
+            out += bytes([len(b) & 255, len(b) >> 8]) + bytes(b)
+        open(path, "wb").write(out)
+        return self.tap_blocks()
 
     def run(self, n):
         for _ in range(n):
@@ -226,6 +260,7 @@ def main():
     ap.add_argument("-f", "--frames", type=int, default=50)
     ap.add_argument("--peek", default=None, help="addr:len hexdump at end")
     ap.add_argument("--ay", action="store_true", help="print AY volume/mixer writes")
+    ap.add_argument("--tap", default=None, help="save the tape output as a .tap file")
     a = ap.parse_args()
     z = Spectrum(a.sna)
     z.run(a.frames)
@@ -254,6 +289,12 @@ def main():
             elif r in (0, 1, 2, 3, 7, 8, 9) and last.get(r) != v:
                 last[r] = v
                 print("%5d R%d=%02X" % (fr, r, v))
+    if a.tap:
+        for b in z.save_tap(a.tap):
+            x = 0
+            for v in b:
+                x ^= v
+            print("tap block: %d bytes, flag %02X, checksum %s" % (len(b), b[0], "ok" if x == 0 else "BAD"))
     print("border=%d pc=%04X frames=%d" % (z.border, z.m.pc, z.frames))
 
 if __name__ == "__main__":

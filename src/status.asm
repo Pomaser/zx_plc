@@ -36,8 +36,6 @@ status_draw:
 ;      st_left text if set (comment of the current element); redrawn only on change
 status_left:
         ld de,st_buf
-        ld hl,txt_st_pou
-        call put_str
         ld a,(cur_pou)
         call pou_entry
         call name_unpad
@@ -118,7 +116,16 @@ st_print:
         jr z,.on
         cp ST_SYME
         jr z,.off
+        cp ST_TAB
+        jr z,.tab
         call pt_putc
+        jr .l
+.tab:   ld a,(pt_x)             ; move on to column x
+        cp (hl)
+        jr nc,.tab1
+        ld a,(hl)
+        ld (pt_x),a
+.tab1:  inc hl
         jr .l
 .on:    ld a,(pt_x)             ; inverted box: 2 px margin around the name
         ld (st_x0),a
@@ -222,7 +229,6 @@ str_eq: ld a,(de)
         inc de
         jr str_eq
 
-txt_st_pou:  db "POU: ",0
 txt_st_open: db " (",0
 txt_st_free: db "Mem ",0
 txt_st_b:    db "B",0

@@ -98,6 +98,7 @@ CMD_DEMO        EQU 23
 ; ---- status bar text markers (st_left): symbol name shown inverted
 ST_SYM      EQU 1           ; start of the symbol name
 ST_SYME     EQU 2           ; end of it
+ST_TAB      EQU 3           ; followed by x: continue at x (if not past it)
 
 ; ---- key codes ----------------------------------------------
 K_HOME      EQU 1           ; SS + LEFT  (CS+SS+5): start of the line

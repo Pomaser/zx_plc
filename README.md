@@ -17,6 +17,15 @@ The program starts with a demo project (also File > Open demo); File > New proje
   reset by `7` (Ack), and a fault lamp blinking with two TP pulse timers (Q0.6).
 * A complete symbol table for all inputs, outputs, flags, steps and timers.
 
+## Saving to tape
+
+File > Save asks for a tape name (max. 10 characters), then waits for a key to start ("Start the tape
+recorder..."). The project is saved as a standard CODE file: a header (name, length, start 0x9000) and a
+data block with the project memory, in the normal ROM speed and format, so it can be copied and checked
+with any tape tool. SPACE (BREAK) interrupts the saving. (Loading follows.)
+
+`tools/zxrun.py --tap file.tap` decodes what the program saved into a .tap file.
+
 ## Sound
 
 The AY chip of the 128K plays a short soft click (noise with a fast envelope decay) for every key and a quiet two-note warning on input
@@ -38,7 +47,8 @@ or `make test PYTHON=/path/to/python`. The `.scratch/` folder is ignored by Git.
 
 The top menu bar (`File  POU  Edit  View  Run  Help`) uses a proportional 6x8 font, black on white;
 the selection is shown by inversion and the bar is separated from the content by a line. Each title opens a drop-down submenu.
-The bottom status bar shows the current POU (left) and free project memory (right).
+The bottom status bar shows the current POU (left; in the editors followed by the symbol name of the current
+operand, inverted, and its comment) and free project memory (right).
 Messages, questions, name input and language choice appear in popup windows.
 Keys are read in the interrupt into an 8-key queue, so typing ahead is not lost.
 
