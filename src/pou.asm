@@ -37,6 +37,8 @@ scr_pou:
         jp z,.delete
         cp 'L'
         jp z,.lang
+        cp 'C'
+        jp z,.cmt
         jr .key
 .up:    ld a,(cur_pou)
         call pou_prev
@@ -79,6 +81,11 @@ scr_pou:
         call pou_add
         jp c,.key
         ld (cur_pou),a
+        call input_pou_cmt
+        jp .redraw
+
+.cmt:   ld a,(cur_pou)
+        call input_pou_cmt
         jp .redraw
 
 .rename:
@@ -207,21 +214,17 @@ ipn_slot: db 0
 pou_pending: db 0
 name_buf: ds 10
 
-; ---- pou_draw_list: header and rows in the proportional font,
+; ---- pou_draw_list: header and the used POUs in the proportional font,
 ;      selected row inverted, black on white
-PL_X_NO   EQU 8
-PL_X_NAME EQU 32
-PL_X_LANG EQU 104
-PL_X_SIZE EQU 200             ; right edge of the Size column
+PL_X_NAME EQU 8
+PL_X_LANG EQU 60
+PL_X_SIZE EQU 128             ; right edge of the Size column
+PL_X_CMT  EQU 136
 pou_draw_list:
         ld b,POU_LIST_ROW-1
         call pt_clear_row
         ld a,POU_LIST_ROW-1
         ld (pt_row),a
-        ld a,PL_X_NO
-        ld (pt_x),a
-        ld hl,txt_h_no
-        call pt_puts
         ld a,PL_X_NAME
         ld (pt_x),a
         ld hl,txt_h_name
@@ -233,34 +236,38 @@ pou_draw_list:
         ld hl,txt_h_size
         ld a,PL_X_SIZE
         call pt_puts_r
-        ld b,0
-.row:   push bc
-        ld a,b
-        add a,POU_LIST_ROW
-        ld (pt_row),a
-        ld b,a
+        ld a,PL_X_CMT
+        ld (pt_x),a
+        ld hl,txt_h_cmt
+        call pt_puts
+        ; clear the list rows
+        ld b,POU_LIST_ROW
+.clr:   push bc
         ld c,0
         ld d,32
         ld e,ATTR_NORMAL
         call scr_fill_attr
-        ld a,(pt_row)
-        ld b,a
-        call pt_clear_row
         pop bc
         push bc
+        call pt_clear_row
+        pop bc
+        inc b
+        ld a,b
+        cp POU_LIST_ROW+MAX_POU
+        jr c,.clr
+        ; used slots one below the other
+        ld a,POU_LIST_ROW
+        ld (pt_row),a
+        ld b,0
+.slot:  push bc
         ld a,b
         call pou_used
         jr z,.next
-        ; number
-        ld a,PL_X_NO
-        ld (pt_x),a
-        ld a,b
-        add a,'0'
-        call pt_putc
+        ld (pl_slot),a
         ; name
         ld a,PL_X_NAME
         ld (pt_x),a
-        ld a,b
+        ld a,(pl_slot)
         call pou_entry
         ld de,pl_buf
         call name_unpad
@@ -269,18 +276,14 @@ pou_draw_list:
         ; language
         ld a,PL_X_LANG
         ld (pt_x),a
-        pop bc
-        push bc
-        ld a,b
+        ld a,(pl_slot)
         call pou_lang
         ld de,pl_buf
         call lang_copy
         ld hl,pl_buf
         call pt_puts
         ; size
-        pop bc
-        push bc
-        ld a,b
+        ld a,(pl_slot)
         call pou_body
         ld h,b
         ld l,c
@@ -289,12 +292,19 @@ pou_draw_list:
         ld hl,pl_buf
         ld a,PL_X_SIZE
         call pt_puts_r
+        ; comment
+        ld a,(pl_slot)
+        call pou_cmt
+        ld a,PL_X_CMT
+        ld (pt_x),a
+        ld hl,pl_cbuf
+        call pt_puts
         ; selection
-        pop bc
-        push bc
         ld a,(cur_pou)
+        ld b,a
+        ld a,(pl_slot)
         cp b
-        jr nz,.next
+        jr nz,.nsel
         ld a,(pt_row)
         ld b,a
         ld c,4
@@ -302,20 +312,70 @@ pou_draw_list:
         ld hl,0x0008
         ld e,PX_XOR
         call px_span
+.nsel:  ld hl,pt_row
+        inc (hl)
 .next:  pop bc
         inc b
         ld a,b
         cp MAX_POU
-        jp c,.row
+        jp c,.slot
         jp status_draw
 
+; ---- pou_cmt: A = slot -> pl_cbuf = its comment (0-terminated)
+pou_cmt:
+        call pou_entry
+        ld de,PE_CMT
+        add hl,de
+        ld de,pl_cbuf
+        ld bc,POU_CMAX
+        ldir
+        xor a
+        ld (de),a
+        ret
+
+; ---- pou_set_cmt: A = slot, pl_cbuf = comment -> stored in the POU table
+pou_set_cmt:
+        call pou_entry
+        ld de,PE_CMT
+        add hl,de
+        ex de,hl
+        ld hl,pl_cbuf
+        ld bc,POU_CMAX
+        ldir
+        ret
+
+; ---- input_pou_cmt: A = slot -> popup to edit the comment; C = cancelled
+input_pou_cmt:
+        ld (pl_slot),a
+        call pou_cmt
+        ld hl,txt_cmt_q
+        call popup_open
+        ld a,(win_r)
+        add a,2
+        ld b,a
+        ld a,(win_bx)
+        add a,8
+        ld c,a
+        ld hl,pl_cbuf
+        ld de,POU_CMAX*256      ; case kept
+        call ui_input
+        push af
+        call win_close
+        pop af
+        ret c
+        ld a,(pl_slot)
+        jp pou_set_cmt
+
+pl_slot: db 0
+pl_cbuf: ds POU_CMAX+1
 pl_buf: ds 10
 
 txt_pou_title: db "Program Organization Units",0
-txt_h_no:   db "No.",0
 txt_h_name: db "POU Name",0
 txt_h_lang: db "Language",0
 txt_h_size: db "Size",0
+txt_h_cmt:  db "Comment",0
+txt_cmt_q:  db "Comment for the POU (optional):",0," ",0," ",0,0
 txt_name_q:    db "POU name (A-Z, 0-9, _):",0," ",0," ",0,0
 txt_del_q:     db "Delete selected POU?",0
 err_pou_full:  db "Max. 8 POUs",0

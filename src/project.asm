@@ -3,9 +3,9 @@
 ; ============================================================
 ; Project (PROJ):
 ;   +0  "ZXPLC"  +5 version  +6 POU count  +8 project length (word)
-;   +16 table of 8 POU slots + hidden slot 8 (symbol table), 16 B each
-;       (name 8, language, flags, body length)
-;   +160 bodies in slot order (a free slot has length 0)
+;   +16 table of 8 POU slots + hidden slot 8 (symbol table), 32 B each
+;       (name 8, language, flags, body length, comment 20)
+;   +304 bodies in slot order (a free slot has length 0)
 ; A slot is a stable POU identifier (call references = slot number).
 ; ============================================================
 
@@ -41,12 +41,13 @@ name_main: db "MAIN    "
 
 ; ---- pou_entry: A = slot -> HL = table entry (destroys A)
 pou_entry:
-        add a,a
-        add a,a
-        add a,a
-        add a,a
         ld l,a
         ld h,0
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl               ; *32
         push de
         ld de,POU_TAB
         add hl,de

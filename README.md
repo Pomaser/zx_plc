@@ -42,6 +42,7 @@ Keys are read in the interrupt into an 8-key queue, so typing ahead is not lost.
 
 * `MAIN` always exists and is the only POU called by the scan cycle; other POUs are called from MAIN.
 * Max. 8 POUs, name max. 8 chars (A-Z, 0-9, _), must not clash with an address or FB instance.
+* Every POU can have a comment (max. 20 chars), asked for when the POU is created, shown in the POU list.
 
 ## IL editor
 

@@ -12,6 +12,7 @@ Requires the 'z80' python package and /usr/share/fuse/48.rom.
 """
 import sys, argparse, struct, zlib
 import z80
+HL_KIND = z80.Z80Machine().index_rp_kind     # no index prefix pending
 
 KEYMAP = {}
 rows = ["CS Z X C V", "A S D F G", "Q W E R T", "1 2 3 4 5",
@@ -72,6 +73,11 @@ class Spectrum:
                 break
             if ev & m._BREAKPOINT_HIT:
                 break
+        # a real Z80 never takes an interrupt between a DD/FD prefix and its
+        # opcode: finish a pending prefixed instruction first
+        while m.index_rp_kind != HL_KIND:
+            m.ticks_to_stop = 1
+            m.run()
         # interrupt
         if m.iff1:
             if m.halted:
