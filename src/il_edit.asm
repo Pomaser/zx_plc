@@ -991,11 +991,20 @@ il_show_comment:
         inc hl
         inc hl
         inc hl
+        ld de,il_cmt            ; symbol name in dark blue, then the comment
+        ld a,ST_SYM
+        ld (de),a
+        inc de
 .n:     ld a,(hl)
         inc hl
         or a
-        jr nz,.n
-        ld de,il_cmt
+        jr z,.ne
+        ld (de),a
+        inc de
+        jr .n
+.ne:    ld a,ST_SYME
+        ld (de),a
+        inc de
 .c:     push hl
         ld bc,(sy_end)
         or a
@@ -1009,14 +1018,11 @@ il_show_comment:
         jr .c
 .e:     xor a
         ld (de),a
-        ld a,(il_cmt)
-        or a
-        jr z,.show
         ld hl,il_cmt
         ld (st_left),hl
 .show:  jp status_left
 
-il_cmt: ds SYM_CMAX+1
+il_cmt: ds SYM_NMAX+SYM_CMAX+3
 
 il_load_buf:
         ld hl,ed_m

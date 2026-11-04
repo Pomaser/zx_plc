@@ -118,7 +118,7 @@ PT (`T#4s`); the instance is shown above the box, PT in the status bar, and in t
 shows Q.
 
 Network comments: type `//` at the start of an empty row (position 0) and then the text; the row becomes a dark
-green comment above the network. ENTER on a comment row edits it, DELETE removes it. A single `/` followed by
+green comment above the network. ENTER, LEFT, RIGHT, DELETE or typing on a comment row edit it in place (an empty comment is removed). A single `/` followed by
 another key still places a normally closed contact (the key starts its operand).
 
 Arrows move, DELETE clears the position, `V` toggles a vertical

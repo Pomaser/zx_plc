@@ -303,7 +303,15 @@ ui_input:
 
 ; in_getkey: waits for a key with a blinking 1 px cursor
 in_getkey:
-        ld a,(in_con)
+        ld a,(in_pend)          ; key passed by the caller (in_pend)
+        or a
+        jr z,.np
+        push af
+        xor a
+        ld (in_pend),a
+        pop af
+        ret
+.np:    ld a,(in_con)
         or a
         call z,in_cursor
         ld a,(frames)
@@ -358,5 +366,6 @@ in_con:   db 0
 in_blink: db 0
 in_max:   db 0
 in_flags: db 0
+in_pend:  db 0              ; first key for ui_input (0 = none)
 in_len:   db 0
 in_pos:   db 0

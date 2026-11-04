@@ -926,7 +926,26 @@ ld_editor:
         push af
         call ld_cursor          ; cursor off
         pop af
-        cp K_LEFT
+        cp K_LEFT               ; comment row: LEFT, RIGHT, DELETE and
+        jr z,.ck                ; characters edit the comment in place
+        cp K_RIGHT
+        jr z,.ck
+        cp K_DEL
+        jr z,.ck
+        cp 32
+        jr c,.nck
+        cp 128
+        jr nc,.nck
+.ck:    push af
+        ld a,(ld_row)
+        ld (ld_r),a
+        call ld_cmt_text        ; NC: ld_cbuf = the comment
+        jr c,.ckn
+        pop af
+        ld (in_pend),a
+        jp .cedit
+.ckn:   pop af
+.nck:   cp K_LEFT
         jp z,.left
         cp K_RIGHT
         jp z,.right
@@ -1550,6 +1569,9 @@ ld_info:
         inc hl
         inc hl
         ld de,(ld_infop)
+        ld a,ST_SYM             ; symbol name in dark blue
+        ld (de),a
+        inc de
 .n:     ld a,(hl)
         inc hl
         or a
@@ -1557,9 +1579,7 @@ ld_info:
         ld (de),a
         inc de
         jr .n
-.ne:    ld a,' '
-        ld (de),a
-        inc de
+.ne:    ld a,ST_SYME
         ld (de),a
         inc de
 .c:     push hl
