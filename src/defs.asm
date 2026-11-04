@@ -2,17 +2,42 @@
 ; ZX-PLC - global constants and memory map
 ; ============================================================
 
-; ---- memory map ---------------------------------------------
-STACK_TOP   EQU 0x6000      ; stack 0x5D00-0x5FFF
-CODE_ORG    EQU 0x6000      ; editor code 0x6000-0xCFFF
-PROJ        EQU 0xD000      ; project 0xD000-0xEFFF, 8 KB (saved to tape)
-PROJ_END    EQU 0xF000
-BCODE       EQU 0xF000      ; compiled bytecode 0xF000-0xF7FF
-BCODE_END   EQU 0xF800
-RT          EQU 0xF800      ; runtime data 0xF800-0xFDFC
-IM2_JP      EQU 0xFDFD      ; JP isr
-IM2_TAB     EQU 0xFE00      ; 257 B vector table
+; ---- memory map (ZX Spectrum 128K) -------------------------
+; 0x4000-0x7FFF bank 5 and 0x8000-0xBFFF bank 2 are fixed,
+; 0xC000-0xFFFF is one of the paged banks (port 0x7FFD)
 TEST_RES    EQU 0x5B00      ; test results (printer buffer)
+STACK_TOP   EQU 0x5E00      ; stack 0x5B10-0x5DFF
+CODE_ORG    EQU 0x5E00      ; core code 0x5E00-RT (fixed memory)
+RT          EQU 0x8A00      ; runtime data 0x8A00-0x8FFF
+PROJ        EQU 0x9000      ; project 0x9000-0xBFFF, 12 KB (saved to tape)
+PROJ_END    EQU 0xC000
+BANKED      EQU 0xC000      ; code of the paged banks
+BCODE       EQU 0xF000      ; compiled bytecode 0xF000-0xF7FF (RUN bank)
+BCODE_END   EQU 0xF800
+IM2_JP      EQU 0xFDFD      ; JP isr        (in every paged bank)
+IM2_TAB     EQU 0xFE00      ; 257 B vector table (in every paged bank)
+
+; ---- paged banks
+BANK_EDIT   EQU 0           ; POU list, IL / LD / symbol editors, simulation screen
+BANK_RUN    EQU 4           ; compilers, VM, bytecode
+BANK_DATA   EQU 1           ; buffers (popup save area)
+BANK_ROM48  EQU 0x10        ; port 0x7FFD: ROM 1 = 48 BASIC (tape routines)
+
+; BCALL label: calls a routine in another paged bank (registers pass
+; through in both directions, see bank.asm)
+    MACRO BCALL target
+        call bcall_
+        dw target
+        db $$target
+    ENDM
+
+; IM2STUB: JP isr + vector table, placed at the top of every paged bank
+    MACRO IM2STUB
+        ORG IM2_JP
+        jp isr
+        ORG IM2_TAB
+        ds 257,IM2_JP & 0xFF
+    ENDM
 
 ; ---- project format -----------------------------------------
 P_SIG       EQU 0           ; "ZXPLC"

@@ -22,15 +22,24 @@ for r, s in enumerate(rows):
         KEYMAP[k] = (r, b)
 
 class Spectrum:
+    """48K or 128K Spectrum (the snapshot size decides)."""
     def __init__(self, sna, rom="/usr/share/fuse/48.rom"):
         self.m = z80.Z80Machine()
         self.pressed = set()
         self.border = 7
-        rom = open(rom, "rb").read()
-        self.m.set_memory_block(0, rom)
+        self.is128 = False
+        self.banks = None
+        self.port7ffd = 0
         self.m.set_input_callback(self.inp)
         self.m.set_output_callback(self.out)
-        self.load_sna(open(sna, "rb").read())
+        data = open(sna, "rb").read()
+        if len(data) > 49179:
+            self.is128 = True
+            self.roms = [open("/usr/share/fuse/128-0.rom", "rb").read(),
+                         open("/usr/share/fuse/128-1.rom", "rb").read()]
+        else:
+            self.m.set_memory_block(0, open(rom, "rb").read())
+        self.load_sna(data)
         self.frames = 0
 
     def load_sna(self, d):
@@ -45,10 +54,50 @@ class Spectrum:
         self.m._Z80State__int_mode[0] = d[25]
         self.border = d[26]
         m.set_memory_block(0x4000, d[27:27 + 49152])
-        sp = m.sp
-        mem = m.memory
-        m.pc = mem[sp] | (mem[(sp + 1) & 0xFFFF] << 8)
-        m.sp = (sp + 2) & 0xFFFF
+        if not self.is128:
+            sp = m.sp
+            mem = m.memory
+            m.pc = mem[sp] | (mem[(sp + 1) & 0xFFFF] << 8)
+            m.sp = (sp + 2) & 0xFFFF
+            return
+        # 128K: PC, port 0x7FFD, TR-DOS flag, then the remaining banks
+        ext = 27 + 49152
+        m.pc = d[ext] | (d[ext + 1] << 8)
+        self.port7ffd = d[ext + 2]
+        paged = self.port7ffd & 7
+        self.banks = {5: bytearray(d[27:27 + 16384]), 2: bytearray(d[27 + 16384:27 + 32768]),
+                      paged: bytearray(d[27 + 32768:27 + 49152])}
+        pos = ext + 4
+        for b in range(8):
+            if b in self.banks:
+                continue
+            self.banks[b] = bytearray(d[pos:pos + 16384])
+            pos += 16384
+        self.cur_bank = paged
+        self.set_rom()
+
+    def set_rom(self):
+        self.m.set_memory_block(0, self.roms[(self.port7ffd >> 4) & 1])
+
+    def page(self, val):
+        """port 0x7FFD write: swap the bank at 0xC000 and the ROM."""
+        if self.port7ffd & 0x20:
+            return                      # paging locked
+        mem = self.m.memory
+        new = val & 7
+        if new != self.cur_bank:
+            self.banks[self.cur_bank][:] = mem[0xC000:0x10000]
+            self.m.set_memory_block(0xC000, bytes(self.banks[new]))
+            self.cur_bank = new
+        self.port7ffd = val
+        self.set_rom()
+
+    def bank_bytes(self, bank, addr, n):
+        """read n bytes of a bank (addr 0xC000-0xFFFF) whether paged or not"""
+        if bank == self.cur_bank:
+            return bytes(self.m.memory[addr:addr + n])
+        off = addr - 0xC000
+        return bytes(self.banks[bank][off:off + n])
 
     def inp(self, port):
         if port & 1:
@@ -63,6 +112,8 @@ class Spectrum:
     def out(self, port, val):
         if not port & 1:
             self.border = val & 7
+        if self.is128 and not (port & 0x8002):
+            self.page(val)
 
     def frame(self):
         m = self.m

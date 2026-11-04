@@ -371,10 +371,10 @@ vm_tests:
         ; program 1: latch with reset
         ld hl,t_prog1
         xor a
-        call il_load_text
-        call il_compile
+        BCALL il_load_text
+        BCALL il_compile
         call t_nc
-        call vm_reset
+        BCALL vm_reset
         ld a,1
         call t_scan_i
         ld a,(RT_Q)
@@ -398,14 +398,14 @@ vm_tests:
         call pou_add            ; slot 1 "MOTOR" (must exist before CAL MOTOR)
         ld hl,t_prog2
         xor a
-        call il_load_text
+        BCALL il_load_text
         call t_nc
         ld hl,t_prog3
         ld a,1
-        call il_load_text
-        call il_compile
+        BCALL il_load_text
+        BCALL il_compile
         call t_nc
-        call vm_reset
+        BCALL vm_reset
         ld a,0x05               ; I0.0, I0.2
         call t_scan_i
         ld hl,RT_MW
@@ -462,8 +462,8 @@ vm_tests:
         ; compile error: unknown label
         ld hl,t_prog4
         xor a
-        call il_load_text
-        call il_compile
+        BCALL il_load_text
+        BCALL il_compile
         ccf
         call t_nc
         ld hl,(il_err)
@@ -486,7 +486,7 @@ t_scan_i:
         ld (RT_I),a
         ld hl,3
         ld (vm_dt),hl
-        call vm_scan
+        BCALL vm_scan
         jr t_nc
 
 ; HL = address, DE = expected word
@@ -690,7 +690,7 @@ t_detok:
         ld hl,rd_c
         ld (sp_c),hl
         ld hl,rec_buf
-        call il_split
+        BCALL il_split
         ld de,t_buf
         ld hl,rd_m
         call put_str
@@ -730,17 +730,17 @@ ld_tests:
         ld c,(hl)
         inc hl
         push hl
-        call ld_put
+        BCALL ld_put
         pop hl
         jr .cell
 .prog:  xor a
         ld (cur_pou),a
         ld hl,t_ld_main         ; MAIN: CAL LDT
-        call il_load_text
+        BCALL il_load_text
         call t_nc
-        call il_compile
+        BCALL il_compile
         call t_nc
-        call vm_reset
+        BCALL vm_reset
         ld a,0x01               ; I0.0: Q0.0 on
         call t_scan_i
         xor a                   ; holds

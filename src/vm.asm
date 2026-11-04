@@ -38,7 +38,7 @@ st_buf    EQU popup_buf+80      ; 60  status bar text
 st_last   EQU st_buf+60         ; 24  status bar: last right text
 st_llast  EQU st_last+24        ; 60  status bar: last left text
 RT_END    EQU st_llast+60
-        ASSERT RT_END <= IM2_JP
+        ASSERT RT_END <= PROJ
 
 VM_MB     EQU 1
 VM_MW     EQU 2
@@ -791,23 +791,7 @@ cmp_s16:
         or a
         ret
 
-; FB member descriptors: per type 5 members; bit 7 = word at offset, else bit number
-fb_mdesc:
-        db 0, 0x82, 1, 0x84, 0          ; TON  IN PT Q ET
-        db 0, 0x82, 1, 0x84, 0          ; TOF
-        db 0, 0x82, 1, 0x84, 0          ; TP
-        db 0, 1, 0x82, 2, 0x84          ; CTU  CU R PV Q CV
-        db 0, 1, 0x82, 2, 0x84          ; CTD  CD LD PV Q CV
-        db 0, 1, 0, 0, 0                ; R_TRIG CLK Q
-        db 0, 1, 0, 0, 0                ; F_TRIG
-        db 0, 1, 2, 0, 0                ; SR   S1 R Q1
-        db 0, 1, 2, 0, 0                ; RS   S R1 Q1
 
-bit_masks: db 1,2,4,8,16,32,64,128
-
-err_vm_wd:    db "Watchdog: scan too long",0
-err_vm_paren: db "Parenthesis error",0
-err_vm_depth: db "Call depth > 8",0
 
 vm_pc:    dw 0
 vm_op:    db 0
@@ -822,7 +806,5 @@ vm_ttype: db 0
 vm_ops:   dw 0
 vm_csp:   db 0
 vm_psp:   db 0
-vm_err:   dw 0
-vm_dt:    dw 1
 ds_sq:    db 0
 ds_sr:    db 0

@@ -2,6 +2,15 @@
 ; app.asm - EDIT and RUN screens (phase 1: placeholders)
 ; ============================================================
 
+; ---- scr_dispatch: A = screen -> runs it, returns its command in A
+;      (called from the core main loop through BCALL)
+scr_dispatch:
+        ld hl,screen_tab
+        jp jump_table
+
+screen_tab:
+        dw scr_pou, scr_edit, scr_run, scr_sym
+
 ; ---- EDIT screen: opens the editor for the current POU language
 scr_edit:
         ld a,(cur_pou)

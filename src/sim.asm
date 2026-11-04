@@ -52,12 +52,12 @@ scr_run:
         ld (sm_savecur),hl
         ld hl,0
         ld (sm_top),hl
-        call vm_reset
+        BCALL vm_reset
         xor a
         ld (sim_tog),a
         ld (sm_run),a
         call sim_state
-        call il_compile
+        BCALL il_compile
         ld a,0
         jr c,.cerr
         inc a
@@ -214,7 +214,7 @@ sim_cmd:
         call sim_state
         ld hl,1
         jr sim_scan
-.reset: call vm_reset
+.reset: BCALL vm_reset
         xor a
         ld (sim_tog),a
         ret
@@ -233,7 +233,7 @@ sim_state:
 sim_scan:
         ld (vm_dt),hl
         call sim_inputs
-        call vm_scan
+        BCALL vm_scan
         ret nc
         xor a
         ld (sm_run),a
@@ -301,26 +301,8 @@ sim_chk_called:
         ld a,(cur_pou)
         or a
         ret z
-        ld b,a
-        ld hl,BCODE             ; look for CALL <slot> in the bytecode
-.l:     push hl
-        ld de,(cp_pc)
-        or a
-        sbc hl,de
-        pop hl
-        jr nc,.warn
-        ld a,(hl)
-        and 0x3F
-        cp OP_CALL
-        jr nz,.n
-        inc hl
-        ld a,(hl)
-        dec hl
-        cp b
+        BCALL cp_is_called
         ret z                   ; called
-.n:     ld de,5
-        add hl,de
-        jr .l
 .warn:  ld de,sm_msg            ; "NAME is not called by MAIN." ...
         ld a,(cur_pou)
         call pou_entry
@@ -673,7 +655,6 @@ txt_sm_nomon: db "No IL or LD POU to monitor.",0
 txt_sm_err:   db "Error in ",0
 txt_sm_line:  db ", line ",0
 
-sim_pending: db 0
 sim_tog:    db 0
 sm_mon:     db 0
 sm_ok:      db 0

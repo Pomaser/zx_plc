@@ -2,6 +2,12 @@
 ; demo.asm - test program loaded into MAIN at start-up
 ; (build with -DNODEMO to start with an empty project)
 ; ============================================================
+; ---- demo_load: puts the demo program into MAIN
+demo_load:
+        ld hl,demo_main
+        xor a
+        jp il_load_text
+
 demo_main:
         db "// Start motor",0
         db "LD",9,"%IX0.0",0

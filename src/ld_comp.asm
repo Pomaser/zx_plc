@@ -497,8 +497,6 @@ lc_emit_av:
         ld a,b
         jp cp_emit
 
-err_lc_rows:  db "Rung longer than 16 rows",0
-err_lc_edges: db "Too many P/N contacts",0
 
 lc_pou:   db 0
 lc_nrows: db 0

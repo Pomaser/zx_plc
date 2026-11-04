@@ -495,6 +495,10 @@ win_open:
 ;      saves the covered cells, sets them black on white, clears the box
 ;      pixels and draws a 1 px frame (top line only if win_top != 0)
 win_open_px:
+        call data_in            ; win_save is in the DATA bank
+        call win_open_px0
+        jp data_out
+win_open_px0:
         ld a,b
         ld (win_r),a
         ld a,d
@@ -732,6 +736,10 @@ win_geom:
 
 ; ---- win_close: restores the saved cells
 win_close:
+        call data_in
+        call win_close0
+        jp data_out
+win_close0:
         ld ix,win_save
         ld a,(win_rows)
         ld d,a

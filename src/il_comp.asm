@@ -446,169 +446,29 @@ cp_opsize:
 .three: ld a,3
         ret
 
-; ---- cp_operand_rec: HL = binary operand -> NC: cp_mode/cp_arg/cp_arg3, HL past it
-cp_operand_rec:
-        ld a,(hl)
-        inc hl
+; ---- cp_is_called: A = POU slot -> Z if the bytecode contains CALL <slot>
+cp_is_called:
         ld b,a
-        and AR_MASK
-        cp AR_K16
-        jr z,.val
-        cp AR_KT
-        jr z,.val
-        ld c,(hl)
-        inc hl
-        ld de,0
-        jr .go
-.val:   ld e,(hl)
-        inc hl
-        ld d,(hl)
-        inc hl
-        ld c,0
-.go:    ld (cp_ohl),hl
-        ld a,b
-        jr cp_operand_core
-
-cp_badcall:
-        ld hl,err_il_call
-cp_fail:
-        ld (il_err),hl
-        scf
-        ret
-
-; ---- cp_operand: HL = operand text -> NC: cp_mode/cp_arg/cp_arg3, HL past it
-cp_operand:
-        call op_parse
-        jr c,cp_operand_core.bad
-        ld (cp_ohl),hl
-        jr cp_operand_core
-; cp_operand_av: A = area, C = index, DE = value (no text)
-cp_operand_av:
-        ld hl,0
-        ld (cp_ohl),hl
-cp_operand_core:
-        push af
-        xor a
-        ld (cp_istime),a
-        pop af
-        ld (cp_arg),de
-        ld (cp_oarea),a
-        ld a,c
-        ld (cp_oidx),a
-        xor a
-        ld (cp_arg3),a
-        ld a,(cp_oarea)
-        and AR_MASK
-        cp AR_I
-        jr z,.i
-        cp AR_Q
-        jr z,.q
-        cp AR_M
-        jr z,.m
-        cp AR_MW
-        jr z,.mw
-        cp AR_KB
-        jr z,.kb
-        cp AR_K16
-        jr z,.k
-        cp AR_KT
-        jr z,.k
-        cp AR_FBM
-        jr z,.fbm
-.bad:   ld hl,err_il_op
-        jp cp_fail
-.i:     ld hl,RT_I
-        jr .bit
-.q:     ld hl,RT_Q
-.bit:   ld a,(cp_oidx)
-.bitn:  ld (cp_arg),hl
-        ld e,a
-        ld d,0
-        ld hl,bit_masks
-        add hl,de
-        ld a,(hl)
-        ld (cp_arg3),a
-        ld a,VM_MB
-        jp .done
-.m:     ld a,(cp_oidx)
-        ld e,a
-        rrca
-        rrca
-        rrca
-        and 7
-        ld l,a
-        ld h,0
-        ld bc,RT_M
-        add hl,bc
-        ld a,e
-        and 7
-        jr .bitn
-.mw:    ld a,(cp_oidx)
-        add a,a
-        ld l,a
-        ld h,0
-        ld de,RT_MW
-        add hl,de
-        ld (cp_arg),hl
-        ld a,VM_MW
-        jr .done
-.kb:    ld a,(cp_oidx)
-        ld l,a
-        ld h,0
-        ld (cp_arg),hl
-        ld a,VM_MIB
-        jr .done
-.k:     ld a,VM_MII
-        jr .done
-.fbm:   ; instance address
-        ld a,(cp_oidx)
-        ld l,a
-        ld h,0
-        add hl,hl
-        add hl,hl
-        add hl,hl
-        ld de,RT_FB
-        add hl,de
-        push hl
-        ; descriptor fb_mdesc[type*5 + member]
-        ld a,(cp_oidx)
-        rrca
-        rrca
-        and 0x3F
-        ld e,a
-        add a,a
-        add a,a
-        add a,e
-        ld e,a
-        ld a,(cp_oarea)
-        rrca
-        rrca
-        rrca
-        rrca
-        and 7
-        add a,e
-        ld e,a
-        ld d,0
-        ld hl,fb_mdesc
-        add hl,de
-        ld a,(hl)
-        pop hl
-        bit 7,a
-        jr z,.bitn
-        and 0x7F
-        ld e,a
-        ld d,0
-        add hl,de
-        ld (cp_arg),hl
-        ld a,(cp_oidx)          ; PT / ET of TON, TOF, TP are TIME values
-        cp FBT_CTU*FB_PER_TYPE
-        jr nc,.nt
-        ld a,1
-        ld (cp_istime),a
-.nt:    ld a,VM_MW
-.done:  ld (cp_mode),a
-        ld hl,(cp_ohl)
+        ld hl,BCODE
+.l:     push hl
+        ld de,(cp_pc)
         or a
+        sbc hl,de
+        pop hl
+        jr nc,.no
+        ld a,(hl)
+        and 0x3F
+        cp OP_CALL
+        jr nz,.n
+        inc hl
+        ld a,(hl)
+        dec hl
+        cp b
+        ret z
+.n:     ld de,5
+        add hl,de
+        jr .l
+.no:    or 1                    ; NZ
         ret
 
 ; ---- cp_emit0: A = op without operand; cp_emit0m keeps cp_mode
@@ -669,42 +529,4 @@ cp_optab:
         db OP_JMP, OP_JMPC, OP_JMPCN, 0, 0, 0
         db OP_RET, OP_RETC, OP_RETCN, OP_POP
 
-err_cp_dup:   db "Duplicate label",0
-err_cp_lbls:  db "Too many labels",0
-err_cp_nolbl: db "Unknown label",0
-err_cp_big:   db "Program too large",0
 
-cp_pc:    dw 0
-cp_start: dw 0
-cp_slot:  db 0
-cp_pass:  db 0
-cp_nlbl:  db 0
-cp_line:  dw 0
-cp_rec:   dw 0
-cp_end:   dw 0
-cp_kind:  db 0
-cp_op:    db 0
-cp_opnd:  dw 0
-cp_empty: db 0
-cp_mode:  db 0
-cp_arg:   dw 0
-cp_arg3:  db 0
-cp_dmode: db 0
-cp_darg:  dw 0
-cp_darg3: db 0
-cp_ohl:   dw 0
-cp_oarea: db 0
-cp_oidx:  db 0
-cp_istime: db 0           ; 1 = last operand is a TIME value
-cp_after: dw 0
-cp_carea: db 0
-cp_cidx:  db 0
-cp_npar:  db 0
-cp_tlen:  db 0
-cp_tend:  dw 0
-cp_opb:   db 0
-cp_class: db 0
-cp_csize: db 0
-cp_mptr:  dw 0
-cp_name8: ds 8
-cp_mbuf:  ds 16

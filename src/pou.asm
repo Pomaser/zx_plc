@@ -213,7 +213,6 @@ input_pou_name:
         ret
 
 ipn_slot: db 0
-pou_pending: db 0
 name_buf: ds 10
 
 ; ---- pou_draw_list: header and the used POUs in the proportional font,
@@ -396,6 +395,3 @@ txt_del_q:     db "Delete selected POU?",0
 err_pou_full:  db "Max. 8 POUs",0
 err_main_del:  db "MAIN cannot be deleted",0
 err_not_empty: db "POU is not empty",0
-err_bad_name:  db "Invalid name",0
-err_reserved:  db "Reserved name",0
-err_name_used: db "Name already used",0

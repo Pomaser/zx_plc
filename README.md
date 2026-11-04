@@ -1,6 +1,6 @@
 # ZX-PLC
 
-A PLC program editor and simulator following IEC 61131-3 (IL, LD, FBD) for the **ZX Spectrum 48K**,
+A PLC program editor and simulator following IEC 61131-3 (IL, LD, FBD) for the **ZX Spectrum 128K** (also +2 / +2A / +3),
 written in Z80 assembler. Programs are not downloaded to any real PLC; they run in a built-in simulation.
 Projects can be saved to tape.
 
@@ -147,15 +147,26 @@ The time base is 20 ms (one frame).
 
 ## Structure
 
-* `main.asm` - entry point, interrupts, screen switching
+* `main.asm` - entry point, interrupts, screen switching, placement of the modules in memory banks
+* `src/bank.asm` - bank paging (`BCALL` calls a routine in another bank), `src/shared.asm` - data and
+  routines used from more than one bank
 * `src/` - modules (screen, keyboard, ui, ptext, menu, status, project, operand, pou, app, il_parse, il_edit,
   il_comp (IL -> bytecode), vm (interpreter + standard FBs), sim (Run screen), symbols, sym_edit, tests)
 * `src/font6.asm` - generated from `tools/font6.txt` by `tools/mkfont.py` (edit the .txt, then run the script)
-* `tools/zxrun.py` - headless emulator for tests and screenshots, `tools/fixjr.py` - converts out-of-range JR to JP
+* `tools/zxrun.py` - headless 48K/128K emulator for tests and screenshots, `tools/fixjr.py` - converts
+  out-of-range JR to JP, `tools/xref.py --check MAP` - reports references across banks not made through `BCALL`
 
 ## Memory map
 
 ```
-6000-CFFF  code      D000-EFFF  project, 8 KB (saved to tape)
-F000-F7FF  bytecode  F800-FDFC  runtime   FDFD-FF00  IM2
+fixed     5B00-5DFF  test results, stack
+          5E00-89FF  core: main loop, ISR, bank switching, screen, keyboard, ui, text, menu,
+                     status bar, project access, operands, IL parser, symbols, shared data, font
+          8A00-8FFF  runtime data
+          9000-BFFF  project, 12 KB (saved to tape)
+C000-FFFF paged banks (each with the IM2 table at FDFD-FF00):
+          bank 0  EDIT  POU list, IL / LD / symbol editors, simulation screen (tests in test builds)
+          bank 4  RUN   IL and LD compilers, VM, bytecode (F000-F7FF)
+          bank 1  DATA  cells saved under popup windows
 ```
+The build prints the free space of the core and of each bank.

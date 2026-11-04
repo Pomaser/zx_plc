@@ -1,12 +1,12 @@
 ; ============================================================
 ; ZX-PLC - PLC editor and simulator (IEC 61131-3: IL, LD, FBD)
-; ZX Spectrum 48K, Z80 assembler (sjasmplus)
+; ZX Spectrum 128K, Z80 assembler (sjasmplus)
 ; ============================================================
-; Build:       sjasmplus main.asm            -> zxplc.sna
+; Build:       sjasmplus main.asm            -> zxplc.sna (128K snapshot)
 ; Tests:       sjasmplus -DTEST -DTPART=1 main.asm -> zxplc_test1.sna (and TPART=2)
 ; ============================================================
 
-        DEVICE ZXSPECTRUM48
+        DEVICE ZXSPECTRUM128
 
         INCLUDE "src/defs.asm"
 
@@ -16,6 +16,8 @@ START:
         di
         ld sp,STACK_TOP
         ld iy,0x5C3A
+        ld a,BANK_EDIT
+        call bank_set
         call im2_init
         ld a,BORDER
         out (0xFE),a
@@ -24,29 +26,22 @@ START:
         call scr_cls
         call menu_init
     IFDEF TEST
-        jp run_tests
+        jp run_tests            ; (EDIT bank)
     ENDIF
         ld a,LANG_IL            ; default language of MAIN
         call proj_new
     IFNDEF NODEMO
     IFNDEF TEST
-        ld hl,demo_main         ; test program
-        xor a
-        call il_load_text
+        BCALL demo_load         ; test program
     ENDIF
     ENDIF
         ld a,SCR_POU
         ld (cur_screen),a
 main_loop:
         ld a,(cur_screen)
-        ld hl,screen_tab
-        call .disp              ; screen returns a command in A
+        BCALL scr_dispatch      ; screen returns a command in A
         call cmd_target
         jr main_loop
-.disp:  jp jump_table
-
-screen_tab:
-        dw scr_pou, scr_edit, scr_run, scr_sym
 
 ; ---- cmd_target: A = command -> selects the screen to show next
 cmd_target:
@@ -75,15 +70,8 @@ cmd_target:
 cur_screen: db SCR_POU
 
 ; ---- IM2 interrupt: frame counter and keyboard queue
+; (every paged bank holds the vector table and JP isr, see IM2STUB)
 im2_init:
-        ld hl,IM2_TAB
-        ld bc,257
-        ld a,IM2_JP & 0xFF
-        call memset
-        ld a,0xC3
-        ld (IM2_JP),a
-        ld hl,isr
-        ld (IM2_JP+1),hl
         ld a,IM2_TAB>>8
         ld i,a
         im 2
@@ -107,6 +95,9 @@ isr:    push af
 
 frames: dw 0
 
+
+; ---- core modules (fixed memory) ----------------------------
+        INCLUDE "src/bank.asm"
         INCLUDE "src/util.asm"
         INCLUDE "src/screen.asm"
         INCLUDE "src/keyboard.asm"
@@ -116,33 +107,57 @@ frames: dw 0
         INCLUDE "src/status.asm"
         INCLUDE "src/project.asm"
         INCLUDE "src/operand.asm"
+        INCLUDE "src/il_parse.asm"
+        INCLUDE "src/symbols.asm"
+        INCLUDE "src/shared.asm"
+        INCLUDE "src/font6.asm"
+CORE_END:
+        DISPLAY "Core:  ",/H,CODE_ORG,"-",/H,CORE_END-1,", free: ",/D,RT-CORE_END
+        ASSERT CORE_END <= RT
+        ASSERT RT_END <= PROJ
+
+; ---- EDIT bank ----------------------------------------------
+        MMU 3, BANK_EDIT, BANKED
         INCLUDE "src/pou.asm"
         INCLUDE "src/app.asm"
-        INCLUDE "src/il_parse.asm"
         INCLUDE "src/il_edit.asm"
-        INCLUDE "src/il_comp.asm"
-        INCLUDE "src/vm.asm"
-        INCLUDE "src/sim.asm"
-        INCLUDE "src/symbols.asm"
         INCLUDE "src/sym_edit.asm"
         INCLUDE "src/ld_edit.asm"
-        INCLUDE "src/ld_comp.asm"
-    IFNDEF NODEMO
+        INCLUDE "src/sim.asm"
     IFNDEF TEST
         INCLUDE "src/demo.asm"
+    ELSE
+        INCLUDE "src/tests.asm"     ; tests use the editors' buffers directly
     ENDIF
-    ENDIF
-    IFDEF TEST
-        INCLUDE "src/tests.asm"
-    ENDIF
+EDIT_END:
+        DISPLAY "EDIT:  free: ",/D,IM2_JP-EDIT_END
+        ASSERT EDIT_END <= IM2_JP
+        IM2STUB
 
-        INCLUDE "src/font6.asm"
+; ---- RUN bank -----------------------------------------------
+        MMU 3, BANK_RUN, BANKED
+        INCLUDE "src/il_comp.asm"
+        INCLUDE "src/vm.asm"
+        INCLUDE "src/ld_comp.asm"
+RUN_END:
+        DISPLAY "RUN:   free: ",/D,BCODE-RUN_END
+        ASSERT RUN_END <= BCODE
+        IM2STUB
 
+; ---- DATA bank ----------------------------------------------
+        MMU 3, BANK_DATA, BANKED
 win_save: ds 9*WIN_MAXC     ; cells saved under a popup window
-CODE_END:
-        DISPLAY "Code end: ",/H,CODE_END," (limit ",/H,PROJ,"), free: ",/D,PROJ-CODE_END
-        ASSERT CODE_END <= PROJ
+        IM2STUB
 
+; unused banks get the interrupt table too
+        MMU 3, 3, BANKED
+        IM2STUB
+        MMU 3, 6, BANKED
+        IM2STUB
+        MMU 3, 7, BANKED
+        IM2STUB
+
+        MMU 3, BANK_EDIT, BANKED     ; bank paged in when the snapshot starts
     IFDEF TEST
     IF TPART==1
         SAVESNA "zxplc_test1.sna", START

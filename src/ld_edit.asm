@@ -34,142 +34,6 @@ ATTR_LD_ON EQU 0x60         ; black on bright green: active element
 ; storage
 ; ============================================================
 
-; ---- ld_nrows: A = number of rows (an empty body has one)
-ld_nrows:
-        ld a,(cur_pou)
-        call pou_body
-        ld a,b
-        or c
-        ld a,1
-        ret z
-        ld a,(hl)
-        ret
-
-; ---- ld_hdr: makes sure the body has its header byte; C = out of memory
-ld_hdr: ld a,(cur_pou)
-        call pou_body
-        ld a,b
-        or c
-        ret nz
-        ld de,0
-        ld bc,1
-        ld a,(cur_pou)
-        call pou_insert
-        ret c
-        ld (hl),1
-        or a
-        ret
-
-; ---- ld_isbox: A = type -> Z if it is a timer box (keeps BC, DE, HL)
-ld_isbox:
-        and LT_MASK
-        cp LT_TON
-        ret z
-        cp LT_TOF
-        ret z
-        cp LT_TP
-        ret
-
-; ---- ld_tlen: A = type -> A = record length (keeps BC, DE, HL)
-ld_tlen:
-        call ld_isbox
-        ld a,7
-        ret z
-        ld a,5
-        ret
-
-; ---- ld_rlen: HL = record -> A = its length (keeps BC, DE, HL)
-ld_rlen:
-        push hl
-        inc hl
-        inc hl
-        ld a,(hl)
-        and LT_MASK
-        cp LT_CMT
-        jr nz,.t
-        inc hl
-        ld a,(hl)
-        add a,4
-        pop hl
-        ret
-.t:     pop hl
-        jp ld_tlen
-
-; ---- ld_skip: HL = record -> next record (keeps BC)
-ld_skip:
-        call ld_rlen
-        ld e,a
-        ld d,0
-        add hl,de
-        ret
-
-; ---- ld_find: D = row, E = pos -> NC: HL = record; C: HL = insertion point
-ld_find:
-        ld (lf_pos),de
-        ld a,(cur_pou)
-        call pou_body
-        push hl
-        add hl,bc
-        ld (lf_end),hl
-        pop hl
-        ld a,b
-        or c
-        scf
-        ret z
-        inc hl                  ; header
-.l:     push hl
-        ld de,(lf_end)
-        or a
-        sbc hl,de
-        pop hl
-        jr nc,.nf
-        ld a,(lf_row)
-        cp (hl)
-        jr c,.nf
-        jr nz,.n
-        inc hl
-        ld a,(lf_pos)
-        cp (hl)
-        dec hl
-        jr c,.nf
-        jr z,.f
-.n:     call ld_skip
-        jr .l
-.f:     or a
-        ret
-.nf:    scf
-        ret
-
-; ---- ld_get: D = row, E = pos -> A = type (0 = nothing), B = area, C = index
-;      (keeps DE)
-ld_get: push de
-        call ld_find
-        pop de
-        jr c,.none
-        inc hl
-        inc hl
-        ld a,(hl)
-        inc hl
-        ld b,(hl)
-        inc hl
-        ld c,(hl)
-        inc hl
-        push af
-        call ld_isbox
-        jr nz,.nb
-        push de
-        ld e,(hl)               ; PT of a timer box
-        inc hl
-        ld d,(hl)
-        ld (ld_gpt),de
-        pop de
-.nb:    pop af
-        ret
-.none:  xor a
-        ld b,a
-        ld c,a
-        ret
-
 ; ---- ld_put: D = row, E = pos, A = type, B = area, C = index
 ;      type 0 without a link removes the record. C = out of memory (shown)
 ld_put: ld (lp_rec+2),a
@@ -1621,13 +1485,8 @@ ld_kind:  db 0
 ld_aw:    db 0
 ld_lrow:  db 0
 ld_srow:  db 0
-lf_pos:   db 0              ; ld_find key (must be followed by lf_row)
-lf_row:   db 0
-lf_end:   dw 0
 lr_row:   db 0
 lp_rec:   ds 7
-ld_gpt:   dw 0              ; PT of the last ld_get box
-ld_ppt:   dw 0              ; PT for ld_put
 ld_infop: dw 0
 ld_first: db 0              ; first key of an operand typed after '/'
 lc_len:   db 0

@@ -1508,7 +1508,6 @@ lt_slot: db 0
 lt_len:  db 0
 lt_ptr:  dw 0
 
-err_il_mem:   db "Out of memory",0
 err_il_lines: db "Max. 999 lines",0
 il_nothing:   db 0
 
@@ -1535,9 +1534,6 @@ ei_len:    db 0
 ei_max:    db 0
 ei_xmax:   db 0
 ed_mode:   db 0             ; 0 = IL editor, 1 = symbol editor
-sp_m:      dw 0
-sp_o:      dw 0
-sp_c:      dw 0
 sp_kind:   db 0
 dr_row:    db 0
 dr_line:   dw 0
