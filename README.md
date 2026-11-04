@@ -8,13 +8,15 @@ Projects can be saved to tape.
 
 The program starts with a demo project (also File > Open demo); File > New project starts an empty one.
 
-* **MAIN** calls the two demo POUs.
+* **MAIN** calls the three demo POUs.
 * **DEMO_IL** - a traffic light as a step sequence: step flags `S_Off`, `S_Red`, `S_RedYel`, `S_Green`,
   `S_Yellow` (S0.0-S0.4), one TON per step (`T_Red` ...), lights `Red` / `Yellow` / `Green` (Q0.0-Q0.2).
   In the simulation `0` (TL_Start) starts it, `1` (TL_Stop) switches it off.
 * **DEMO_LD** - a pump with self-holding (`4` Start, `5` Stop as a normally closed contact, Q0.4), a fan
   running on 5 s after the pump (TOF, Q0.5), a fault memory set by the rising edge of `6` (Fault) and
   reset by `7` (Ack), and a fault lamp blinking with two TP pulse timers (Q0.6).
+* **DEMO_FBD** - an alarm horn (Fault OR Alert) AND NOT Ack (Q0.7) and a 2 s light (Q0.3) from the rising
+  edge of TL_Start (R_TRIG -> TP).
 * A complete symbol table for all inputs, outputs, flags, steps and timers.
 
 ## Saving to tape
@@ -143,6 +145,25 @@ a row. Placing an element fills the empty positions to its left with wires (up t
 rail or an incoming link). Rungs (rows joined by links) are compiled column by column; P/N contacts keep their
 edge memory (max. 32 per project).
 
+## FBD editor
+
+Opened by ENTER on an FBD POU. The grid, cursor keys, SS+arrows, SS+ENTER, `//` comments, DELETE and the
+status bar work as in the LD editor. Positions 0-8 hold inputs, wires and blocks, position 9 the outputs.
+ENTER opens the picker (shortcut keys in brackets):
+
+| Positions 0-8 | Position 9 |
+|---|---|
+| input (I), negated input (N, drawn with `o`), wire (-) | output (Q), negated output (N) |
+| AND (A), OR (O), XOR (X) with 2-4 inputs, NOT (!) | |
+| SR (S), RS (R), R_TRIG (P), F_TRIG (E) - an FB instance | |
+| TON (T), TOF (F), TP (U) - instance and PT; `T` on a timer edits only its PT | |
+
+A block with h inputs covers h rows: input k comes from the left on the k-th row, the output leaves on the
+top row to the right, so blocks can be chained (e.g. an OR one row lower feeding the second input of an
+AND). Placing a block needs free cells below it; DELETE inside a block removes the whole block. Wires are
+added automatically between a new block or output and the element on its left. In the simulation inputs,
+outputs and FB blocks are coloured dark magenta when TRUE (negation included).
+
 ## Symbols
 
 Edit > Symbols opens the list of defined symbols, sorted by address, with an empty row at the end for a new
@@ -227,9 +248,10 @@ fixed     5B00-5DFF  test results, stack
           9000-BFFF  project, 12 KB (saved to tape)
 C000-FFFF paged banks (each with the IM2 table at FDFD-FF00):
           bank 0  EDIT  IL / LD / symbol editors, simulation screen (tests in test builds)
-          bank 4  RUN   IL and LD compilers, VM, bytecode (F000-F7FF), POU list, tape save/load
+          bank 4  RUN   IL, LD and FBD compilers, VM, bytecode (F000-F7FF), POU list, tape save/load
           bank 1  DATA  cells saved under popup windows
           bank 3  DEMO  demo project image (src/demo_proj.bin)
+          bank 6  FBD   FBD editor
           bank 7  SPARE copy of the project while loading from tape
 ```
 The build prints the free space of the core and of each bank.

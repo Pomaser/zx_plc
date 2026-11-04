@@ -1422,6 +1422,9 @@ ld_autowire:
 
 ; ---- ld_ask_operand: A = element type, ld_ar = current operand
 ;      NC: B = area, C = index; C = cancelled
+;      (also for the FBD editor: LT_NO = any BOOL, LT_COIL = writable BOOL,
+;      LK_FB + FB type = an instance of that FB type)
+LK_FB   EQU 0x40
 ld_ask_operand:
         ld (ld_kind),a
         ; initial text = current operand (or the first key typed)
@@ -1466,7 +1469,16 @@ ld_ask_operand:
         ld a,(hl)
         or a
         jr nz,.bad
-        ld a,(ld_kind)          ; timer box: an instance of the same FB type
+        ld a,(ld_kind)          ; FBD box: kind = LK_FB + FB type
+        cp LK_FB
+        jr c,.nfbk
+        and 0x0F
+        ld e,a
+        ld a,b
+        cp AR_FBI
+        jr nz,.bad
+        jr .bt
+.nfbk:  ld a,(ld_kind)          ; timer box: an instance of the same FB type
         call ld_isbox
         jr nz,.nbox
         ld a,b
@@ -1533,6 +1545,19 @@ ld_ask_operand:
 .bad:   ld hl,err_ld_op
         call ui_error
         jp .ask
+
+; ---- ld_fmt_ar: ld_ar -> FMT_BUF (short address or symbol, 0-terminated)
+;      (for the FBD editor in its own bank: the buffer is in fixed memory)
+ld_fmt_ar:
+        ld de,FMT_BUF
+        ld a,1
+        ld (fo_style),a
+        ld hl,ld_ar
+        call il_fmt_one
+        xor a
+        ld (fo_style),a
+        ld (de),a
+        ret
 
 ; ld_set_ar: B = area, C = index -> ld_ar ([area][index] for il_fmt_one)
 ld_set_ar:
@@ -1681,16 +1706,10 @@ txt_ld_pt:  db " PT=",0
 txt_ld_sl:  db "// ",0
 
 ld_pou:   db 0xFF
-ld_row:   db 0
-ld_pos:   db 0
-ld_top:   db 0
-ld_vbase: db 1
-ld_vn:    db 11
 ld_i:     db 0
 ld_r:     db 0
 ld_p:     db 0
 ld_t:     db 0
-ld_ar:    dw 0              ; area, index of the element operand
 ld_newt:  db 0
 ld_oldt:  db 0
 lw_row:   db 0
@@ -1698,7 +1717,6 @@ lw_up:    dw 0              ; links down from the row above (bit = position)
 lw_t:     ds LD_CPOS+1
 lw_a:     ds LD_CPOS+1
 lw_i:     ds LD_CPOS+1              ; element at the position before placing
-ld_kind:  db 0
 ld_aw:    db 0
 ld_lrow:  db 0
 ld_srow:  db 0
@@ -1707,7 +1725,6 @@ lp_rec:   ds 7
 ld_infop: dw 0
 ld_first: db 0              ; first key of an operand typed after '/'
 lc_len:   db 0
-ld_cbuf:  ds 40
 ld_lbl:   ds 16
 lg_row:   dw 0              ; ld_put_glyphs: cell, row
 lk_cur:   db 0

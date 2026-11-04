@@ -21,23 +21,12 @@ scr_run:
         call screen_begin
         ; monitored POU: the current one if IL, else MAIN if IL        xor a
         ld (sm_mon),a
-        ld a,(cur_pou)
-        call pou_lang
-        cp LANG_FBD
-        jr c,.mon               ; IL or LD
-        xor a
-        call pou_lang
-        cp LANG_FBD
-        jr nc,.nomon
-        xor a
-        ld (cur_pou),a
-        call status_draw
-.mon:   ld a,(cur_pou)
+        ld a,(cur_pou)          ; (every language can be monitored)
         call pou_lang
         inc a
-        ld (sm_mon),a           ; 1 = IL, 2 = LD
+        ld (sm_mon),a           ; 1 = IL, 2 = LD, 3 = FBD
         cp 2
-        jr z,.ldm
+        jr nc,.ldm
         call il_count
         jr .nomon
 .ldm:   call ld_nrows           ; scrolling limit
@@ -392,11 +381,17 @@ sim_draw_panel:
 sim_draw_list:
         ld a,(sm_mon)
         cp 2
-        jr nz,.nld
-        ld a,(sm_top)           ; LD diagram
+        jr c,.nld
+        ld a,(sm_top)           ; LD / FBD diagram
         ld (ld_top),a
+        ld a,(sm_mon)
+        cp 3
+        jr z,.fbd
         call ld_draw_view
         jp ld_set_state
+.fbd:   BCALL fb_draw_view
+        BCALL fb_set_state
+        ret
 .nld:   or a
         jr nz,.go
         ld a,3
@@ -493,8 +488,11 @@ sim_desc_addr:
 sim_update:
         ld a,(sm_mon)
         cp 2
-        jr nz,.nld
-        call ld_set_state
+        jr c,.nld
+        jr z,.ld
+        BCALL fb_set_state
+        jr .leds
+.ld:    call ld_set_state
         jr .leds
 .nld:   or a
         jr z,.leds

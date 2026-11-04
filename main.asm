@@ -156,6 +156,14 @@ RUN_END:
 win_save: ds 9*WIN_MAXC     ; cells saved under a popup window
         IM2STUB
 
+; ---- FBD bank -----------------------------------------------
+        MMU 3, BANK_FBD, BANKED
+        INCLUDE "src/fbd_edit.asm"
+FBD_END:
+        DISPLAY "FBD:   free: ",/D,IM2_JP-FBD_END
+        ASSERT FBD_END <= IM2_JP
+        IM2STUB
+
 ; ---- DEMO bank: the demo project image (made by tools/mkdemo.py)
         MMU 3, BANK_DEMO, BANKED
 demo_img:
@@ -167,8 +175,6 @@ DEMO_LEN EQU $-demo_img
         IM2STUB
 
 ; unused banks get the interrupt table too
-        MMU 3, 6, BANKED
-        IM2STUB
         MMU 3, 7, BANKED
         IM2STUB
 

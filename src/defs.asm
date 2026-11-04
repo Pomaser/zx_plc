@@ -23,6 +23,7 @@ BANK_RUN    EQU 4           ; compilers, VM, bytecode
 BANK_DATA   EQU 1           ; buffers (popup save area)
 BANK_DEMO   EQU 3           ; demo project image
 BANK_SPARE  EQU 7           ; copy of the project while loading from tape
+BANK_FBD    EQU 6           ; FBD editor
 BANK_ROM48  EQU 0x10        ; port 0x7FFD: ROM 1 = 48 BASIC (tape routines)
 
 ; BCALL label: calls a routine in another paged bank (registers pass

@@ -31,6 +31,8 @@ RT_FREE   EQU RT_MON+18*6
 rec_buf   EQU RT_FREE           ; 72  line record being built
 il_out    EQU rec_buf+72        ; 64  output of il_check
 cp_text   EQU il_out+64         ; 64  compiler: current line
+FMT_BUF   EQU cp_text           ;     (editors: formatted operand label)
+FB_INFOB  EQU rec_buf           ;     (FBD editor: status bar text)
 rd_m      EQU cp_text+64        ; 11  row drawing: mnemonic / name
 rd_o      EQU rd_m+11           ; 64  row drawing: operand / address
 rd_c      EQU rd_o+64           ; 64  row drawing: comment

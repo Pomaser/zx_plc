@@ -412,3 +412,12 @@ sp_m:      dw 0
 sp_o:      dw 0
 sp_c:      dw 0
 ld_ppt:   dw 0              ; PT for ld_put
+; ---- from ld_edit.asm (also used by the FBD editor in its own bank)
+ld_row:   db 0
+ld_pos:   db 0
+ld_top:   db 0
+ld_vbase: db 1
+ld_vn:    db 11
+ld_ar:    dw 0              ; area, index of the element operand
+ld_kind:  db 0
+ld_cbuf:  ds 40
