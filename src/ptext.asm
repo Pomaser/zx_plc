@@ -348,3 +348,124 @@ ps_op:    db 0
 ps_row:   db 0
 ps_n:     db 0
 ps_mask:  db 0
+
+; ---- pt_tiny: HL = text, B = char row, C = x -> small letters (3-4 px wide,
+;      pixel lines 2-6) for the type names of LD / FBD blocks
+pt_tiny:
+        ld a,(hl)
+        or a
+        ret z
+        inc hl
+        push hl
+        call ft_glyph           ; HL = [width][5 rows], Z = unknown
+        jr z,.skip
+        ld a,(hl)
+        ld (ft_w),a
+        inc hl
+        ld e,2                  ; first pixel line
+.row:   ld a,(hl)
+        inc hl
+        push hl
+        push bc
+        ld d,a                  ; bits, bit 7 = leftmost pixel
+.px:    sla d
+        jr nc,.n
+        push de
+        push bc
+        ld h,e
+        ld l,1
+        ld d,1
+        ld e,PX_SET
+        call px_span
+        pop bc
+        pop de
+.n:     inc c
+        ld a,d
+        or a
+        jr nz,.px
+        pop bc
+        pop hl
+        inc e
+        ld a,e
+        cp 7
+        jr c,.row
+        ld a,(ft_w)             ; next letter: width + 1 px gap
+        inc a
+        add a,c
+        ld c,a
+.skip:  pop hl
+        jr pt_tiny
+
+; ---- pt_tiny_c: HL = text, B = char row, C = x of a 3-cell block ->
+;      small letters centred in the block (x+2 .. x+21)
+pt_tiny_c:
+        push bc
+        call pt_tiny_w
+        pop bc
+        neg
+        add a,20
+        srl a
+        add a,2
+        add a,c
+        ld c,a
+        jp pt_tiny
+
+; pt_tiny_w: HL = text -> A = its width in small letters (keeps HL)
+pt_tiny_w:
+        push hl
+        ld c,0
+.l:     ld a,(hl)
+        or a
+        jr z,.e
+        inc hl
+        push hl
+        call ft_glyph
+        jr z,.s
+        ld a,(hl)
+        inc a
+        add a,c
+        ld c,a
+.s:     pop hl
+        jr .l
+.e:     ld a,c
+        or a
+        jr z,.z
+        dec a                   ; (no gap after the last letter)
+.z:     pop hl
+        ret
+
+; ft_glyph: A = char -> NZ: HL = its glyph [width][5 rows]; Z = no glyph
+ft_glyph:
+        ld e,a
+        ld hl,ft_tab
+.l:     ld a,(hl)
+        or a
+        ret z
+        inc hl
+        cp e
+        jr z,.f
+        push de
+        ld de,6
+        add hl,de
+        pop de
+        jr .l
+.f:     or a                    ; NZ (a printable char)
+        ret
+
+; small letters: char, width, 5 rows (bit 7 = leftmost)
+ft_tab:
+        db 'A',3, 0x40,0xA0,0xE0,0xA0,0xA0
+        db 'D',3, 0xC0,0xA0,0xA0,0xA0,0xC0
+        db 'F',3, 0xE0,0x80,0xC0,0x80,0x80
+        db 'G',3, 0x60,0x80,0xA0,0xA0,0x60
+        db 'N',4, 0x90,0xD0,0xB0,0x90,0x90
+        db 'O',3, 0x40,0xA0,0xA0,0xA0,0x40
+        db 'P',3, 0xC0,0xA0,0xC0,0x80,0x80
+        db 'R',3, 0xC0,0xA0,0xC0,0xA0,0xA0
+        db 'S',3, 0x60,0x80,0x40,0x20,0xC0
+        db 'T',3, 0xE0,0x40,0x40,0x40,0x40
+        db 'X',3, 0xA0,0xA0,0x40,0xA0,0xA0
+        db '_',3, 0x00,0x00,0x00,0x00,0xE0
+        db 0
+ft_w:   db 0
+
