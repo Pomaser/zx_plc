@@ -159,7 +159,7 @@ ENTER opens the picker (shortcut keys in brackets):
 | AND (A), OR (O), XOR (X) with 2-4 inputs, NOT (!) | |
 | SR (S), RS (R), R_TRIG (P), F_TRIG (E) - an FB instance | |
 | output (Q), negated output (W) - e.g. right behind a block | |
-| TON (T), TOF (F), TP (U) - instance and PT; `T` on a timer edits only its PT | |
+| TON (T), TOF (F), TP (U) - two rows: IN and the PT input (`T#4s--PT` on the left of the second row); ENTER or `T` on the PT input or `T` on the timer edits PT | |
 
 A block with h inputs covers h rows: input k comes from the left on the k-th row, the output leaves on the
 top row to the right, so blocks can be chained (e.g. an OR one row lower feeding the second input of an

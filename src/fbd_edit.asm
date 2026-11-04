@@ -85,6 +85,8 @@ fb_editor:
         jr z,.slash
         cp 'T'                  ; T on a timer block: only its PT
         jr nz,.hot
+.tkey:  call fb_pt_cell         ; (on its PT input: the timer)
+        call nc,fb_to_timer
         call fb_cur_get
         call ld_isbox
         jr nz,.hott
@@ -100,7 +102,11 @@ fb_editor:
         jp c,.redraw
         jp .put
 .hott:  ld a,'T'
-.hot:   ld b,a                  ; shortcut key of a picker item
+.hot:   ld (fb_key),a           ; shortcut key of a picker item
+        call fb_pt_cell         ; (not on the PT input of a timer)
+        jp nc,.cur
+        ld a,(fb_key)
+        ld b,a
         call fb_list
 .kl:    ld a,(hl)
         cp 0xFF
@@ -231,6 +237,8 @@ fb_editor:
 .enter: ld a,(ld_row)           ; comment row: edit it
         call fb_cmt_text
         jp nc,.cedit
+        call fb_pt_cell         ; PT input of a timer: its PT
+        jp nc,.tkey
         call fb_to_owner        ; inside a block: the block itself
         call fb_cur_get
         ld a,(fb_t)
@@ -298,7 +306,23 @@ fb_editor:
         or a
         jr z,.put
         call fb_room
-        jr nc,.put
+        jr c,.noroom
+        ld a,(fb_newt)          ; timer: its PT input needs the cell on the
+        call ld_isbox           ; left of the PT row
+        jr nz,.put
+        ld a,(ld_pos)
+        or a
+        jr z,.noroom
+        ld a,(ld_row)
+        inc a
+        ld d,a
+        ld a,(ld_pos)
+        dec a
+        ld e,a
+        call ld_get
+        and FT_MASK
+        jr z,.put
+.noroom:
         ld hl,err_fb_room
         call ui_error
         jp .redraw
@@ -331,7 +355,9 @@ fb_editor:
         jp .full
 
         ; ---- DELETE: the element (inside a block: the block)
-.del:   call fb_to_owner
+.del:   call fb_pt_cell         ; (the PT input stays)
+        jp nc,.cur
+        call fb_to_owner
         ld a,(ld_row)
         ld d,a
         ld a,(ld_pos)
@@ -362,6 +388,40 @@ fb_editor:
         ld d,a
         BCALL ld_del_row
         jp .redraw
+
+; ---- fb_pt_cell: NC if the cursor is on the PT input of a timer (the cell
+;      left of its PT row): fpt_row / fpt_pos = the timer
+fb_pt_cell:
+        ld a,(ld_row)
+        or a
+        scf
+        ret z
+        ld a,(ld_pos)
+        cp LD_CPOS-1
+        ccf
+        ret c
+        ld a,(ld_row)
+        dec a
+        ld (fpt_row),a
+        ld d,a
+        ld a,(ld_pos)
+        inc a
+        ld (fpt_pos),a
+        ld e,a
+        call ld_get
+        call ld_isbox
+        scf
+        ret nz
+        or a
+        ret
+
+; fb_to_timer: cursor -> the timer of the PT input (fpt_row / fpt_pos)
+fb_to_timer:
+        ld a,(fpt_row)
+        ld (ld_row),a
+        ld a,(fpt_pos)
+        ld (ld_pos),a
+        ret
 
 ; ---- fb_list: HL = picker list of the cursor column (keeps B)
 fb_list:
@@ -442,8 +502,8 @@ fb_height_t:
         jr z,.one
         cp FT_FTRIG
         jr z,.one
-        call ld_isbox
-        jr z,.one
+        call ld_isbox           ; timers: IN row + PT row
+        jr z,.two
         xor a
         ret
 .lg:    ld a,c
@@ -767,6 +827,7 @@ fb_draw_view:
         cp (hl)
         jr c,.an
         ld (hl),a
+        call fd_setcb
 .an:    inc e
         ld a,e
         cp LD_CPOS
@@ -818,12 +879,21 @@ fb_draw_row:
         ld a,(fd_r)
         cp b
         jr c,.in
-        ld hl,fd_cov            ; below the last row: nothing more
-        ld b,LD_CPOS+1
-.zc:    ld (hl),0
+        ld hl,fd_cov            ; below the last row: only the rest of the
+        ld b,LD_CPOS+1          ; blocks from above (e.g. the PT row)
+        xor a
+.ac:    or (hl)
         inc hl
-        djnz .zc
-        ret
+        djnz .ac
+        or a
+        ret z
+        ld hl,fw_t
+        ld b,3*(LD_CPOS+1)
+        xor a
+.zf:    ld (hl),a
+        inc hl
+        djnz .zf
+        jr .elems
 .in:    call fb_row_load
         ld a,(fw_t)
         and FT_MASK
@@ -862,7 +932,12 @@ fb_draw_row:
         ld a,(hl)
         call fb_draw_cov        ; A = rows left below this one (0 = last)
         jr .next
-.own:   ld hl,fw_t
+.own:   call fd_ptcell          ; PT input of a timer on the right?
+        jr nz,.next
+        ld a,(fd_p)
+        ld e,a
+        ld d,0
+        ld hl,fw_t
         add hl,de
         ld a,(hl)
         ld (fd_t),a
@@ -957,6 +1032,9 @@ fb_draw_elem:
         ld hl,fd_cov
         add hl,bc
         ld (hl),e
+        ld e,c
+        ld d,b
+        call fd_setcb
         ld a,(fd_lrow)          ; top line
         ld b,a
         ld a,(fd_x)
@@ -1031,7 +1109,19 @@ fb_draw_cov:
         ld a,(fd_srow)
         call fd_sides
         call fd_in_stub
-        pop af
+        ld a,(fd_p)             ; timer: its PT pin
+        ld e,a
+        ld d,0
+        ld hl,fd_cbt
+        add hl,de
+        ld a,(hl)
+        call ld_isbox
+        jr nz,.np
+        ld a,(fd_srow)
+        ld (pt_row),a
+        ld hl,txt_fb_ptl
+        call fd_text
+.np:    pop af
         or a
         ret nz
         ; fall through
@@ -1067,6 +1157,69 @@ fd_sides:
         ld hl,0x0008
         ld e,PX_SET
         jp px_span
+
+; fd_setcb: E = position -> fd_cbt / fd_cpt = type / PT of the block of the
+;      current row there (keeps DE)
+fd_setcb:
+        push de
+        ld d,0
+        ld hl,fw_t
+        add hl,de
+        ld a,(hl)
+        ld hl,fd_cbt
+        add hl,de
+        ld (hl),a
+        ld hl,fw_pt
+        add hl,de
+        add hl,de
+        ld c,(hl)
+        inc hl
+        ld b,(hl)
+        ld hl,fd_cpt
+        add hl,de
+        add hl,de
+        ld (hl),c
+        inc hl
+        ld (hl),b
+        pop de
+        ret
+
+; fd_ptcell: the cell left of the PT row of a timer: draws "T#..--" and
+;      returns NZ; Z: an ordinary cell
+fd_ptcell:
+        ld a,(fd_p)
+        cp LD_CPOS-1
+        jr nc,.no
+        inc a
+        ld e,a
+        ld d,0
+        ld hl,fd_cov
+        add hl,de
+        ld a,(hl)
+        or a
+        ret z
+        ld hl,fd_cbt
+        add hl,de
+        ld a,(hl)
+        call ld_isbox
+        jr nz,.no
+        ld hl,fd_cpt
+        add hl,de
+        add hl,de
+        ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
+        ld de,FMT_BUF
+        ld a,AR_KT
+        ld bc,0
+        call op_format
+        ld bc,20*256+24
+        call fd_in_txt
+        or 1
+        ret
+.no:    xor a
+        ret
 
 ; fd_in_stub: input of the block on this row: "o" right in front of the
 ;      block edge when the signal comes from a negated input, else a stub
@@ -1340,7 +1493,8 @@ fdn_ton: db "TON",0
 fdn_tof: db "TOF",0
 fdn_tp:  db "TP",0
 
-; ---- fb_row_load: A = row -> fw_t / fw_a / fw_i [position] (0 = empty)
+; ---- fb_row_load: A = row -> fw_t / fw_a / fw_i [position] (0 = empty),
+;      fw_pt [position] = PT of a timer block
 fb_row_load:
         ld (fw_row),a
         ld hl,fw_t
@@ -1370,11 +1524,12 @@ fb_row_load:
         jr nc,.n
         ld d,0
         inc hl
-        ld a,(hl)
+        ld a,(hl)               ; type, area, index
         inc hl
         ld b,(hl)
         inc hl
         ld c,(hl)
+        push hl
         ld hl,fw_t
         add hl,de
         ld (hl),a
@@ -1384,6 +1539,19 @@ fb_row_load:
         ld hl,fw_i
         add hl,de
         ld (hl),c
+        pop hl
+        call ld_isbox
+        jr nz,.n
+        inc hl                  ; timer: PT
+        ld c,(hl)
+        inc hl
+        ld b,(hl)
+        ld hl,fw_pt
+        add hl,de
+        add hl,de
+        ld (hl),c
+        inc hl
+        ld (hl),b
 .n:     pop hl
         call ld_skip
         jr .l
@@ -1497,6 +1665,16 @@ fb_set_state:
 
 ; ---- fb_info: status bar: block / operand, symbol name and comment
 fb_info:
+        call fb_pt_cell         ; PT input: info of its timer
+        jr c,fb_info0
+        ld hl,(ld_row)          ; (ld_row, ld_pos)
+        push hl
+        call fb_to_timer
+        call fb_info0
+        pop hl
+        ld (ld_row),hl
+        ret
+fb_info0:
         ld hl,0
         ld (st_left),hl
         call fb_cur_get
@@ -1767,6 +1945,7 @@ fb_pick_o:
 txt_fb_inq:  db "Number of inputs (2-4)?",0,0
 txt_fb_sl:   db "// ",0
 txt_fb_pt:   db " PT=",0
+txt_fb_ptl:  db "PT",0
 err_fb_room: db "No room for the block",0
 
 fb_pou:   db 0xFF
@@ -1775,10 +1954,16 @@ fb_newt:  db 0
 fb_oldt:  db 0
 fb_kind_v: db 0
 fb_aw:    db 0
+fb_key:   db 0
+fpt_row:    db 0
+fpt_pos:    db 0
 fw_row:   db 0
 fw_t:     ds LD_CPOS+1
 fw_a:     ds LD_CPOS+1
 fw_i:     ds LD_CPOS+1
+fw_pt:    ds 2*(LD_CPOS+1)
+fd_cbt:   ds LD_CPOS+1          ; type of the block covering the position
+fd_cpt:   ds 2*(LD_CPOS+1)      ; its PT (timers)
 fd_cov:   ds LD_CPOS+1          ; rows of a block still to draw (per position)
 fd_rr:    db 0
 fd_i:     db 0

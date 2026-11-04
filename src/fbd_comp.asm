@@ -10,7 +10,8 @@
 ;   empty     S = FALSE
 ;   AND/OR/XOR box at row r with h inputs: S[r] = S[r] op .. S[r+h-1]
 ;   NOT       S = NOT S
-;   FB boxes  inputs -> members, CAL, S[r] = Q
+;   FB boxes  inputs -> members, CAL, S[r] = Q (timers: 2 rows, IN and PT;
+;             PT is the preset stored in the block)
 ;   OUT (any column) LD S / ST op (STN when negated)
 ; The LD compiler helpers are shared (lc_get, lc_emit_*, lc_dead ...).
 ; ============================================================
@@ -199,8 +200,8 @@ fc_height:
         jr z,.one
         cp FT_FTRIG
         jr z,.one
-        call ld_isbox
-        jr z,.one
+        call ld_isbox           ; timers: IN row + PT row
+        jr z,.two
         xor a
         ret
 .lg:    ld a,b
@@ -332,7 +333,14 @@ fc_elem:
 ;      S[lc_i] <- the BOOL output (member Q of the type)
 fc_fb:  ld a,(lc_i)
         ld (fc_i0),a
-        xor a
+        ld a,(fc_h)             ; BOOL inputs (timers: IN only, PT is preset)
+        ld (fc_nin),a
+        ld a,(fc_t)
+        call ld_isbox
+        jr nz,.nt
+        ld a,1
+        ld (fc_nin),a
+.nt:    xor a
         ld (fc_k),a
 .inp:   ld a,OP_LD
         call fc_emit_row
@@ -348,7 +356,7 @@ fc_fb:  ld a,(lc_i)
         inc (hl)
         ld hl,fc_k
         inc (hl)
-        ld a,(fc_h)
+        ld a,(fc_nin)
         cp (hl)
         jr nz,.inp
         ld a,(fc_i0)
@@ -429,3 +437,4 @@ fc_h:    db 0
 fc_op:   db 0
 fc_i0:   db 0
 fc_k:    db 0
+fc_nin:  db 0
