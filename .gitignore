@@ -4,3 +4,4 @@
 .test.out
 __pycache__/
 .scratch/
+.claude/worktrees/
