@@ -17,7 +17,7 @@ The program starts with a demo project (also File > Open demo); File > New proje
   reset by `7` (Ack), and a fault lamp blinking with two TP pulse timers (Q0.6).
 * **DEMO_FBD** - uses only I/O byte 1 (press `B` in the simulation, then `0`-`4`):
   - an inlet valve with nested gates: `Valve` = `Auto` AND (`Manual` OR (`LowLvl` AND NOT `HighLvl`))
-    (I1.0-I1.3 -> Q1.0),
+    with a 2 s run-on (TOF) (I1.0-I1.3 -> Q1.0),
   - an overflow horn: the rising edge of `HighLvl` (RT) sets an SR flip-flop, `HornAck` (I1.4) resets it
     (Q1.1).
 * Each demo has its own I/O: DEMO_IL I0.0-0.1 / Q0.0-0.2, DEMO_LD I0.4-0.7 / Q0.4-0.6, DEMO_FBD byte 1.

@@ -247,6 +247,7 @@ dm_syms:
         db AR_Q,9,"Horn",0,"Overflow horn",0
         db AR_FBI,FBT_RTRIG*FB_PER_TYPE+0,"OvEdge",0,"High level edge",0
         db AR_FBI,FBT_SR*FB_PER_TYPE+0,"HornMem",0,"Horn memory",0
+        db AR_FBI,FBT_TOF*FB_PER_TYPE+1,"TValve",0,"Valve run-on",0
         db 0xFF
 
 ; ---- MAIN
@@ -385,13 +386,16 @@ dm_ldc:
         ENDW
     ENDM
 dm_fbd:
-        ; valve: Auto AND (Manual OR (LowLvl AND NOT HighLvl))
+        ; valve: Auto AND (Manual OR (LowLvl AND NOT HighLvl)), 2 s run-on (TOF)
         db 1,0,FT_IN,AR_I,8
         dw 0
         DM_FWIRES 1,1,2
         db 1,3,FT_AND,2,0
         dw 0
-        db 1,4,FT_OUT,AR_Q,8
+        DM_FWIRES 1,4,4
+        db 1,5,FT_TOF,AR_FBI,FBT_TOF*FB_PER_TYPE+1
+        dw 100                  ; 2 s run-on
+        db 1,6,FT_OUT,AR_Q,8
         dw 0
         db 2,0,FT_IN,AR_I,9
         dw 0
@@ -418,6 +422,6 @@ dm_fbd:
         DM_FWIRES 7,1,1
         db 0xFF
 dm_fbdc:
-        db 0,"Valve: auto, manual or low level",0
+        db 0,"Valve: auto, manual or low, 2 s run-on",0
         db 5,"Horn: overflow until acknowledged",0
         db 0xFF
