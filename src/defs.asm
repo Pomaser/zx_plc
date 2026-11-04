@@ -95,9 +95,9 @@ CMD_STOP        EQU 21
 CMD_SOUND       EQU 22
 CMD_DEMO        EQU 23
 
-; ---- status bar text markers (st_left): symbol name in dark blue
-ST_SYM      EQU 1           ; start of the symbol name (cell aligned)
-ST_SYME     EQU 2           ; end of it (the following text starts in a new cell)
+; ---- status bar text markers (st_left): symbol name shown inverted
+ST_SYM      EQU 1           ; start of the symbol name
+ST_SYME     EQU 2           ; end of it
 
 ; ---- key codes ----------------------------------------------
 K_HOME      EQU 1           ; SS + LEFT  (CS+SS+5): start of the line

@@ -73,10 +73,6 @@ status_left:
         ld c,0
         ld b,ST_RCOL
         call st_clear
-        ld bc,ST_ROW*256        ; left part black again (symbol cells were blue)
-        ld d,ST_RCOL
-        ld e,ATTR_MENU
-        call scr_fill_attr
         ld a,ST_RCOL*8-4        ; clip before the right part
         ld (pt_xmax),a
         xor a                   ; flush left
@@ -124,56 +120,40 @@ st_print:
         jr z,.off
         call pt_putc
         jr .l
-.on:    call st_align           ; the name starts in a new cell
-        ld a,(pt_x)
-        rrca
-        rrca
-        rrca
-        and 31
-        ld (st_c0),a
+.on:    ld a,(pt_x)             ; inverted box: 2 px margin around the name
+        ld (st_x0),a
+        add a,2
+        ld (pt_x),a
         jr .l
-.off:   push hl                 ; cells st_c0 .. (pt_x-1)/8 in dark blue
+.off:   push hl
         ld a,(pt_x)
-        dec a
-        rrca
-        rrca
-        rrca
-        and 31
-        cp ST_RCOL
-        jr c,.c1
-        ld a,ST_RCOL-1
-.c1:    ld hl,st_c0
+        add a,2
+        cp ST_RCOL*8-4          ; not into the right part
+        jr c,.w
+        ld a,ST_RCOL*8-4
+.w:     ld (pt_x),a
+        ld hl,st_x0
         sub (hl)
         jr c,.nofill
-        inc a
+        jr z,.nofill
         ld d,a
         ld c,(hl)
         ld b,ST_ROW
-        ld e,ATTR_TITLE
-        call scr_fill_attr
+        ld hl,0x0107            ; lines 1-7, below the separator line
+        ld e,PX_XOR
+        call px_span
 .nofill:
         pop hl
-        ld a,(pt_x)             ; gap, then the next cell
+        ld a,(pt_x)             ; gap before the comment
         add a,3
         jr c,.l
         ld (pt_x),a
-        call st_align
         jr .l
 .e:     xor a
         ld (pt_down),a
         ret
 
-; st_align: pt_x up to the next cell boundary
-st_align:
-        ld a,(pt_x)
-        add a,7
-        jr nc,.a
-        ld a,255
-.a:     and 0xF8
-        ld (pt_x),a
-        ret
-
-st_c0:  db 0
+st_x0:  db 0
 
 ; ---- status_right: redraws only the right part of the status bar (free
 ;      memory, or st_right text if set) and only when the text changed
