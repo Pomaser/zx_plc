@@ -1489,12 +1489,15 @@ fb_draw_elem:
         ld a,(fd_x)
         add a,4
 .ot:    ld (pt_x),a
+        ld (fd_tx),a
         ld a,(fd_srow)
         ld (pt_row),a
         call fd_out_lim
         ld (pt_xmax),a
         ld hl,FMT_BUF
         call pt_puts
+        ld a,(fd_tx)
+        call fd_span
         ld a,255
         ld (pt_xmax),a
         ret
@@ -1908,8 +1911,11 @@ fd_in_txt:
         jr nc,.st
 .lim:   ld a,(fd_l)
 .st:    ld (pt_x),a
+        ld (fd_tx),a
         ld hl,FMT_BUF
         call pt_puts
+        ld a,(fd_tx)
+        call fd_span
         ld a,255
         ld (pt_xmax),a
         pop bc
@@ -2146,7 +2152,34 @@ fb_set_state:
         ld e,ATTR_NORMAL        ; shown only by the o)
         jr z,.set
         ld e,ATTR_FBON
-.set:   ld a,(fs_p)
+.set:   ld a,(fs_off)           ; input / output: the cells of its name
+        cp 2
+        jr z,.blk
+        ld a,(fs_row)
+        ld b,a
+        ld a,(fs_p)
+        ld c,a
+        push de
+        call fs_ent
+        pop de
+        ld c,(hl)               ; first .. last column
+        inc hl
+        ld a,(hl)
+        sub c
+        ret c
+        inc a
+        ld d,a
+        ld a,(fs_row)
+        ld b,a
+        push de
+        call attr_addr
+        pop de
+.fl:    ld (hl),e
+        inc hl
+        dec d
+        jr nz,.fl
+        ret
+.blk:   ld a,(fs_p)
         ld c,a
         add a,a
         add a,c
@@ -2157,6 +2190,52 @@ fb_set_state:
         ld b,a
         call attr_addr
         ld (hl),e
+        ret
+
+; fd_span: A = x where the name of an input / output starts, pt_x = its
+;      end -> fs_span entry of (fd_srow, fd_p) = its first / last attribute
+;      column (coloured by fb_set_state)
+fd_span:
+        rrca
+        rrca
+        rrca
+        and 0x1F
+        ld e,a
+        ld a,(pt_x)
+        dec a
+        rrca
+        rrca
+        rrca
+        and 0x1F
+        cp e
+        jr nc,.d
+        ld a,e
+.d:     ld d,a
+        ld a,(fd_srow)
+        ld b,a
+        ld a,(fd_p)
+        ld c,a
+        push de
+        call fs_ent
+        pop de
+        ld (hl),e
+        inc hl
+        ld (hl),d
+        ret
+
+; fs_ent: B = screen row, C = position -> HL = its fs_span entry
+fs_ent: ld a,b
+        add a,a
+        ld e,a
+        add a,a
+        add a,a
+        add a,e
+        add a,c
+        ld l,a
+        ld h,0
+        add hl,hl
+        ld de,fs_span
+        add hl,de
         ret
 
 ; ---- fb_info: status bar: block / operand, symbol name and comment
@@ -2463,6 +2542,8 @@ fm_rr:    db 0
 fm_q:     db 0
 fm_t:     db 0
 fm_n:     db 0
+fd_tx:    db 0
+fs_span:  ds 24*10*2
 fm_p:     db 0
 fm_err:   db 0
 fb_hh:    db 0
