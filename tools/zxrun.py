@@ -32,6 +32,8 @@ class Spectrum:
         self.port7ffd = 0
         self.ay_reg = 0
         self.mic = 0
+        self.tape = []                  # EAR edge times of a playing .tap
+        self.tape_i = 0
         self.edges = []                 # T-state times of MIC edges (saving)
         self.ay_log = []                # (frame, register, value)
         self.m.set_input_callback(self.inp)
@@ -111,6 +113,11 @@ class Spectrum:
         for (r, b) in self.pressed:
             if not (hi >> r) & 1:
                 v &= ~(1 << b)
+        if self.tape:                   # EAR (bit 6) from the playing tape
+            now = self.frames * 69888 + 69888 - self.m.ticks_to_stop
+            while self.tape_i < len(self.tape) and self.tape[self.tape_i] <= now:
+                self.tape_i += 1
+            return v | 0xA0 | (0x40 if self.tape_i & 1 else 0)
         return v | 0xA0
 
     def out(self, port, val):
@@ -178,6 +185,33 @@ class Spectrum:
             data = [int("".join(map(str, bits[k:k + 8])), 2) for k in range(0, len(bits) - 7, 8)]
             blocks.append(data)
         return blocks
+
+    def play_tap(self, path):
+        """starts playing a .tap file (standard ROM timing) into EAR"""
+        d = open(path, "rb").read()
+        t = self.frames * 69888 + 700000
+        edges, i = [], 0
+        while i + 2 <= len(d):
+            n = d[i] | (d[i + 1] << 8)
+            blk = d[i + 2:i + 2 + n]
+            i += 2 + n
+            for _ in range(8063 if blk[0] < 128 else 3223):
+                t += 2168
+                edges.append(t)
+            t += 667
+            edges.append(t)
+            t += 735
+            edges.append(t)
+            for byte in blk:
+                for k in range(7, -1, -1):
+                    p = 1710 if (byte >> k) & 1 else 855
+                    t += p
+                    edges.append(t)
+                    t += p
+                    edges.append(t)
+            t += 3500000                # 1 s pause
+        self.tape, self.tape_i = edges, 0
+        return t
 
     def save_tap(self, path):
         out = bytearray()
@@ -273,6 +307,8 @@ def main():
             z.type(cmd[2:].replace("~", " "))
         elif cmd.startswith("shot:"):
             z.png(cmd[5:] + ".png")
+        elif cmd.startswith("play:"):
+            z.play_tap(cmd[5:])
         elif cmd == "mark":
             z.ay_log.append((z.frames, "mark", 0))
     if a.out:

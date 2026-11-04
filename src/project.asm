@@ -38,22 +38,29 @@ proj_new:
 
 ; ---- proj_load_demo: copies the demo project from the DEMO bank
 proj_load_demo:
-        ld a,(cur_bank)
-        push af
         ld a,BANK_DEMO
-        call bank_set
         ld hl,demo_img
         ld de,PROJ
-        ld bc,DEMO_LEN
-        ld a,b
-        or c
-        jr z,.e                 ; (no image in the builder build)
-        ldir
-.e:     pop af
-        call bank_set
+        ld bc,DEMO_LEN          ; (0 in the builder build)
+        call bank_copy
         xor a
         ld (cur_pou),a
         ret
+
+; ---- bank_copy: A = bank paged in at 0xC000 during the copy, HL -> DE,
+;      BC bytes (BC = 0: nothing); the caller's bank is restored
+bank_copy:
+        ex af,af'
+        ld a,(cur_bank)
+        push af
+        ex af,af'
+        call bank_set
+        ld a,b
+        or c
+        jr z,.e
+        ldir
+.e:     pop af
+        jp bank_set
 
 proj_sig:  db "ZXPLC"
 name_main: db "MAIN    "

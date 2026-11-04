@@ -22,9 +22,15 @@ The program starts with a demo project (also File > Open demo); File > New proje
 File > Save asks for a tape name (max. 10 characters), then waits for a key to start ("Start the tape
 recorder..."). The project is saved as a standard CODE file: a header (name, length, start 0x9000) and a
 data block with the project memory, in the normal ROM speed and format, so it can be copied and checked
-with any tape tool. SPACE (BREAK) interrupts the saving. (Loading follows.)
+with any tape tool. SPACE (BREAK) interrupts the saving.
 
-`tools/zxrun.py --tap file.tap` decodes what the program saved into a .tap file.
+File > Load (after "Discard current project?") waits for the tape: other files are skipped, the first
+CODE file with start 0x9000 that fits the project area is loaded and checked (signature, length). The
+current project is kept in bank 7 meanwhile and comes back when loading fails, the data is not a ZX-PLC
+project or SPACE interrupts it.
+
+`tools/zxrun.py --tap file.tap` decodes what the program saved into a .tap file; the script command
+`play:file.tap` plays a .tap file into the EAR input.
 
 ## Sound
 
@@ -224,5 +230,6 @@ C000-FFFF paged banks (each with the IM2 table at FDFD-FF00):
           bank 4  RUN   IL and LD compilers, VM, bytecode (F000-F7FF)
           bank 1  DATA  cells saved under popup windows
           bank 3  DEMO  demo project image (src/demo_proj.bin)
+          bank 7  SPARE copy of the project while loading from tape
 ```
 The build prints the free space of the core and of each bank.

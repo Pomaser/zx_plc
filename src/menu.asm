@@ -908,7 +908,7 @@ menu_handle:
         cp CMD_KEYS
         jr z,.keys
         cp CMD_LOAD
-        jr z,.todo
+        jr z,.load
         cp CMD_SAVE
         jr z,.save
         cp CMD_NEW
@@ -943,11 +943,9 @@ menu_handle:
         call msg_box
         xor a
         ret
-.save:  BCALL tape_save         ; (EDIT bank)
-        xor a
+.load:  BCALL tape_load         ; A = command (NZ) or 0 (EDIT bank)
         ret
-.todo:  ld hl,err_todo
-        call ui_error
+.save:  BCALL tape_save         ; (EDIT bank)
         xor a
         ret
 .demo:  ld hl,txt_new_q
@@ -988,4 +986,3 @@ txt_keys:
         db "Letters",PT_TAB,"hotkeys",0
         db 0
 txt_new_q:     db "Discard current project?",0
-err_todo:      db "Not implemented yet",0
