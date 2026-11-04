@@ -575,11 +575,44 @@ fb_left_sig:
 
 ; ---- fb_list: HL = picker list of the cursor column (keeps B)
 fb_list:
-        ld hl,fb_pick_l
+        ld hl,fb_pick_o
         ld a,(ld_pos)
         cp LD_CPOS
-        ret c
-        ld hl,fb_pick_o
+        ret nc
+        call fb_to_blk          ; block input: no outputs
+        ld hl,fb_pick_l
+        ret z
+        ld hl,fb_pick_i
+        ret
+
+; fb_to_blk: NZ if the signal of the cursor cell goes (through wires) straight
+;      into a block (its first row or a row it covers) (keeps BC)
+fb_to_blk:
+        push bc
+        ld a,(ld_row)
+        ld d,a
+        ld a,(ld_pos)
+        ld e,a
+.l:     inc e
+        ld a,e
+        cp LD_CPOS
+        jr nc,.no
+        call fb_owner           ; (keeps DE)
+        jr nc,.yes
+        call ld_get             ; (keeps DE)
+        and FT_MASK
+        cp FT_WIRE
+        jr z,.l
+        ld c,b
+        call fb_height_t
+        or a
+        pop bc
+        ret
+.yes:   pop bc
+        or 1
+        ret
+.no:    pop bc
+        xor a
         ret
 
 ; ---- fb_cur_get: element at the cursor -> A = fb_t = type, B = area, C = index
@@ -2546,6 +2579,22 @@ fk_inv: ld a,(win_r)
         jp px_span
 
 ; picker items: type, shortcut key, label
+fb_pick_i:
+        db FT_IN,        'I',"Input",0
+        db FT_IN|FT_NEG, 'N',"Negated input",0
+        db FT_WIRE,      '-',"Wire",0
+        db FT_AND,       'A',"AND",0
+        db FT_OR,        'O',"OR",0
+        db FT_XOR,       'X',"XOR",0
+        db FT_NOT,       '!',"NOT",0
+        db FT_SR,        'S',"SR flip-flop",0
+        db FT_RS,        'R',"RS flip-flop",0
+        db FT_RTRIG,     'P',"RT rising edge",0
+        db FT_FTRIG,     'E',"RF falling edge",0
+        db FT_TON,       'T',"TON timer",0
+        db FT_TOF,       'F',"TOF timer",0
+        db FT_TP,        'U',"TP pulse",0
+        db 0xFF
 fb_pick_l:
         db FT_IN,        'I',"Input",0
         db FT_IN|FT_NEG, 'N',"Negated input",0

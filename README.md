@@ -165,7 +165,8 @@ A block with h inputs covers h rows: input k comes from the left on the k-th row
 top row to the right, so blocks can be chained (e.g. an OR one row lower feeding the second input of an
 AND). The cursor stands only on the cells that make sense around a block: its inputs on the left, the
 block itself and its output on the right - cells inside a block and the empty space behind its lower rows
-are skipped. An output or a wire needs a signal coming from the left (an element, possibly over empty
+are skipped. Outputs are not offered on a block input (a cell whose signal goes, through wires, straight into a
+block). An output or a wire needs a signal coming from the left (an element, possibly over empty
 cells that are then filled with wires). Placing a block needs free cells below it; DELETE on a block
 removes the whole block. A block placed on an input inserts itself behind it: the network moves one
 position to the right, the input feeds the first input of the new block and the cursor goes to the
