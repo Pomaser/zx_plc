@@ -331,6 +331,18 @@ fb_editor:
         call fb_height_t
         or a
         jr z,.put
+        ld (fb_hh),a
+        xor a
+        ld (fb_ins),a
+        call fb_cur_get         ; block on an input: the input feeds its
+        and FT_MASK             ; first input (the network moves right)
+        cp FT_IN
+        jr nz,.rows
+        call fb_ins_col
+        jr c,.noroom
+        ld a,1
+        ld (fb_ins),a
+.rows:  ld a,(fb_hh)
         call fb_make_rows       ; free rows below (rows inserted if needed)
         jr c,.noroom
         ld a,(fb_newt)          ; timer: its PT input needs the cell on the
@@ -352,11 +364,15 @@ fb_editor:
         ld hl,err_fb_room
         call ui_error
         jp .redraw
-.put:   call fb_cur_get         ; old element (for the cursor move)
+.put:   call fb_cur_get         ; old element (cursor move, undo)
         ld a,(fb_t)
         ld (fb_oldt),a
         ld a,b
         ld (fb_olda),a
+        ld a,c
+        ld (fb_oldc),a
+        ld hl,(ld_gpt)
+        ld (fb_oldpt),hl
         ld a,(ld_row)
         ld d,a
         ld a,(ld_pos)
@@ -371,7 +387,41 @@ fb_editor:
         call fb_rows_fit        ; the row count covers the whole block
         call fb_make_room       ; new inputs without a free cell: shift
         jp nc,.redraw           ; (NC: shifted, cursor on the new input)
+        ld a,(fm_err)
+        or a
+        jr nz,.undo             ; no room: the old element comes back
         call fb_autowire
+        ld a,(fb_ins)           ; inserted on an input: cursor on the
+        or a                    ; free cell of the second input
+        jr z,.nins
+        call fb_cur_get
+        ld c,b
+        ld b,a
+        call ld_isbox
+        jr z,.nins
+        ld a,b
+        call fb_height_t
+        cp 2
+        jr c,.nins
+        ld hl,ld_row
+        inc (hl)
+        ld hl,ld_pos
+        dec (hl)
+        jr .redraw
+.undo:  ld hl,(fb_oldpt)
+        ld (ld_ppt),hl
+        ld a,(ld_row)
+        ld d,a
+        ld a,(ld_pos)
+        ld e,a
+        ld a,(fb_olda)
+        ld b,a
+        ld a,(fb_oldc)
+        ld c,a
+        ld a,(fb_oldt)
+        BCALL ld_put
+        jr .redraw
+.nins:
         ld a,(fb_oldt)          ; new element on an empty position:
         and FT_MASK             ; the cursor moves on behind it
         jr nz,.redraw
@@ -660,6 +710,8 @@ fb_to_owner:
 ;      column and the cursor goes to the free cell of the first new input.
 ;      NC = shifted, C = nothing to do (or not possible: message shown)
 fb_make_room:
+        xor a
+        ld (fm_err),a
         call fb_cur_get
         and FT_MASK
         cp FT_AND
@@ -717,11 +769,45 @@ fb_make_room:
         ld (fm_r1),a
         call fm_check
         jr nc,.shift
+        ld a,1
+        ld (fm_err),a
         ld hl,err_fb_room
         call ui_error
         scf
         ret
-.shift: ld a,LD_CPOS-2          ; move positions 7 .. cursor one to the right
+.shift: ld a,(ld_pos)
+        ld (fm_p),a
+        call fb_shift_cols
+        jr .wires
+
+.wires:
+        ld a,(fm_r0)            ; wires in the freed column (old inputs)
+        ld (fm_rr),a
+        ld a,(fm_h0)
+        ld (fm_n),a
+.w:     ld a,(fm_rr)
+        ld d,a
+        ld a,(ld_pos)
+        ld e,a
+        ld a,FT_WIRE
+        ld bc,0
+        BCALL ld_put
+        ld hl,fm_rr
+        inc (hl)
+        ld hl,fm_n
+        dec (hl)
+        jr nz,.w
+        ld a,(fm_r0)            ; cursor: first new input, free cell
+        ld hl,fm_h0
+        add a,(hl)
+        ld (ld_row),a
+        or a                    ; NC
+        ret
+
+; ---- fb_shift_cols: rows fm_r0..fm_r1: positions fm_p..7 move one to the
+;      right (fm_p <= 7, position 8 must be free)
+fb_shift_cols:
+        ld a,LD_CPOS-2
 .qcol:  ld (fm_q),a
         ld a,(fm_r0)
         ld (fm_rr),a
@@ -755,34 +841,119 @@ fb_make_room:
         jr z,.qe
         inc (hl)
         jr .qrow
-.qe:    ld a,(ld_pos)
+.qe:    ld a,(fm_p)
         ld b,a
         ld a,(fm_q)
         cp b
-        jr z,.wires
+        ret z
         dec a
         jr .qcol
-.wires: ld a,(fm_r0)            ; wires in the freed column (old inputs)
-        ld (fm_rr),a
-        ld a,(fm_h0)
-        ld (fm_n),a
-.w:     ld a,(fm_rr)
-        ld d,a
+
+; ---- fb_ins_col: a block is placed on an input at (ld_row, p): the network
+;      of the row (rows up to empty / comment rows) moves one position to the
+;      right from p+1, the freed column gets wires where a signal goes on,
+;      and the cursor goes to p+1, so the input feeds the first input of the
+;      block. C = no room (position 8 used, or p >= 7)
+fb_ins_col:
         ld a,(ld_pos)
+        cp LD_CPOS-2
+        ccf
+        ret c
+        inc a
+        ld (fm_p),a
+        ld a,(ld_row)           ; first row of the network
+.up:    ld (fm_r0),a
+        or a
+        jr z,.dn0
+        dec a
+        push af
+        call fb_net_row
+        pop bc                  ; B = row (flags kept)
+        ld a,b
+        jr c,.up
+.dn0:   ld a,(ld_row)           ; last row
+.dn:    ld (fm_r1),a
+        inc a
+        cp LD_MAXROWS
+        jr nc,.chk
+        push af
+        call fb_net_row
+        pop bc
+        ld a,b
+        jr c,.dn
+.chk:   ld a,(fm_r0)            ; position 8 must be free
+.c8:    ld (fm_rr),a
+        ld d,a
+        ld e,LD_CPOS-1
+        call ld_get
+        and FT_MASK
+        scf
+        ret nz
+        ld a,(fm_rr)
+        ld hl,fm_r1
+        cp (hl)
+        jr z,.sh
+        inc a
+        jr .c8
+.sh:    call fb_shift_cols
+        ld a,(fm_r0)            ; wires in the freed column: an element on
+.w:     ld (fm_rr),a            ; the left and something on the right
+        ld d,a
+        ld a,(fm_p)
+        dec a
+        ld e,a
+        call ld_get
+        and FT_MASK
+        jr z,.wn
+        ld a,(fm_rr)
+        ld d,a
+        ld a,(fm_p)
+        inc a
+        ld e,a
+        call ld_get
+        or a
+        jr nz,.wy
+        call fb_owner           ; (a lower input of a block)
+        jr c,.wn
+.wy:    ld a,(fm_rr)
+        ld d,a
+        ld a,(fm_p)
         ld e,a
         ld a,FT_WIRE
         ld bc,0
         BCALL ld_put
-        ld hl,fm_rr
-        inc (hl)
-        ld hl,fm_n
-        dec (hl)
-        jr nz,.w
-        ld a,(fm_r0)            ; cursor: first new input, free cell
-        ld hl,fm_h0
-        add a,(hl)
-        ld (ld_row),a
-        or a                    ; NC
+.wn:    ld a,(fm_rr)
+        ld hl,fm_r1
+        cp (hl)
+        jr z,.done
+        inc a
+        jr .w
+.done:  ld a,(fm_p)
+        ld (ld_pos),a
+        or a
+        ret
+
+; fb_net_row: A = row -> C if it belongs to a network (an element that is
+;      not a comment, or a cell covered by a block)
+fb_net_row:
+        ld (fi_x),a
+        call fb_cmt_text
+        ret nc                  ; comment row
+        ld a,(fi_x)
+        ld d,a
+        ld e,0
+.l:     call ld_get
+        or a
+        scf
+        ret nz
+        call fb_owner
+        ccf
+        ret c
+        inc e
+        ld a,e
+        cp LD_CPOS+1
+        jr c,.l
+        or a
         ret
 
 ; fm_check: C if the rows fm_r0..fm_r1 can not move right from ld_pos:
@@ -2365,6 +2536,13 @@ fm_rr:    db 0
 fm_q:     db 0
 fm_t:     db 0
 fm_n:     db 0
+fm_p:     db 0
+fm_err:   db 0
+fb_hh:    db 0
+fb_ins:   db 0
+fb_oldc:  db 0
+fb_oldpt: dw 0
+fi_x:     db 0
 fn_n:     db 0
 fn_r:     db 0
 fb_key:   db 0

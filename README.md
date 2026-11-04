@@ -167,7 +167,9 @@ AND). The cursor stands only on the cells that make sense around a block: its in
 block itself and its output on the right - cells inside a block and the empty space behind its lower rows
 are skipped. An output or a wire needs a signal coming from the left (an element, possibly over empty
 cells that are then filled with wires). Placing a block needs free cells below it; DELETE on a block
-removes the whole block. Wires are
+removes the whole block. A block placed on an input inserts itself behind it: the network moves one
+position to the right, the input feeds the first input of the new block and the cursor goes to the
+second input. If a block does not fit, it is not placed ("No room for the block"). Wires are
 added automatically between a new block or output and the element on its left. In the simulation inputs,
 outputs and FB blocks are coloured black on bright green when TRUE (negation included).
 
