@@ -488,8 +488,23 @@ sim_mon_desc:
         cp IC_LABEL
         ret z
         cp IC_CALL
-        ret z
-        ld hl,rd_o
+        jr nz,.op
+        ld hl,rd_o              ; CAL of a timer: its ET ("NAME(..." ->
+.cn:    ld a,(hl)               ; "NAME.ET"; POU calls do not resolve)
+        or a
+        jr z,.ce
+        cp '('
+        jr z,.ce
+        inc hl
+        jr .cn
+.ce:    ld (hl),'.'
+        inc hl
+        ld (hl),'E'
+        inc hl
+        ld (hl),'T'
+        inc hl
+        ld (hl),0
+.op:    ld hl,rd_o
         call cp_operand
         ret c
         ld a,(cp_mode)
