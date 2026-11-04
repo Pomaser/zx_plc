@@ -377,8 +377,7 @@ dm_fbd:
         dw 0
         db 1,2,FT_AND,2,0
         dw 0
-        DM_FWIRES 1,3,8
-        db 1,9,FT_OUT,AR_Q,7
+        db 1,3,FT_OUT,AR_Q,7
         dw 0
         db 2,0,FT_IN,AR_I,6
         dw 0
@@ -393,8 +392,7 @@ dm_fbd:
         dw 0
         db 6,2,FT_TP,AR_FBI,FBT_TP*FB_PER_TYPE+2
         dw 100
-        DM_FWIRES 6,3,8
-        db 6,9,FT_OUT,AR_Q,3
+        db 6,3,FT_OUT,AR_Q,3
         dw 0
         db 0xFF
 dm_fbdc:

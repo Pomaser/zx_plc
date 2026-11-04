@@ -148,7 +148,9 @@ edge memory (max. 32 per project).
 ## FBD editor
 
 Opened by ENTER on an FBD POU. The grid, cursor keys, SS+arrows, SS+ENTER, `//` comments, DELETE and the
-status bar work as in the LD editor. Positions 0-8 hold inputs, wires and blocks, position 9 the outputs.
+status bar work as in the LD editor. Positions 0-8 hold inputs, wires, blocks and outputs, position 9
+only outputs. Input and output names are written on the signal line (`Start--`, `-Pump`); an input name
+may reach into empty cells on its left, an output name into empty cells on its right.
 ENTER opens the picker (shortcut keys in brackets):
 
 | Positions 0-8 | Position 9 |
@@ -156,6 +158,7 @@ ENTER opens the picker (shortcut keys in brackets):
 | input (I), negated input (N, the `o` is drawn at the block input it leads to), wire (-) | output (Q), negated output (N, the `o` is drawn at the output of the block it comes from) |
 | AND (A), OR (O), XOR (X) with 2-4 inputs, NOT (!) | |
 | SR (S), RS (R), R_TRIG (P), F_TRIG (E) - an FB instance | |
+| output (Q), negated output (W) - e.g. right behind a block | |
 | TON (T), TOF (F), TP (U) - instance and PT; `T` on a timer edits only its PT | |
 
 A block with h inputs covers h rows: input k comes from the left on the k-th row, the output leaves on the

@@ -11,7 +11,7 @@
 ;   AND/OR/XOR box at row r with h inputs: S[r] = S[r] op .. S[r+h-1]
 ;   NOT       S = NOT S
 ;   FB boxes  inputs -> members, CAL, S[r] = Q
-;   OUT (pos 9)  LD S / ST op (STN when negated)
+;   OUT (any column) LD S / ST op (STN when negated)
 ; The LD compiler helpers are shared (lc_get, lc_emit_*, lc_dead ...).
 ; ============================================================
 
@@ -227,7 +227,9 @@ fc_elem:
         ret z
         cp FT_IN
         jr z,.in
-        ; empty (or an output in a logic column): no signal
+        cp FT_OUT
+        jr z,.out
+        ; empty: no signal
         call lc_is_dead
         ret nz
         ld a,OP_LD
@@ -239,6 +241,15 @@ fc_elem:
         ret c
         ld a,1
         jp lc_set_dead
+.out:   ld a,OP_LD              ; output in a logic column (signal goes on)
+        call fc_emit_row
+        ret c
+        ld a,(fc_t)
+        rlca
+        ld a,OP_ST
+        jr nc,.o1
+        ld a,OP_ST|VM_N
+.o1:    jp lc_emit_op
 .in:    ld a,(fc_t)
         rlca
         ld a,OP_LD

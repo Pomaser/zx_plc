@@ -893,28 +893,24 @@ fb_draw_elem:
         ld c,a
         ld d,24
         jp fd_hline
-.nw:    cp FT_IN
+.nw:    cp FT_IN                ; input: "name--" on the signal row
         jr nz,.nin
-        call fd_label
+        call fd_fmt
         ld a,(fd_t)             ; negated: "o" at the end of the line, or at
         rlca                    ; the block input when it leads into a block
-        jr nc,.inp
+        jr nc,.ip
         call fd_dst_block
-        jr nz,.inp
-        ld a,(fd_x)
-        ld c,a
-        ld d,19
-        call fd_hline
+        jr nz,.ip
+        ld bc,15*256+19         ; text up to x+15, line up to x+18
+        call fd_in_txt
         ld a,(fd_x)
         add a,19
         jp fd_circle
-.inp:   ld a,(fd_x)
-        ld c,a
-        ld d,24
-        jp fd_hline
-.nin:   cp FT_OUT
+.ip:    ld bc,20*256+24
+        jp fd_in_txt
+.nin:   cp FT_OUT               ; output: "-name" right behind the block
         jr nz,.nout
-        call fd_label
+        call fd_fmt
         ld a,(fd_t)             ; negated: "o" at the start, or at the output
         rlca                    ; of the block the signal comes from
         jr nc,.ol
@@ -923,14 +919,29 @@ fb_draw_elem:
         ld a,(fd_x)
         call fd_circle
         ld a,(fd_x)
-        add a,5
+        add a,4
         ld c,a
-        ld d,19
-        jp fd_hline
+        ld d,2
+        call fd_hline
+        ld a,(fd_x)
+        add a,7
+        jr .ot
 .ol:    ld a,(fd_x)
         ld c,a
-        ld d,24
-        jp fd_hline
+        ld d,3
+        call fd_hline
+        ld a,(fd_x)
+        add a,4
+.ot:    ld (pt_x),a
+        ld a,(fd_srow)
+        ld (pt_row),a
+        call fd_out_lim
+        ld (pt_xmax),a
+        ld hl,FMT_BUF
+        call pt_puts
+        ld a,255
+        ld (pt_xmax),a
+        ret
 .nout:  ld a,(ld_ar)            ; block: top part
         ld c,a
         ld a,(fd_t)
@@ -1214,29 +1225,103 @@ fd_circle:
 fd_fmt: BCALL ld_fmt_ar
         ret
 
-; fd_label: operand label centred above the element (clipped to 24 px)
-fd_label:
-        call fd_fmt
+; fd_in_txt: FMT_BUF right-aligned to x+B on the signal row (it may reach
+;      into the empty cells on the left), then the line up to x+C-1
+fd_in_txt:
+        push bc
+        call fd_in_left
+        ld (fd_l),a
+        ld a,(fd_srow)
+        ld (pt_row),a
+        pop bc
+        push bc
         ld a,(fd_x)
-        ld c,a
-        add a,23
+        add a,b
         ld (pt_xmax),a
+        ld c,a
         ld hl,FMT_BUF
         call pt_width
-        cp 23
-        jr c,.w
-        ld a,22
-.w:     neg
-        add a,24
-        srl a
-        add a,c
-        ld (pt_x),a
-        ld a,(fd_lrow)
-        ld (pt_row),a
+        ld b,a
+        ld a,c                  ; start = right edge - width, not left of L
+        sub b
+        jr c,.lim
+        ld hl,fd_l
+        cp (hl)
+        jr nc,.st
+.lim:   ld a,(fd_l)
+.st:    ld (pt_x),a
         ld hl,FMT_BUF
         call pt_puts
         ld a,255
         ld (pt_xmax),a
+        pop bc
+        ld a,(fd_x)
+        add a,c
+        ld b,a                  ; end of the line
+        ld a,(pt_x)
+        ld c,a
+        ld a,b
+        sub c
+        ret c
+        ret z
+        ld d,a
+        jp fd_hline
+
+; fd_in_left: A = leftmost x for an input label: its cell plus the empty
+;      cells on its left (the left margin at position 0)
+fd_in_left:
+        ld a,(fd_x)
+        ld c,a
+        ld a,(fd_p)
+.l:     or a
+        jr z,.edge
+        dec a
+        ld e,a
+        ld d,0
+        ld hl,fw_t
+        add hl,de
+        ld b,(hl)
+        ld hl,fd_cov
+        add hl,de
+        ld a,(hl)
+        or b
+        jr nz,.e
+        ld a,c
+        sub 24
+        ld c,a
+        ld a,e
+        jr .l
+.edge:  ld c,0                  ; up to the screen edge
+.e:     ld a,c
+        ret
+
+; fd_out_lim: A = clipping x of an output label: its cell plus the empty
+;      cells behind it
+fd_out_lim:
+        ld a,(fd_x)
+        add a,23
+        ld c,a
+        ld a,(fd_p)
+.l:     inc a
+        cp LD_CPOS+1
+        jr nc,.e
+        ld e,a
+        ld d,0
+        ld hl,fw_t
+        add hl,de
+        ld b,(hl)
+        ld hl,fd_cov
+        add hl,de
+        ld a,(hl)
+        or b
+        jr nz,.e
+        ld a,c
+        add a,24
+        jr c,.e
+        ld c,a
+        ld a,e
+        jr .l
+.e:     ld a,c
         ret
 
 ; block names by type
@@ -1304,7 +1389,8 @@ fb_row_load:
         jr .l
 
 ; ---- fb_set_state: simulation colours of the visible inputs, outputs
-;      and FB blocks (signal row, middle cell): TRUE = dark magenta
+;      and FB blocks (signal row: input line, output start, block middle):
+;      TRUE = dark magenta
 fb_set_state:
         ld a,(cur_pou)
         call pou_body
@@ -1352,10 +1438,15 @@ fb_set_state:
         inc hl
         ld c,(hl)
         and FT_MASK
-        cp FT_IN
-        jr z,.op
+        ld e,3                  ; colour cell: input = right (its line),
+        cp FT_IN                ; output = left, block = middle
+        jr z,.opc
+        ld e,1
         cp FT_OUT
-        jr z,.op
+        jr z,.opc
+        ld e,2
+        ld a,e
+        ld (fs_off),a
         ld a,(fs_t)             ; FB block: its Q
         call fb_kind
         ret z
@@ -1369,6 +1460,8 @@ fb_set_state:
 .q1:    ld b,AR_FBM+0x10        ; R_TRIG/F_TRIG: Q
         xor a
         ld (fs_t),a             ; (no negation)
+.opc:   ld a,e
+        ld (fs_off),a
 .op:    ld a,b
         ld de,0
         call cp_operand_av
@@ -1393,7 +1486,8 @@ fb_set_state:
         ld c,a
         add a,a
         add a,c
-        add a,2                 ; middle cell 2+3p
+        ld hl,fs_off
+        add a,(hl)              ; cell 1+3p .. 3+3p
         ld c,a
         ld a,(fs_row)
         ld b,a
@@ -1662,6 +1756,8 @@ fb_pick_l:
         db FT_TON,       'T',"TON timer",0
         db FT_TOF,       'F',"TOF timer",0
         db FT_TP,        'U',"TP pulse",0
+        db FT_OUT,       'Q',"Output",0
+        db FT_OUT|FT_NEG,'W',"Negated output",0
         db 0xFF
 fb_pick_o:
         db FT_OUT,       'Q',"Output",0
@@ -1691,12 +1787,14 @@ fd_p:     db 0
 fd_x:     db 0
 fd_t:     db 0
 fd_h:     db 0
+fd_l:     db 0
 fd_lrow:  db 0
 fd_srow:  db 0
 fs_end:   dw 0
 fs_row:   db 0
 fs_p:     db 0
 fs_t:     db 0
+fs_off:   db 0
 fi_p:     dw 0
 fi_end:   dw 0
 fk_cur:   db 0
