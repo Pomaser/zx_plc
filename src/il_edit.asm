@@ -781,7 +781,47 @@ il_fmt_one:
         cp AR_Q
         jr z,.sym
         cp AR_M
+        jr z,.sym
+        cp AR_FBI
+        jr z,.sym
+        and AR_MASK
+        cp AR_FBM
         jr nz,.fmt
+        ; FB member: instance symbol + "." + member name
+        push de
+        push bc
+        ld a,AR_FBI
+        call sym_name_of
+        pop bc
+        pop de
+        jr c,.fmt
+        call put_str
+        ld a,'.'
+        ld (de),a
+        inc de
+        ld a,c                  ; fb_members[type*20 + member*4]
+        rrca
+        rrca
+        and 0x3F
+        ld c,a
+        add a,a
+        add a,a
+        ld l,a
+        add a,a
+        add a,a
+        add a,l
+        ld l,a
+        ld a,b
+        rrca
+        rrca
+        and 0x1C
+        add a,l
+        ld l,a
+        ld h,0
+        ld bc,fb_members
+        add hl,bc
+        call put_str
+        jr .ret
 .sym:   push de
         push bc
         call sym_name_of
@@ -840,11 +880,17 @@ il_show_comment:
         call op_parse
         jr c,.show
         ld b,a
+        and AR_MASK
+        cp AR_FBI               ; FB call with parameters may follow
+        jr z,.ok
+        ld b,AR_FBI
+        cp AR_FBM
+        jr z,.ok
+        ld b,a
         ld a,(hl)
         or a
         jr nz,.show
         ld a,b
-        and AR_MASK
         cp AR_I
         jr z,.ok
         cp AR_Q

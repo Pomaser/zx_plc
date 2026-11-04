@@ -1,5 +1,5 @@
 ; ============================================================
-; symbols.asm - symbol table: symbolic names + comments for I, Q, M
+; symbols.asm - symbol table: symbolic names + comments for I, Q, M, FB instances
 ; ============================================================
 ; Body of the hidden POU slot SYM_SLOT, records sorted by (area, index):
 ;   [len][area][index][name...0][comment...]
@@ -170,6 +170,8 @@ sym_validate:
         cp AR_Q
         jr z,.sym
         cp AR_M
+        jr z,.sym
+        cp AR_FBI
         jr nz,.res
 .sym:   ; a symbol (or address) of the same name: fine only if it is our own
         ld a,(sv_idx)

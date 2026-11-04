@@ -607,6 +607,28 @@ sym_tests:
         call sym_validate
         ccf
         call t_nc
+        ; FB instance symbol: "delay1.et" -> TON1.ET, shown as "Delay1.ET"
+        ld a,AR_FBI
+        ld c,1
+        ld hl,t_sym_delay
+        ld de,cp_empty
+        call sym_store
+        call t_nc
+        ld hl,t_ld
+        ld de,t_sym_dly_et
+        call il_check
+        call t_nc
+        ld a,(il_out+1)
+        cp AR_FBM+0x30          ; member 3 (ET)
+        call t_check
+        ld a,(il_out+2)
+        cp 1
+        call t_check
+        call t_detok
+        ld hl,t_buf
+        ld de,t_sym_dly_out
+        call strcmp
+        call t_check
         ; delete: empty name and comment
         ld a,AR_I
         ld c,0
@@ -629,6 +651,9 @@ t_sym_ldout:  db "LD",9,"Start",0
 t_sym_ldadr:  db "LD",9,"%IX0.0",0
 t_sym_ton:    db "TON0",0
 t_sym_bad:    db "1abc",0
+t_sym_delay:  db "Delay1",0
+t_sym_dly_et: db "delay1.et",0
+t_sym_dly_out: db "LD",9,"Delay1.ET",0
 
 ; t_detok: il_out (binary instruction) -> t_buf = "MNEM" [TAB "OPERAND"]
 t_detok:

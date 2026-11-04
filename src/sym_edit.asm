@@ -272,6 +272,8 @@ sy_norm_addr:
         cp AR_Q
         jr z,.ok
         cp AR_M
+        jr z,.ok
+        cp AR_FBI
         ret nz
 .ok:    ld (sy_narea),a
         ld a,c
@@ -494,6 +496,8 @@ sy_commit:
         cp AR_Q
         jr z,.aok
         cp AR_M
+        jr z,.aok
+        cp AR_FBI
         jp nz,.badaddr
 .aok:   ld (sy_narea),a
         ld a,c
@@ -778,7 +782,7 @@ sy_draw_row:
         ret
 
 err_sy_noaddr: db "Address required",0
-err_sy_addr:   db "Invalid address (I, Q, M)",0
+err_sy_addr:   db "Invalid address (I, Q, M, FB)",0
 err_sy_used:   db "Address already defined",0
 
 sy_cur:   dw 0

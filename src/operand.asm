@@ -334,7 +334,32 @@ op_parse:
 .pou:   ld hl,op_tok
         call sym_find_name
         jp nc,op_ok
+        ; "SYMBOL.MEMBER": symbol of an FB instance + member
         ld hl,op_tok
+.dot:   ld a,(hl)
+        or a
+        jr z,.pou2
+        cp '.'
+        jr z,.sdot
+        inc hl
+        jr .dot
+.sdot:  ld (hl),0
+        push hl
+        ld hl,op_tok
+        call sym_find_name
+        pop hl
+        ld (hl),'.'
+        jr c,.pou2
+        cp AR_FBI
+        jr nz,.pou2
+        ld a,c                  ; B = FB type, C = instance
+        rrca
+        rrca
+        and 0x3F
+        ld b,a
+        ld a,'.'
+        jp .fbmem
+.pou2:  ld hl,op_tok
         call strlen
         cp 9
         jp nc,op_err
