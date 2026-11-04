@@ -47,8 +47,10 @@ pt_putc:
         ld a,(pt_x)
         ld e,a
         add a,c
-        jr c,.done              ; past the screen edge
-        ld b,a
+        jr nc,.in
+        jr nz,.done             ; past the screen edge
+        dec a                   ; ends exactly at x = 256
+.in:    ld b,a
         ld a,(pt_xmax)
         cp b
         jr c,.done              ; past the clipping limit

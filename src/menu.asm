@@ -7,7 +7,7 @@
 ; covers are saved to win_save and restored when it closes.
 ; ============================================================
 MENU_N      EQU 6           ; number of top items
-MENU_X0     EQU 4           ; x of the first title
+MENU_X0     EQU 3           ; x of the first title (its inversion starts at x=0)
 MENU_GAP    EQU 10          ; gap between titles
 ATTR_MENU   EQU 0x38        ; black ink, white paper
 WIN_MAXC    EQU 200         ; max cells of a saved window (largest popup: 175)

@@ -75,7 +75,7 @@ status_left:
         call st_clear
         ld a,ST_RCOL*8-4        ; clip before the right part
         ld (pt_xmax),a
-        ld a,4
+        xor a                   ; flush left
         call st_print
         ld a,255
         ld (pt_xmax),a
@@ -166,7 +166,7 @@ status_right:
         ld a,1
         ld (pt_down),a
         ld hl,st_buf
-        ld a,252
+        xor a                   ; right edge = 256 (flush right)
         call pt_puts_r
         xor a
         ld (pt_down),a
