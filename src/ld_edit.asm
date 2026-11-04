@@ -994,9 +994,16 @@ ld_editor:
         ld de,0x1E00+ATTR_LDCMT
         call scr_fill_attr
         pop bc
-        ld c,12
+        ld a,b                  ; "// " drawn as in the row, text typed after it
+        ld (pt_row),a
+        ld a,12
+        ld (pt_x),a
+        ld hl,txt_ld_sl
+        call pt_puts
+        ld a,(pt_x)
+        ld c,a
         ld hl,ld_cbuf
-        ld de,0x2400            ; max 36 chars, case kept
+        ld de,0x2402            ; max 36 chars, case kept, no underline
         call ui_input
         jp c,.full
         call ld_put_cmt

@@ -110,13 +110,15 @@ il_editor:
         inc hl
         ld (hl),'/'
         inc hl
+        ld (hl),' '             ; "// " - text starts after a space
+        inc hl
         ld (hl),0
         xor a
         ld (ed_m),a
         ld (ed_o),a
         ld a,F_COMM
         ld (ed_field),a
-        ld a,2
+        ld a,3
         ld (ed_pos),a
         jr .redraw
 .ins:   ld a,(il_ch)

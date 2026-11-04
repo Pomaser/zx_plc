@@ -143,7 +143,7 @@ lang_names: db "IL LD FBD"
 
 ; ---- ui_input: line editor in the proportional font
 ;   HL = buffer (holds initial 0-terminated text), B = char row, C = x (px),
-;   D = max length, E = flags (bit0 = convert to upper case)
+;   D = max length, E = flags (bit0 = convert to upper case, bit1 = no underline)
 ;   output: NC = ENTER, C = cancelled
 ui_input:
         ld (in_buf),hl
@@ -179,10 +179,13 @@ ui_input:
         call px_span
         pop de
         pop bc
+        ld a,(in_flags)
+        bit 1,a
+        jr nz,.nul
         ld hl,0x0701
         ld e,PX_SET
         call px_span
-        ld a,(in_row)
+.nul:   ld a,(in_row)
         ld (pt_row),a
         ld a,(in_x)
         ld (pt_x),a
