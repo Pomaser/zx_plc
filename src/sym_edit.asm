@@ -39,7 +39,7 @@ scr_sym:
 .full:  call sy_redraw_all
 .loop:  call il_key
         cp K_ENTER
-        jp z,.down
+        jp z,.enter
         cp K_DOWN
         jp z,.down
         cp K_UP
@@ -137,6 +137,23 @@ scr_sym:
         jr z,.stay
         dec hl
         jr .move
+.enter: ; cursor at the very start of a filled row -> empty row above it
+        ld a,(ed_pos)
+        or a
+        jr nz,.down
+        ld a,(ed_field)
+        cp F_MNEM
+        jr nz,.down
+        ld de,(il_cur)
+        call sy_rec
+        jr c,.down              ; already the empty row
+        call sy_commit
+        jp c,.loop
+        ld hl,(il_cur)
+        ld (sy_newpos),hl       ; the empty row takes this place
+        call sy_load
+        call il_fix_top
+        jp .full
 .down:  call sy_commit
         jp c,.loop
         ld a,(sy_dirty)         ; a new symbol was added -> next new entry
@@ -170,6 +187,11 @@ scr_sym:
         ld (il_oldln),hl
         pop hl
         ld (il_cur),hl
+        call sy_drop_empty      ; NZ: an inner empty row was removed
+        jr z,.mv2
+        ld a,1
+        ld (sy_dirty),a
+.mv2:
         ld a,(sy_dirty)         ; (sy_load clears it)
         push af
         call sy_load
@@ -278,10 +300,50 @@ sy_count:
         call sym_next
         jr .l
 .e:     ld (il_n),bc
+        dec bc
+        ld (sy_newpos),bc       ; the empty row is at the end
+        ret
+
+; ---- sy_drop_empty: after a move from row il_oldln to il_cur: if il_oldln
+;      was an empty row in the middle of the list, it is removed (il_cur
+;      corrected). NZ = removed
+sy_drop_empty:
+        ld hl,(il_n)
+        dec hl
+        ld de,(sy_newpos)
+        or a
+        sbc hl,de
+        ret z                   ; the empty row is at the end
+        ld hl,(il_oldln)
+        or a
+        sbc hl,de
+        jr nz,.no               ; we did not leave the empty row
+        ld hl,(il_cur)          ; rows below move up by one
+        or a
+        sbc hl,de
+        jr c,.end
+        jr z,.end
+        ld hl,(il_cur)
+        dec hl
+        ld (il_cur),hl
+.end:   ld hl,(il_n)
+        dec hl
+        ld (sy_newpos),hl
+        or 1
+        ret
+.no:    xor a
         ret
 
 ; ---- sy_rec: DE = row -> NC: HL = record; C: the empty row (or beyond)
-sy_rec: ld b,d
+sy_rec: ld hl,(sy_newpos)
+        or a
+        sbc hl,de
+        jr nz,.nz
+        scf                     ; the empty row
+        ret
+.nz:    jr nc,.below            ; row < empty row
+        dec de                  ; rows after the empty one
+.below: ld b,d
         ld c,e
         push bc
         call sym_first
@@ -725,6 +787,7 @@ sy_scur:  dw 0
 sy_stop:  dw 0
 sy_end:   dw 0
 sy_mod:   db 0
+sy_newpos: dw 0          ; row index of the empty row
 sy_dirty: db 0
 sy_old:   db 0
 sy_oarea: db 0

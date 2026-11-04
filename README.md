@@ -68,7 +68,8 @@ it (`AND(`, `ADD(` ...). FB calls: `CAL TON0(IN:=%IX0.0, PT:=T#2s)`; POU calls: 
 Edit > Symbols opens the list of defined symbols, sorted by address, with an empty row at the end for a new
 one. Each row: line number (like the IL editor), symbolic name (max. 8 chars, identifier, dark blue),
 physical address (`%IX0.0`, `i0.0`, `%QX0.1`, `m5` ... only I, Q, M, black) and comment (max. 30 chars,
-dark green). SPACE moves name -> address -> comment, ENTER/UP/DOWN store the row (the list is re-sorted),
+dark green). SPACE moves name -> address -> comment, ENTER/UP/DOWN store the row (the list is re-sorted);
+ENTER at the very start of a row opens an empty row above it (a new symbol is sorted in when stored),
 clearing the name and the comment removes the symbol, Edit > Delete line deletes it too.
 
 Symbols can be typed in IL instead of addresses (`LD Start`); the program stores the address and the
