@@ -1007,6 +1007,18 @@ ld_editor:
         call ui_input
         jp c,.full
         call ld_put_cmt
+        jp c,.redraw
+        ld a,(ld_cbuf)          ; comment entered: start of the next row
+        or a
+        jp z,.redraw
+        ld a,(ld_row)
+        inc a
+        cp LD_MAXROWS
+        jp nc,.redraw
+        ld (ld_row),a
+        xor a
+        ld (ld_pos),a
+        call ld_fix_top
         jp .redraw
 .left:  ld a,(ld_pos)
         or a
