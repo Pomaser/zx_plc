@@ -122,7 +122,7 @@ kb_isr:
         add hl,de
         ld (hl),c
         ld (kb_tail),a
-        ret
+        jp snd_click            ; key click
 
 ; ---- kb_get: A = next queued key or 0
 kb_get:

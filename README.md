@@ -4,6 +4,12 @@ A PLC program editor and simulator following IEC 61131-3 (IL, LD, FBD) for the *
 written in Z80 assembler. Programs are not downloaded to any real PLC; they run in a built-in simulation.
 Projects can be saved to tape.
 
+## Sound
+
+The AY chip of the 128K plays a short soft click for every key and a quiet two-note warning on input
+errors (unknown instruction or operand, invalid name, ...). Both are played by the interrupt, so the
+program never waits for them; View > Sound switches them off.
+
 ## Building
 
 ```
@@ -36,7 +42,7 @@ Keys are read in the interrupt into an 8-key queue, so typing ahead is not lost.
 | File | New project, Load..., Save... |
 | POU | Manage, New..., Rename/Comment..., Language..., Delete |
 | Edit | Edit POU, Symbols, Insert line, Delete line |
-| View | Symbols, Addresses (how operands are shown in the IL editor and the simulation) |
+| View | Symbols, Addresses (how operands are shown in the IL editor and the simulation), Sound (on/off) |
 | Run | Run, Stop, Step, Reset |
 | Help | Controls, About |
 
@@ -148,12 +154,13 @@ The time base is 20 ms (one frame).
 ## Structure
 
 * `main.asm` - entry point, interrupts, screen switching, placement of the modules in memory banks
+* `src/sound.asm` - AY sound effects (key click, error)
 * `src/bank.asm` - bank paging (`BCALL` calls a routine in another bank), `src/shared.asm` - data and
   routines used from more than one bank
 * `src/` - modules (screen, keyboard, ui, ptext, menu, status, project, operand, pou, app, il_parse, il_edit,
   il_comp (IL -> bytecode), vm (interpreter + standard FBs), sim (Run screen), symbols, sym_edit, tests)
 * `src/font6.asm` - generated from `tools/font6.txt` by `tools/mkfont.py` (edit the .txt, then run the script)
-* `tools/zxrun.py` - headless 48K/128K emulator for tests and screenshots, `tools/fixjr.py` - converts
+* `tools/zxrun.py` - headless 48K/128K emulator for tests and screenshots (`--ay` lists AY writes), `tools/fixjr.py` - converts
   out-of-range JR to JP, `tools/xref.py --check MAP` - reports references across banks not made through `BCALL`
 
 ## Memory map

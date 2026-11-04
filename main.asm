@@ -18,6 +18,7 @@ START:
         ld iy,0x5C3A
         ld a,BANK_EDIT
         call bank_set
+        call snd_init
         call im2_init
         ld a,BORDER
         out (0xFE),a
@@ -86,6 +87,7 @@ isr:    push af
         inc hl
         ld (frames),hl
         call kb_isr
+        call snd_isr
         pop hl
         pop de
         pop bc
@@ -101,6 +103,7 @@ frames: dw 0
         INCLUDE "src/util.asm"
         INCLUDE "src/screen.asm"
         INCLUDE "src/keyboard.asm"
+        INCLUDE "src/sound.asm"
         INCLUDE "src/ui.asm"
         INCLUDE "src/ptext.asm"
         INCLUDE "src/menu.asm"

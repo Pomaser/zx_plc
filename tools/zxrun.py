@@ -30,6 +30,8 @@ class Spectrum:
         self.is128 = False
         self.banks = None
         self.port7ffd = 0
+        self.ay_reg = 0
+        self.ay_log = []                # (frame, register, value)
         self.m.set_input_callback(self.inp)
         self.m.set_output_callback(self.out)
         data = open(sna, "rb").read()
@@ -114,6 +116,11 @@ class Spectrum:
             self.border = val & 7
         if self.is128 and not (port & 0x8002):
             self.page(val)
+        if self.is128 and not (port & 2) and port & 0x8000:
+            if port & 0x4000:
+                self.ay_reg = val & 15          # 0xFFFD: select
+            else:                               # 0xBFFD: write
+                self.ay_log.append((self.frames, self.ay_reg, val))
 
     def frame(self):
         m = self.m
@@ -218,6 +225,7 @@ def main():
     ap.add_argument("-o", "--out", default=None)
     ap.add_argument("-f", "--frames", type=int, default=50)
     ap.add_argument("--peek", default=None, help="addr:len hexdump at end")
+    ap.add_argument("--ay", action="store_true", help="print AY volume/mixer writes")
     a = ap.parse_args()
     z = Spectrum(a.sna)
     z.run(a.frames)
@@ -230,12 +238,22 @@ def main():
             z.type(cmd[2:].replace("~", " "))
         elif cmd.startswith("shot:"):
             z.png(cmd[5:] + ".png")
+        elif cmd == "mark":
+            z.ay_log.append((z.frames, "mark", 0))
     if a.out:
         z.png(a.out)
     if a.peek:
         ad, ln = a.peek.split(":")
         ad, ln = int(ad, 16), int(ln)
         print(" ".join("%02X" % z.m.memory[(ad + i) & 0xFFFF] for i in range(ln)))
+    if a.ay:        # changes of the volumes A/B (regs 8, 9) and periods
+        last = {}
+        for fr, r, v in z.ay_log:
+            if r == "mark":
+                print("%5d ---- mark" % fr)
+            elif r in (0, 1, 2, 3, 7, 8, 9) and last.get(r) != v:
+                last[r] = v
+                print("%5d R%d=%02X" % (fr, r, v))
     print("border=%d pc=%04X frames=%d" % (z.border, z.m.pc, z.frames))
 
 if __name__ == "__main__":

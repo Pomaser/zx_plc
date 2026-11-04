@@ -50,6 +50,7 @@ mi_edit:
 mi_view:
         db CMD_VIEW_SYM, 'S',"Symbols",0
         db CMD_VIEW_ADDR,'A',"Addresses",0
+        db CMD_SOUND,    'O',"Sound",0
         db 0
 mi_run:
         db CMD_RUN,  'R',"Run",0
@@ -302,12 +303,16 @@ menu_checkable:
         ret z
         cp CMD_VIEW_ADDR
         ret z
+        cp CMD_SOUND
+        ret z
         scf
         ret
 
 ; ---- menu_active: HL = item record -> NC if the option is active now
 menu_active:
         ld a,(hl)
+        cp CMD_SOUND
+        jr z,.snd
         cp CMD_VIEW_SYM
         jr z,.sym
         cp CMD_VIEW_ADDR
@@ -317,8 +322,10 @@ menu_active:
         cp 1                    ; C if 0
         ccf
         ret
+.snd:   ld a,(snd_on)
+        jr .is1
 .sym:   ld a,(view_sym)
-        cp 1                    ; NC if 1
+.is1:   cp 1                    ; NC if 1
         ret
 
 ; ---- menu_inv_item: inverts row of item drop_sel in the open drop-down
@@ -903,7 +910,14 @@ menu_handle:
         jr z,.vsym
         cp CMD_VIEW_ADDR
         jr z,.vadr
+        cp CMD_SOUND
+        jr z,.snd
         or a
+        ret
+.snd:   ld a,(snd_on)
+        xor 1
+        ld (snd_on),a
+        xor a                   ; nothing else to do
         ret
 .vsym:  ld a,1
         jr .view

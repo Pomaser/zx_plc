@@ -192,20 +192,6 @@ jump_table:
         jp (hl)
 
 ; ---- beep: short beep
-beep:
-        push bc
-        ld c,60
-.l:     ld a,0x10+BORDER
-        out (0xFE),a
-        ld b,90
-.d1:    djnz .d1
-        ld a,BORDER
-        out (0xFE),a
-        ld b,90
-.d2:    djnz .d2
-        dec c
-        jr nz,.l
-        pop bc
-        ret
+beep:   jp snd_error            ; soft AY error sound (sound.asm)
 
 u_flag: db 0
