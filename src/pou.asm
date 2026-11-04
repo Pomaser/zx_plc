@@ -205,8 +205,12 @@ input_pou_name:
         and AR_MASK
         cp AR_POU
         jr z,.dup
+        ld hl,name_buf          ; the name of a symbol?
+        call sym_find_name
+        ld hl,err_sym_used
+        jr nc,.rerr
         ld hl,err_reserved
-        call ui_error
+.rerr:  call ui_error
         jr .again
 .dup:   ld a,(ipn_slot)
         cp c
@@ -407,6 +411,7 @@ txt_h_cmt:  db "Comment",0
 txt_cmt_q:  db "Comment for the POU (optional):",0," ",0," ",0,0
 txt_name_q:    db "POU name (A-Z, 0-9, _):",0," ",0," ",0,0
 txt_del_q:     db "Delete selected POU?",0
+err_sym_used:  db "Name used by a symbol",0
 err_pou_full:  db "Max. 8 POUs",0
 err_main_del:  db "MAIN cannot be deleted",0
 err_not_empty: db "POU is not empty",0
