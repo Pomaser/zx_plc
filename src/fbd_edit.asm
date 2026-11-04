@@ -165,16 +165,28 @@ fb_editor:
         ld (ld_pos),a
         call fb_fix_top
         jp .redraw
-.left:  ld a,(ld_pos)
-        or a
+.left:  ld a,(ld_pos)           ; (cells inside / behind a block skipped)
+.lf:    or a
         jp z,.cur
         dec a
+        ld e,a
+        push af
+        call fb_skip_e
+        pop bc
+        ld a,b
+        jr c,.lf
         ld (ld_pos),a
         jp .cur
 .right: ld a,(ld_pos)
-        cp LD_CPOS
+.rt:    cp LD_CPOS
         jp z,.cur
         inc a
+        ld e,a
+        push af
+        call fb_skip_e
+        pop bc
+        ld a,b
+        jr c,.rt
         ld (ld_pos),a
         jp .cur
 .nrow:  call fb_nrows           ; SS+ENTER: start of the next row
@@ -195,6 +207,7 @@ fb_editor:
         jr .setp
 .end:   ld a,LD_CPOS
 .setp:  ld (ld_pos),a
+        call fb_snap
         jp .cur
 .pgup:  ld a,(ld_vn)
         dec a
@@ -229,6 +242,7 @@ fb_editor:
         cp LD_MAXROWS
         jp nc,.cur
 .mv:    ld (ld_row),a
+        call fb_snap
         call fb_fix_top
         jp nz,.full
         jp .cur
@@ -248,6 +262,18 @@ fb_editor:
         ; ---- place an element (A = type incl. FT_NEG)
 .place: ld (fb_newt),a
         call fb_to_owner
+        ld a,(fb_newt)          ; output / wire: a signal must come from the left
+        and FT_MASK
+        cp FT_OUT
+        jr z,.src
+        cp FT_WIRE
+        jr nz,.srcok
+.src:   call fb_left_sig
+        jr nc,.srcok
+        ld hl,err_fb_src
+        call ui_error
+        jp .redraw
+.srcok:
         call fb_cur_get         ; old element: fb_t, B/C operand, ld_gpt
         ld hl,50                ; default PT T#1s, kept from a timer block
         ld a,(fb_t)
@@ -353,6 +379,12 @@ fb_editor:
         cp LD_CPOS
         jr nc,.redraw
         inc a
+        ld e,a                  ; (not into a block)
+        push af
+        call fb_skip_e
+        pop bc
+        jr c,.redraw
+        ld a,b
         ld (ld_pos),a
 .redraw:
         call status_right
@@ -425,6 +457,70 @@ fb_to_timer:
         ld (ld_row),a
         ld a,(fpt_pos)
         ld (ld_pos),a
+        ret
+
+; ---- fb_skip_e: E = position in row ld_row -> C if the cursor must not
+;      stand there: inside a block, or an empty cell behind a lower block row
+;      (only empty cells between it and the block: no signal reaches it)
+fb_skip_e:
+        ld a,(ld_row)
+        ld d,a
+.l:     push de
+        call fb_owner
+        pop de
+        ccf
+        ret c                   ; inside a block
+        ld a,e
+        or a
+        ret z                   ; left edge (NC)
+        push de
+        call ld_get
+        pop de
+        and FT_MASK
+        ret nz                  ; an element (NC)
+        dec e                   ; empty: look further left
+        jr .l
+
+; fb_snap: the cursor on a cell it must not stand on -> moved to the left
+fb_snap:
+        ld a,(ld_pos)
+.l:     ld e,a
+        push af
+        call fb_skip_e
+        pop bc
+        ret nc
+        ld a,b
+        or a
+        ret z
+        dec a
+        ld (ld_pos),a
+        jr .l
+
+; ---- fb_left_sig: NC if a signal reaches the cursor from the left: the next
+;      element on the left (over empty cells, not through a block) exists
+fb_left_sig:
+        ld a,(ld_pos)
+.l:     or a
+        scf
+        ret z                   ; left edge: no source
+        dec a
+        ld (fb_aw),a
+        ld a,(ld_row)
+        ld d,a
+        ld a,(fb_aw)
+        ld e,a
+        call fb_owner
+        ccf
+        ret c                   ; inside a block: its lower rows have no output
+        call ld_get
+        and FT_MASK
+        jr nz,.f
+        ld a,(fb_aw)
+        jr .l
+.f:     cp FT_CMT
+        scf
+        ret z
+        or a
         ret
 
 ; ---- fb_list: HL = picker list of the cursor column (keeps B)
@@ -2249,6 +2345,7 @@ txt_fb_sl:   db "// ",0
 txt_fb_pt:   db " PT=",0
 txt_fb_ptl:  db "PT",0
 err_fb_room: db "No room for the block",0
+err_fb_src:  db "No signal here (nothing on the left)",0
 
 fb_pou:   db 0xFF
 fb_t:     db 0

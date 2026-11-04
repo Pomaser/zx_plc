@@ -163,7 +163,11 @@ ENTER opens the picker (shortcut keys in brackets):
 
 A block with h inputs covers h rows: input k comes from the left on the k-th row, the output leaves on the
 top row to the right, so blocks can be chained (e.g. an OR one row lower feeding the second input of an
-AND). Placing a block needs free cells below it; DELETE inside a block removes the whole block. Wires are
+AND). The cursor stands only on the cells that make sense around a block: its inputs on the left, the
+block itself and its output on the right - cells inside a block and the empty space behind its lower rows
+are skipped. An output or a wire needs a signal coming from the left (an element, possibly over empty
+cells that are then filled with wires). Placing a block needs free cells below it; DELETE on a block
+removes the whole block. Wires are
 added automatically between a new block or output and the element on its left. In the simulation inputs,
 outputs and FB blocks are coloured black on bright green when TRUE (negation included).
 
