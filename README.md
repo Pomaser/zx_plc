@@ -198,7 +198,7 @@ Compile errors are reported with the POU name and line number.
   operand on the right (`TRUE` black on bright green, `FALSE`, numbers; PT/ET of timers as
   `T#...`). UP/DOWN scroll.
 * Lower part: input LEDs %IX0.0-1.7 (green) and output LEDs %QX0.0-1.7 (red), one row each, full width:
-  bit numbers 0-7 of byte 0, then 0-7 of byte 1; the input byte the keys act on has a line over its numbers.
+  bit numbers 0-7 of byte 0, then 0-7 of byte 1; the input byte the keys act on has a line over it.
 * Keys: `0`-`7` toggle inputs %IXb.0-b.7 of the selected byte b (key = bit number), `B` selects byte 0 / 1,
   SYMBOL SHIFT + `0`-`7` push button (input on while held),
   `R` run/stop, `S` single scan, `E` reset all data. The status bar shows RUN / STOP.
