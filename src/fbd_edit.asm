@@ -915,9 +915,11 @@ fb_draw_elem:
 .nin:   cp FT_OUT
         jr nz,.nout
         call fd_label
-        ld a,(fd_t)             ; "o" at the start when negated
-        rlca
+        ld a,(fd_t)             ; negated: "o" at the start, or at the output
+        rlca                    ; of the block the signal comes from
         jr nc,.ol
+        call fd_src_block
+        jr nz,.ol
         ld a,(fd_x)
         call fd_circle
         ld a,(fd_x)
@@ -958,11 +960,18 @@ fb_draw_elem:
         ld a,(fd_srow)
         call fd_sides
         call fd_in_stub
-        ld a,(fd_x)             ; output stub
+        call fd_out_neg         ; output: "o" at the edge when it goes to a
+        jr z,.ostub             ; negated output, else a stub
+        ld a,(fd_x)
+        add a,21
+        call fd_circle
+        jr .ob
+.ostub: ld a,(fd_x)
         add a,21
         ld c,a
         ld d,3
         call fd_hline
+.ob:
         ld a,(fd_h)
         dec a
         call z,fd_bottom
@@ -1052,7 +1061,7 @@ fd_sides:
 ;      block edge when the signal comes from a negated input, else a stub
 fd_in_stub:
         call fd_src_neg
-        jr z,fd_stubs
+        jp z,fd_stubs
         ld a,(fd_srow)          ; clear the line inside the circle
         ld b,a
         ld a,(fd_x)
@@ -1106,6 +1115,60 @@ fd_dst_block:
         ld a,(hl)
         or a
         ret nz                  ; covered by a block from above
+        ld hl,fw_t
+        add hl,de
+        ld b,(hl)
+        ld hl,fw_a
+        add hl,de
+        ld c,(hl)
+        ld a,b
+        and FT_MASK
+        cp FT_WIRE
+        jr nz,.nw
+        ld a,e
+        jr .l
+.nw:    ld a,b
+        call fb_height_t
+        or a
+        ret
+.no:    xor a
+        ret
+
+; fd_out_neg: NZ if the output of the block at fd_p leads (through wires)
+;      to a negated output
+fd_out_neg:
+        ld a,(fd_p)
+.l:     inc a
+        cp LD_CPOS+1
+        jr nc,.no
+        ld e,a
+        ld d,0
+        ld hl,fw_t
+        add hl,de
+        ld a,(hl)
+        ld b,a
+        and FT_MASK
+        cp FT_WIRE
+        jr nz,.nw
+        ld a,e
+        jr .l
+.nw:    cp FT_OUT
+        jr nz,.no
+        ld a,b
+        and FT_NEG
+        ret
+.no:    xor a
+        ret
+
+; fd_src_block: NZ if the signal of this row at fd_p comes (through wires)
+;      from the output of a block
+fd_src_block:
+        ld a,(fd_p)
+.l:     or a
+        jr z,.no
+        dec a
+        ld e,a
+        ld d,0
         ld hl,fw_t
         add hl,de
         ld b,(hl)

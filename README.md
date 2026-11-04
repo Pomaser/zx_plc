@@ -153,7 +153,7 @@ ENTER opens the picker (shortcut keys in brackets):
 
 | Positions 0-8 | Position 9 |
 |---|---|
-| input (I), negated input (N, the `o` is drawn at the block input it leads to), wire (-) | output (Q), negated output (N) |
+| input (I), negated input (N, the `o` is drawn at the block input it leads to), wire (-) | output (Q), negated output (N, the `o` is drawn at the output of the block it comes from) |
 | AND (A), OR (O), XOR (X) with 2-4 inputs, NOT (!) | |
 | SR (S), RS (R), R_TRIG (P), F_TRIG (E) - an FB instance | |
 | TON (T), TOF (F), TP (U) - instance and PT; `T` on a timer edits only its PT | |
