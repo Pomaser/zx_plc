@@ -1100,7 +1100,9 @@ ld_editor:
         ld a,(ld_pos)
         ld e,a
         call ld_get
+        push af                 ; (ld_set_ar destroys A = old type)
         call ld_set_ar
+        pop af
         ld hl,50                ; default PT T#1s, kept from an existing box
         ld e,0
         call ld_isbox
