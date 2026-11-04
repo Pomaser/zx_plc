@@ -8,6 +8,8 @@ scr_edit:
         call pou_lang
         cp LANG_IL
         jp z,il_editor
+        cp LANG_LD
+        jp z,ld_editor
         call screen_begin
         ld de,app_buf
         ld hl,txt_edit

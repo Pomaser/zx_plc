@@ -92,6 +92,7 @@ run_tests:
         call il_tests
         call vm_tests
         call sym_tests
+        call ld_tests
         ; ---- result
         ld bc,0x0000
         ld (cur_col),bc
@@ -689,6 +690,101 @@ t_detok:
 .e:     xor a
         ld (de),a
         ret
+
+; ---- LD compiler: latch with NC reset, P contact -> (S), NO -> (R)
+ld_tests:
+        ld hl,t_ldname
+        ld a,LANG_LD
+        call pou_add
+        ld (cur_pou),a
+        ld hl,t_ld_cells
+.cell:  ld a,(hl)
+        cp 0xFF
+        jr z,.prog
+        ld d,a
+        inc hl
+        ld e,(hl)
+        inc hl
+        ld a,(hl)
+        inc hl
+        ld b,(hl)
+        inc hl
+        ld c,(hl)
+        inc hl
+        push hl
+        call ld_put
+        pop hl
+        jr .cell
+.prog:  xor a
+        ld (cur_pou),a
+        ld hl,t_ld_main         ; MAIN: CAL LDT
+        call il_load_text
+        call t_nc
+        call il_compile
+        call t_nc
+        call vm_reset
+        ld a,0x01               ; I0.0: Q0.0 on
+        call t_scan_i
+        xor a                   ; holds
+        call t_scan_i
+        ld a,(RT_Q)
+        and 1
+        cp 1
+        call t_check
+        ld a,0x02               ; I0.1 (NC): off
+        call t_scan_i
+        ld a,(RT_Q)
+        and 1
+        call t_check
+        ld a,0x04               ; rising I0.2: set M0
+        call t_scan_i
+        ld a,(RT_M)
+        and 1
+        cp 1
+        call t_check
+        ld a,0x08               ; I0.3: reset M0
+        call t_scan_i
+        ld a,(RT_M)
+        and 1
+        jp t_check
+
+t_ldname: db "LDT     "
+t_ld_main: db "CAL",9,"LDT",0
+        db 0xFF
+; row, pos, type, area, index
+t_ld_cells:
+        db 0,0,LT_NO|LT_VL,AR_I,0
+        db 0,1,LT_NC,AR_I,1
+        db 0,2,LT_WIRE,0,0
+        db 0,3,LT_WIRE,0,0
+        db 0,4,LT_WIRE,0,0
+        db 0,5,LT_WIRE,0,0
+        db 0,6,LT_WIRE,0,0
+        db 0,7,LT_WIRE,0,0
+        db 0,8,LT_WIRE,0,0
+        db 0,9,LT_COIL,AR_Q,0
+        db 1,0,LT_NO,AR_Q,0
+        db 2,0,LT_P,AR_I,2
+        db 2,1,LT_WIRE,0,0
+        db 2,2,LT_WIRE,0,0
+        db 2,3,LT_WIRE,0,0
+        db 2,4,LT_WIRE,0,0
+        db 2,5,LT_WIRE,0,0
+        db 2,6,LT_WIRE,0,0
+        db 2,7,LT_WIRE,0,0
+        db 2,8,LT_WIRE,0,0
+        db 2,9,LT_SET,AR_M,0
+        db 3,0,LT_NO,AR_I,3
+        db 3,1,LT_WIRE,0,0
+        db 3,2,LT_WIRE,0,0
+        db 3,3,LT_WIRE,0,0
+        db 3,4,LT_WIRE,0,0
+        db 3,5,LT_WIRE,0,0
+        db 3,6,LT_WIRE,0,0
+        db 3,7,LT_WIRE,0,0
+        db 3,8,LT_WIRE,0,0
+        db 3,9,LT_RES,AR_M,0
+        db 0xFF
 
 memset_hl_keep:
         push hl

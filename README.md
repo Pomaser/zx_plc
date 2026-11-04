@@ -63,6 +63,28 @@ Supported instructions: `LD LDN ST STN S R AND ANDN OR ORN XOR XORN NOT ADD SUB 
 GT GE EQ NE LE LT JMP JMPC JMPCN CAL CALC CALCN RET RETC RETCN )`, with the `(` modifier where IEC allows
 it (`AND(`, `ADD(` ...). FB calls: `CAL TON0(IN:=%IX0.0, PT:=T#2s)`; POU calls: `CAL PUMP`.
 
+## LD editor
+
+Opened by ENTER on an LD POU. A row is: left rail, 9 positions for contacts / wires, the coil position on the
+right, right rail. Every element takes 3 character cells: the outer cells hold the leads and the symbol
+(`-| |-`, `-( )-`), the middle cell its content and, in the simulation, its state (green = active).
+The operand label above the element follows View (symbol clipped to the element width, or `I0.0`, `Q0.1`...);
+the full symbol name and comment of the selected element are shown in the status bar.
+
+| Key | Contact positions 0-8 | Coil position 9 |
+|---|---|---|
+| `C` | normally open contact `-| |-` | coil `-( )-` |
+| `/` (SS+V) | normally closed contact `-|/|-` | negated coil `-(/)-` |
+| `P` / `N` | rising / falling edge contact | |
+| `S` / `R` | | set / reset coil |
+| `-` (SS+J) | wire | |
+
+Arrows move, ENTER edits the operand (address or symbol), DELETE clears the position, `V` toggles a vertical
+link at the right edge of the position (parallel branches), Edit > Insert line / Delete line insert or delete
+a row. Placing an element fills the empty positions to its left with wires (up to the previous element, the
+rail or an incoming link). Rungs (rows joined by links) are compiled column by column; P/N contacts keep their
+edge memory (max. 32 per project).
+
 ## Symbols
 
 Edit > Symbols opens the list of defined symbols, sorted by address, with an empty row at the end for a new
@@ -82,7 +104,7 @@ and must not clash with addresses, keywords, FB instances, IL instructions or PO
 Run > Run (or R on the Run screen) compiles all POUs to bytecode and runs MAIN once per frame (20 ms).
 Compile errors are reported with the POU name and line number.
 
-* Upper part: listing of the monitored IL POU (the current POU, or MAIN) with the live value of each
+* Upper part: listing of the monitored IL or LD POU (the current POU, or MAIN) with the live value of each
   operand on the right (`TRUE` inverted, `FALSE` - both dark magenta -, numbers; PT/ET of timers as
   `T#...`). UP/DOWN scroll.
 * Lower part: input LEDs %IX0.0-0.7 (green) and output LEDs %QX0.0-0.7 (red).
@@ -90,7 +112,7 @@ Compile errors are reported with the POU name and line number.
   `R` run/stop, `S` single scan, `E` reset all data. The status bar shows RUN / STOP.
 * Standard FBs: TON, TOF, TP, CTU, CTD, R_TRIG, F_TRIG, SR, RS. Calls of other POUs: max. depth 8.
   A watchdog stops a scan that executes more than 30000 instructions.
-* LD and FBD POUs are not compiled yet (a call of such a POU does nothing).
+* FBD POUs are not compiled yet (a call of such a POU does nothing).
 
 ## Operands
 
@@ -117,6 +139,6 @@ The time base is 20 ms (one frame).
 ## Memory map
 
 ```
-6000-C7FF  code      C800-EFFF  project, 10 KB (saved to tape)
+6000-CFFF  code      D000-EFFF  project, 8 KB (saved to tape)
 F000-F7FF  bytecode  F800-FDFC  runtime   FDFD-FF00  IM2
 ```

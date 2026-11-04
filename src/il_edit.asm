@@ -839,8 +839,11 @@ il_fmt_one:
         ld (fo_src),hl
         ld h,a
         ld l,c                  ; HL = value
-.go:    ld a,b
-        ld b,0
+.go:    ld a,b                  ; A = area
+        ex af,af'
+        ld a,(fo_style)         ; B = style: 0 IEC, 1 short form (LD labels)
+        ld b,a
+        ex af,af'
         call op_format
 .ret:   ld hl,(fo_src)
         ret
@@ -858,6 +861,7 @@ sp_more:
 
 fo_inst: dw 0
 fo_src:  dw 0
+fo_style: db 0
 sp_end:  dw 0
 
 ; ---- il_load: loads line il_cur into the edit buffer, cursor at the end,

@@ -123,6 +123,8 @@ frames: dw 0
         INCLUDE "src/sim.asm"
         INCLUDE "src/symbols.asm"
         INCLUDE "src/sym_edit.asm"
+        INCLUDE "src/ld_edit.asm"
+        INCLUDE "src/ld_comp.asm"
     IFNDEF NODEMO
         INCLUDE "src/demo.asm"
     ENDIF

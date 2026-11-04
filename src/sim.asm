@@ -19,23 +19,35 @@ ATTR_BOOL  EQU 0x3B         ; dark magenta ink (TRUE/FALSE values)
 
 scr_run:
         call screen_begin
-        ; monitored POU: the current one if IL, else MAIN if IL
-        xor a
+        ; monitored POU: the current one if IL, else MAIN if IL        xor a
         ld (sm_mon),a
         ld a,(cur_pou)
         call pou_lang
-        cp LANG_IL
-        jr z,.mon
+        cp LANG_FBD
+        jr c,.mon               ; IL or LD
         xor a
         call pou_lang
-        cp LANG_IL
-        jr nz,.nomon
+        cp LANG_FBD
+        jr nc,.nomon
         xor a
         ld (cur_pou),a
         call status_draw
-.mon:   ld a,1
-        ld (sm_mon),a
+.mon:   ld a,(cur_pou)
+        call pou_lang
+        inc a
+        ld (sm_mon),a           ; 1 = IL, 2 = LD
+        cp 2
+        jr z,.ldm
         call il_count
+        jr .nomon
+.ldm:   call ld_nrows           ; scrolling limit
+        ld l,a
+        ld h,0
+        ld (il_n),hl
+        ld a,1
+        ld (ld_vbase),a
+        ld a,SIM_ROWS/2
+        ld (ld_vn),a
 .nomon: ld hl,(il_cur)
         ld (sm_savecur),hl
         ld hl,0
@@ -351,7 +363,13 @@ sim_draw_panel:
 ; ---- sim_draw_list: listing rows 1-18 + monitor descriptors
 sim_draw_list:
         ld a,(sm_mon)
-        or a
+        cp 2
+        jr nz,.nld
+        ld a,(sm_top)           ; LD diagram
+        ld (ld_top),a
+        call ld_draw_view
+        jp ld_set_state
+.nld:   or a
         jr nz,.go
         ld a,3
         ld (pt_row),a
@@ -446,7 +464,11 @@ sim_desc_addr:
 ; ---- sim_update: redraws changed values and LEDs
 sim_update:
         ld a,(sm_mon)
-        or a
+        cp 2
+        jr nz,.nld
+        call ld_set_state
+        jr .leds
+.nld:   or a
         jr z,.leds
         xor a
         ld (sm_r),a
@@ -601,7 +623,7 @@ txt_sm_true:  db "TRUE",0
 txt_sm_in:    db "Inputs",0
 txt_sm_out:   db "Outputs",0
 txt_sm_hint:  db "1-8 toggle, SS+1-8 push, R run/stop, S step, E reset",0
-txt_sm_nomon: db "No IL POU to monitor.",0
+txt_sm_nomon: db "No IL or LD POU to monitor.",0
 txt_sm_err:   db "Error in ",0
 txt_sm_line:  db ", line ",0
 

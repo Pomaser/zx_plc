@@ -9,6 +9,8 @@
 CP_MAXLBL EQU 32
 
 il_compile:
+        xor a
+        ld (lc_edges),a
         ld hl,BCODE
         ld (cp_pc),hl
         xor a
@@ -34,9 +36,15 @@ il_compile:
         call cp_pou
         ret c
         jr .next
-.stub:  ld a,2
+.stub:  push af
+        ld a,2
         ld (cp_pass),a
-        ld a,OP_RET
+        pop af
+        cp LANG_LD
+        jr nz,.ret
+        call ld_compile
+        ret c
+.ret:   ld a,OP_RET
         call cp_emit0
         ret c
 .next:  ld hl,cp_slot
