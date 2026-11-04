@@ -930,6 +930,8 @@ ld_editor:
         jp z,.pgup
         cp K_PGDN
         jp z,.pgdn
+        cp K_SSENTER
+        jp z,.nrow
         cp K_ENTER
         jp z,.enter
         cp K_DEL
@@ -1011,6 +1013,23 @@ ld_editor:
         inc a
         ld (ld_pos),a
         jp .cur
+.nrow:  call ld_nrows           ; SS+ENTER: start of the next row
+        ld b,a                  ; (max. the row after the last)
+        ld a,(ld_row)
+        cp b
+        jr nc,.home
+        inc a
+        cp LD_MAXROWS
+        jr nc,.home
+        ld (ld_row),a
+        call ld_fix_top
+        jr nz,.nfull
+        xor a
+        ld (ld_pos),a
+        jp .cur
+.nfull: xor a
+        ld (ld_pos),a
+        jp .full
 .home:  xor a                   ; first position
         jr .setp
 .end:   ld a,LD_CPOS            ; coil position
@@ -1122,18 +1141,9 @@ ld_editor:
         jr nz,.redraw
         ld a,(ld_pos)
         cp LD_CPOS
-        jr nc,.nrow
-        inc a
-        ld (ld_pos),a
-        jr .redraw
-.nrow:  ld a,(ld_row)           ; coil placed: start of the next row
-        inc a
-        cp LD_MAXROWS
         jr nc,.redraw
-        ld (ld_row),a
-        xor a
+        inc a
         ld (ld_pos),a
-        call ld_fix_top
 .redraw:
         call status_right
         jp .full

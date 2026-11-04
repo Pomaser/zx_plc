@@ -84,9 +84,9 @@ ENTER on a position opens the element picker: a window listing the elements as t
 (contacts, wire and vertical link on positions 0-8, coils on the coil position); choose with UP/DOWN and
 ENTER, then type the operand (choosing "Vertical link" toggles the link at the right edge of the position).
 The current element is preselected, so ENTER on an element also changes its type or operand.
-After a new element is placed on an empty position the cursor moves on to the next position; after a
-coil it jumps to the start of the next row, so a rung is entered without moving the cursor by hand
-(SS+RIGHT jumps to the coil position).
+After a new element is placed on an empty position the cursor moves on to the next position, SS+RIGHT
+jumps to the coil position and SS+ENTER to the start of the next row, so a rung is entered without moving
+the cursor by hand.
 The letter keys below work as shortcuts both in the editor and in the picker.
 
 | Key | Contact positions 0-8 | Coil position 9 |
