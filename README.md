@@ -124,7 +124,7 @@ Compile errors are reported with the POU name and line number.
   operand on the right (`TRUE` inverted, `FALSE` - both dark magenta -, numbers; PT/ET of timers as
   `T#...`). UP/DOWN scroll.
 * Lower part: input LEDs %IX0.0-0.7 (green) and output LEDs %QX0.0-0.7 (red).
-* Keys: `1`-`8` toggle inputs, SYMBOL SHIFT + `1`-`8` push button (input on while held),
+* Keys: `0`-`7` toggle inputs %IX0.0-0.7 (key = bit number), SYMBOL SHIFT + `0`-`7` push button (input on while held),
   `R` run/stop, `S` single scan, `E` reset all data. The status bar shows RUN / STOP.
 * Standard FBs: TON, TOF, TP, CTU, CTD, R_TRIG, F_TRIG, SR, RS. Calls of other POUs: max. depth 8.
   A watchdog stops a scan that executes more than 30000 instructions.

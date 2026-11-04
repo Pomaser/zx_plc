@@ -106,11 +106,11 @@ scr_run:
         jr z,.menu
         cp K_EDIT
         jr z,.menu
-        cp '1'
+        cp '0'
         jr c,.letter
-        cp '9'
+        cp '8'
         jr nc,.letter
-        sub '1'                 ; toggle input
+        sub '0'                 ; key n toggles input %IX0.n
         ld e,a
         ld d,0
         ld hl,bit_masks
@@ -241,28 +241,30 @@ sim_scan:
         ld hl,(vm_err)
         jp ui_error
 
-; ---- sim_inputs: toggled inputs + SYMBOL SHIFT + 1-8 held (push buttons)
+; ---- sim_inputs: toggled inputs + SYMBOL SHIFT + 0-7 held (push buttons);
+;      key n = input %IX0.n
 sim_inputs:
         ld e,0
         ld a,0x7F
         in a,(0xFE)
         bit 1,a
         jr nz,.no
-        ld a,0xF7               ; keys 1-5
+        ld a,0xF7               ; keys 1-5 -> bits 1-5
         in a,(0xFE)
         cpl
         and 0x1F
+        add a,a
         ld e,a
-        ld a,0xEF               ; keys 6 (bit 4), 7 (bit 3), 8 (bit 2)
+        ld a,0xEF               ; keys 0 (bit 0), 6 (bit 4), 7 (bit 3)
         in a,(0xFE)
         cpl
-        bit 4,a
+        bit 0,a
+        jr z,.k6
+        set 0,e
+.k6:    bit 4,a
         jr z,.k7
-        set 5,e
-.k7:    bit 3,a
-        jr z,.k8
         set 6,e
-.k8:    bit 2,a
+.k7:    bit 3,a
         jr z,.no
         set 7,e
 .no:    ld a,(sim_tog)
@@ -666,7 +668,7 @@ txt_sm_stop:  db "STOP",0
 txt_sm_true:  db "TRUE",0
 txt_sm_in:    db "Inputs",0
 txt_sm_out:   db "Outputs",0
-txt_sm_hint:  db "1-8 toggle, SS+1-8 push, R run/stop, S step, E reset",0
+txt_sm_hint:  db "0-7 toggle, SS+0-7 push, R run/stop, S step, E reset",0
 txt_sm_nomon: db "No IL or LD POU to monitor.",0
 txt_sm_err:   db "Error in ",0
 txt_sm_line:  db ", line ",0
