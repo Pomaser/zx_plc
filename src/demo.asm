@@ -206,7 +206,7 @@ dm_n_fbd: db "DEMO_FBD"
 dm_c_main: db "Calls the 3 demos",0
 dm_c_il:   db "Traffic light (IL)",0
 dm_c_ld:   db "Pump and fan (LD)",0
-dm_c_fbd:  db "Valve, horn, stairs",0
+dm_c_fbd:  db "Valve and horn (FBD)",0
 
 ; ---- symbols: area, index, name, comment
 dm_syms:
@@ -243,21 +243,17 @@ dm_syms:
         db AR_I,10,"LowLvl",0,"Tank level low",0
         db AR_I,11,"HighLvl",0,"Tank level high",0
         db AR_I,12,"HornAck",0,"Horn acknowledge",0
-        db AR_I,13,"SwUp",0,"Stair switch up",0
-        db AR_I,14,"SwDown",0,"Stair switch down",0
         db AR_Q,8,"Valve",0,"Inlet valve",0
         db AR_Q,9,"Horn",0,"Overflow horn",0
-        db AR_Q,10,"StairLt",0,"Stair light",0
         db AR_FBI,FBT_RTRIG*FB_PER_TYPE+0,"OvEdge",0,"High level edge",0
         db AR_FBI,FBT_SR*FB_PER_TYPE+0,"HornMem",0,"Horn memory",0
-        db AR_FBI,FBT_TOF*FB_PER_TYPE+1,"TStair",0,"Stair light run-on",0
         db 0xFF
 
 ; ---- MAIN
 dm_main:
         db "// Demo project: MAIN runs the",0
         db "// traffic light (IL), the pump (LD)",0
-        db "// and the tank / stairs (FBD)",0
+        db "// and the tank (FBD)",0
         db "CAL",9,"DEMO_IL",0
         db "CAL",9,"DEMO_LD",0
         db "CAL",9,"DEMO_FBD",0
@@ -420,21 +416,8 @@ dm_fbd:
         db 7,0,FT_IN,AR_I,12
         dw 0
         DM_FWIRES 7,1,1
-        ; stair light: SwUp XOR SwDown, 5 s run-on
-        db 9,0,FT_IN,AR_I,13
-        dw 0
-        db 9,1,FT_XOR,2,0
-        dw 0
-        DM_FWIRES 9,2,2
-        db 9,3,FT_TOF,AR_FBI,FBT_TOF*FB_PER_TYPE+1
-        dw 250
-        db 9,4,FT_OUT,AR_Q,10
-        dw 0
-        db 10,0,FT_IN,AR_I,14
-        dw 0
         db 0xFF
 dm_fbdc:
         db 0,"Valve: auto, manual or low level",0
         db 5,"Horn: overflow until acknowledged",0
-        db 8,"Stair light: 2 switches, 5 s run-on",0
         db 0xFF
