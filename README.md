@@ -171,10 +171,9 @@ cells that are then filled with wires). Placing a block needs free cells below i
 removes the whole block. A block placed on an input inserts itself behind it: the network moves one
 position to the right, the input feeds the first input of the new block and the cursor goes to the
 second input. If a block does not fit, it is not placed ("No room for the block"). Wires are
-added automatically between a new block or output and the element on its left. In the simulation the names of
-inputs and outputs are coloured black on bright green when their variable is TRUE (a negation is shown only by
-the `o`). Lines carrying TRUE (wires, the lines of inputs and outputs, negation included) and blocks whose
-output is TRUE (logic and FB blocks) are drawn in dark green.
+added automatically between a new block or output and the element on its left. In the simulation inputs,
+outputs (their names) and FB blocks are coloured black on bright green when their variable is TRUE (a negation is shown
+only by the `o`); logic blocks (AND, OR, XOR, NOT) are coloured inside when their result is TRUE.
 
 ## Symbols
 
