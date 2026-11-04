@@ -755,7 +755,12 @@ ld_put_cmt:
         ret
 
 ; ---- ld_cursor: XORs the symbol cells of the cursor position
+;      (comment row: a 1 px text cursor in front of "//")
 ld_cursor:
+        ld a,(ld_row)
+        ld (ld_r),a
+        call ld_cmt_text
+        push af                 ; C = not a comment row
         ld a,(ld_row)
         ld b,a
         ld a,(ld_top)
@@ -768,7 +773,12 @@ ld_cursor:
         add a,b
         inc a
         ld b,a
-        ld a,(ld_pos)
+        pop af
+        jr c,.elem
+        ld c,10
+        ld d,1
+        jr .draw
+.elem:  ld a,(ld_pos)
         ld c,a
         add a,a
         add a,c
@@ -778,7 +788,7 @@ ld_cursor:
         add a,a
         ld c,a
         ld d,24
-        ld hl,0x0008
+.draw:  ld hl,0x0008
         ld e,PX_XOR
         jp px_span
 
