@@ -198,7 +198,7 @@ dm_n_fbd: db "DEMO_FBD"
 dm_c_main: db "Calls both demos",0
 dm_c_il:   db "Traffic light (IL)",0
 dm_c_ld:   db "Pump and fan (LD)",0
-dm_c_fbd:  db "Horn and light (FBD)",0
+dm_c_fbd:  db "Valve, horn, stair light",0
 
 ; ---- symbols: area, index, name, comment
 dm_syms:
@@ -229,16 +229,27 @@ dm_syms:
         db AR_FBI,FBT_TOF*FB_PER_TYPE+0,"TFan",0,"Fan run-on time",0
         db AR_FBI,FBT_TP*FB_PER_TYPE+0,"POn",0,"Blink: lamp pulse",0
         db AR_FBI,FBT_TP*FB_PER_TYPE+1,"POff",0,"Blink: dark pulse",0
-        db AR_Q,7,"Horn",0,"Alarm horn",0
-        db AR_Q,3,"Light",0,"Start light",0
-        db AR_FBI,FBT_TP*FB_PER_TYPE+2,"TLi",0,"Light time",0
-        db AR_FBI,FBT_RTRIG*FB_PER_TYPE+0,"Rise",0,"Start edge",0
+        ; DEMO_FBD: I/O byte 1 only
+        db AR_I,8,"Auto",0,"Valve: automatic mode",0
+        db AR_I,9,"Manual",0,"Valve: open manually",0
+        db AR_I,10,"LowLvl",0,"Tank level low",0
+        db AR_I,11,"HighLvl",0,"Tank level high",0
+        db AR_I,12,"HornAck",0,"Horn acknowledge",0
+        db AR_I,13,"SwUp",0,"Stair switch up",0
+        db AR_I,14,"SwDown",0,"Stair switch down",0
+        db AR_Q,8,"Valve",0,"Inlet valve",0
+        db AR_Q,9,"Horn",0,"Overflow horn",0
+        db AR_Q,10,"StairLt",0,"Stair light",0
+        db AR_FBI,FBT_RTRIG*FB_PER_TYPE+0,"OvEdge",0,"High level edge",0
+        db AR_FBI,FBT_SR*FB_PER_TYPE+0,"HornMem",0,"Horn memory",0
+        db AR_FBI,FBT_TOF*FB_PER_TYPE+1,"TStair",0,"Stair light run-on",0
         db 0xFF
 
 ; ---- MAIN
 dm_main:
         db "// Demo project: MAIN runs the",0
-        db "// traffic light, pump and horn",0
+        db "// traffic light (IL), the pump (LD)",0
+        db "// and the tank / stairs (FBD)",0
         db "CAL",9,"DEMO_IL",0
         db "CAL",9,"DEMO_LD",0
         db "CAL",9,"DEMO_FBD",0
@@ -370,32 +381,52 @@ dm_ldc:
         ENDW
     ENDM
 dm_fbd:
-        ; horn: (Fault OR Alert) AND NOT Ack
-        db 1,0,FT_IN|FT_NEG,AR_I,7
+        ; valve: Auto AND (Manual OR (LowLvl AND NOT HighLvl))
+        db 1,0,FT_IN,AR_I,8
         dw 0
-        db 1,1,FT_WIRE,0,0
+        DM_FWIRES 1,1,2
+        db 1,3,FT_AND,2,0
         dw 0
-        db 1,2,FT_AND,2,0
+        db 1,4,FT_OUT,AR_Q,8
         dw 0
-        db 1,3,FT_OUT,AR_Q,7
+        db 2,0,FT_IN,AR_I,9
         dw 0
-        db 2,0,FT_IN,AR_I,6
+        DM_FWIRES 2,1,1
+        db 2,2,FT_OR,2,0
         dw 0
-        db 2,1,FT_OR,2,0
+        db 3,0,FT_IN,AR_I,10
         dw 0
-        db 3,0,FT_IN,AR_M,0
+        db 3,1,FT_AND,2,0
         dw 0
-        ; light: 2 s pulse at the rising edge of TL_Start
-        db 6,0,FT_IN,AR_I,0
+        db 4,0,FT_IN|FT_NEG,AR_I,11
+        dw 0
+        ; horn: set by the rising edge of HighLvl, reset by HornAck
+        db 6,0,FT_IN,AR_I,11
         dw 0
         db 6,1,FT_RTRIG,AR_FBI,FBT_RTRIG*FB_PER_TYPE+0
         dw 0
-        db 6,2,FT_TP,AR_FBI,FBT_TP*FB_PER_TYPE+2
-        dw 100
-        db 6,3,FT_OUT,AR_Q,3
+        db 6,2,FT_SR,AR_FBI,FBT_SR*FB_PER_TYPE+0
+        dw 0
+        db 6,3,FT_OUT,AR_Q,9
+        dw 0
+        db 7,0,FT_IN,AR_I,12
+        dw 0
+        DM_FWIRES 7,1,1
+        ; stair light: SwUp XOR SwDown, 5 s run-on
+        db 9,0,FT_IN,AR_I,13
+        dw 0
+        db 9,1,FT_XOR,2,0
+        dw 0
+        DM_FWIRES 9,2,2
+        db 9,3,FT_TOF,AR_FBI,FBT_TOF*FB_PER_TYPE+1
+        dw 250
+        db 9,4,FT_OUT,AR_Q,10
+        dw 0
+        db 10,0,FT_IN,AR_I,14
         dw 0
         db 0xFF
 dm_fbdc:
-        db 0,"Horn: fault or alert, not acknowledged",0
-        db 5,"Light: 2 s at the traffic light start",0
+        db 0,"Valve: auto, manual or low level",0
+        db 5,"Horn: overflow until acknowledged",0
+        db 8,"Stair light: 2 switches, 5 s run-on",0
         db 0xFF
