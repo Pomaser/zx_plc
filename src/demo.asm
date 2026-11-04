@@ -186,7 +186,15 @@ dm_cmt: push hl
         call memset
         pop de
         pop hl
-        jp put_str
+        ld b,POU_CMAX           ; (at most POU_CMAX chars)
+.c:     ld a,(hl)
+        or a
+        ret z
+        ld (de),a
+        inc hl
+        inc de
+        djnz .c
+        ret
 
 dm_area: db 0
 dm_idx:  db 0
@@ -195,10 +203,10 @@ dm_name: dw 0
 dm_n_il: db "DEMO_IL "
 dm_n_ld: db "DEMO_LD "
 dm_n_fbd: db "DEMO_FBD"
-dm_c_main: db "Calls both demos",0
+dm_c_main: db "Calls the 3 demos",0
 dm_c_il:   db "Traffic light (IL)",0
 dm_c_ld:   db "Pump and fan (LD)",0
-dm_c_fbd:  db "Valve, horn, stair light",0
+dm_c_fbd:  db "Valve, horn, stairs",0
 
 ; ---- symbols: area, index, name, comment
 dm_syms:
