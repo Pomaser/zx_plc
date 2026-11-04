@@ -172,8 +172,11 @@ lc_row_used:
 .l:     push de
         call ld_get
         pop de
+        cp LT_CMT               ; a comment row has no elements
+        jr z,.cm
         or a
         ret nz
+.cm:
         inc e
         ld a,e
         cp LD_CPOS+1
@@ -204,6 +207,8 @@ lc_is_dead:
 
 ; ---- lc_elem: A = type of a contact column element (lc_area = operand)
 lc_elem:
+        cp LT_CMT
+        ret z
         cp LT_WIRE
         ret z
         or a

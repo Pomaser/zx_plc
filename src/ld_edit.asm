@@ -22,6 +22,8 @@ LT_TON    EQU 6             ; timer boxes (record + PT)
 LT_TOF    EQU 7
 LT_TP     EQU 12
 LT_VLITEM EQU 13            ; picker item: toggle the vertical link
+LT_CMT    EQU 14            ; network comment row: [row][0][14][n][text n]
+ATTR_LDCMT EQU 0x3C         ; dark green: comments
 LT_VL     EQU 0x80          ; vertical link down
 LT_MASK   EQU 0x0F
 LD_CPOS   EQU 9             ; coil position
@@ -76,14 +78,26 @@ ld_tlen:
         ld a,5
         ret
 
-; ---- ld_skip: HL = record -> next record (keeps BC)
-ld_skip:
+; ---- ld_rlen: HL = record -> A = its length (keeps BC, DE, HL)
+ld_rlen:
         push hl
         inc hl
         inc hl
         ld a,(hl)
+        and LT_MASK
+        cp LT_CMT
+        jr nz,.t
+        inc hl
+        ld a,(hl)
+        add a,4
         pop hl
-        call ld_tlen
+        ret
+.t:     pop hl
+        jp ld_tlen
+
+; ---- ld_skip: HL = record -> next record (keeps BC)
+ld_skip:
+        call ld_rlen
         ld e,a
         ld d,0
         add hl,de
@@ -182,12 +196,7 @@ ld_put: ld (lp_rec+2),a
         ld a,(lp_rec+2)
         or a
         jr z,.del
-        push hl                 ; same length -> overwrite
-        inc hl
-        inc hl
-        ld a,(hl)
-        pop hl
-        call ld_tlen
+        call ld_rlen
         ld b,a
         ld a,(lp_rec+2)
         call ld_tlen
@@ -206,15 +215,10 @@ ld_put: ld (lp_rec+2),a
         ld e,a
         call ld_find
         jr .ins
-.del:   push hl
-        inc hl
-        inc hl
-        ld a,(hl)
-        pop hl
-        call ld_tlen
+.del:   call il_offset          ; (destroys BC)
+        call ld_rlen
         ld c,a
         ld b,0
-        call il_offset
         ld a,(cur_pou)
         call pou_delete
         or a
@@ -283,15 +287,10 @@ ld_del_row:
         jr z,.rm
         call ld_rec_next
         jr .f
-.rm:    push hl
-        inc hl
-        inc hl
-        ld a,(hl)
-        pop hl
-        call ld_tlen
+.rm:    call il_offset          ; (destroys BC)
+        call ld_rlen
         ld c,a
         ld b,0
-        call il_offset
         ld a,(cur_pou)
         call pou_delete
         jr .again
@@ -440,7 +439,22 @@ ld_draw_row:
         call .rail
         ld c,248
         call .rail
-        xor a
+        call ld_cmt_text        ; comment row?
+        jr c,.elems
+        ld a,(ld_srow)          ; "// text" in dark green
+        ld b,a
+        ld c,1
+        ld de,0x1E00+ATTR_LDCMT
+        call scr_fill_attr
+        ld a,(ld_srow)
+        ld (pt_row),a
+        ld a,12
+        ld (pt_x),a
+        ld hl,txt_ld_sl
+        call pt_puts
+        ld hl,ld_cbuf
+        jp pt_puts
+.elems: xor a
         ld (ld_p),a
 .pos:   ld a,(ld_r)
         ld d,a
@@ -796,6 +810,84 @@ ld_pick_q:
         db LT_RES,  'R',"Reset coil",0
         db 0xFF
 
+; ---- ld_cmt_text: row ld_r -> NC: ld_cbuf = its comment text; C: no comment
+ld_cmt_text:
+        ld a,(ld_r)
+        ld d,a
+        ld e,0
+        call ld_find
+        ret c
+        inc hl
+        inc hl
+        ld a,(hl)
+        cp LT_CMT
+        scf
+        ret nz
+        inc hl
+        ld c,(hl)
+        ld b,0
+        inc hl
+        ld de,ld_cbuf
+        ld a,c
+        or a
+        jr z,.e
+        ldir
+.e:     xor a
+        ld (de),a
+        ret
+
+; ---- ld_put_cmt: row ld_row <- comment text ld_cbuf (empty: removed)
+ld_put_cmt:
+        ld a,(ld_row)           ; remove the old record of position 0
+        ld d,a
+        ld e,0
+        xor a
+        ld bc,0
+        call ld_put
+        ld hl,ld_cbuf
+        call strlen
+        or a
+        ret z
+        ld (lp_rec+3),a
+        add a,4
+        ld (lc_len),a
+        call ld_hdr
+        ret c
+        ld a,(ld_row)
+        ld d,a
+        ld e,0
+        call ld_find
+        call il_offset
+        ld a,(lc_len)
+        ld c,a
+        ld b,0
+        ld a,(cur_pou)
+        call pou_insert
+        ret c
+        ld a,(ld_row)
+        ld (hl),a
+        inc hl
+        ld (hl),0
+        inc hl
+        ld (hl),LT_CMT
+        inc hl
+        ld a,(lp_rec+3)
+        ld (hl),a
+        inc hl
+        ex de,hl
+        ld hl,ld_cbuf
+        ld c,a
+        ld b,0
+        ldir
+        ld a,(cur_pou)          ; the row count covers this row
+        call pou_body
+        ld a,(ld_row)
+        inc a
+        cp (hl)
+        ret c
+        ld (hl),a
+        ret
+
 ; ---- ld_cursor: XORs the symbol cells of the cursor position
 ld_cursor:
         ld a,(ld_row)
@@ -879,7 +971,12 @@ ld_set_state:
         inc hl
         ld a,(hl)
         and LT_MASK
-        ld (ld_t),a
+        cp LT_CMT
+        jr nz,.nc
+        dec hl
+        dec hl
+        jr .n
+.nc:    ld (ld_t),a
         inc hl
         ld b,(hl)
         inc hl
@@ -925,7 +1022,7 @@ ld_set_state:
         ld (hl),e
         pop hl
 .n:     call ld_rec_next
-        jr .l
+        jp .l
 
 ; ============================================================
 ; editor
@@ -935,7 +1032,7 @@ ld_editor:
         ld a,(cur_pou)
         ld hl,ld_pou
         cp (hl)
-        jr z,.same
+        jp z,.same
         ld (hl),a
         xor a
         ld (ld_row),a
@@ -954,13 +1051,13 @@ ld_editor:
         call ld_cursor          ; cursor off
         pop af
         cp K_LEFT
-        jr z,.left
+        jp z,.left
         cp K_RIGHT
-        jr z,.right
+        jp z,.right
         cp K_UP
-        jr z,.up
+        jp z,.up
         cp K_DOWN
-        jr z,.down
+        jp z,.down
         cp K_ENTER
         jp z,.enter
         cp K_DEL
@@ -989,22 +1086,62 @@ ld_editor:
 .kf:    ld a,(hl)
         cp LT_VLITEM
         jp z,.vlink
+        cp LT_NC                ; "//" at the start of an empty row: comment
+        jp nz,.place
+        ld a,(ld_pos)
+        or a
+        ld a,LT_NC
+        jp nz,.place
+        call ld_row_empty
+        ld a,LT_NC
+        jp nz,.place
+        call kb_wait
+        cp '/'
+        jr z,.cmt
+        ld (ld_first),a         ; another key: NC contact, key starts the operand
+        ld a,LT_NC
         jp .place
+.cmt:   xor a
+        ld (ld_cbuf),a
+.cedit: ld a,(ld_row)           ; edit the comment in place
+        ld b,a
+        ld a,(ld_top)
+        ld c,a
+        ld a,b
+        sub c
+        add a,a
+        inc a
+        ld b,a
+        ld a,(ld_vbase)
+        add a,b
+        ld b,a
+        push bc
+        ld c,1
+        ld de,0x1E00+ATTR_LDCMT
+        call scr_fill_attr
+        pop bc
+        ld c,12
+        ld hl,ld_cbuf
+        ld de,0x2400            ; max 36 chars, case kept
+        call ui_input
+        jp c,.full
+        call ld_put_cmt
+        jp .redraw
 .left:  ld a,(ld_pos)
         or a
-        jr z,.cur
+        jp z,.cur
         dec a
         ld (ld_pos),a
-        jr .cur
+        jp .cur
 .right: ld a,(ld_pos)
         cp LD_CPOS
-        jr z,.cur
+        jp z,.cur
         inc a
         ld (ld_pos),a
-        jr .cur
+        jp .cur
 .up:    ld a,(ld_row)
         or a
-        jr z,.cur
+        jp z,.cur
         dec a
         jr .mv
 .down:  call ld_nrows           ; one row below the last may be used
@@ -1031,10 +1168,22 @@ ld_editor:
         call ld_get
         call ld_set_ar
         ld hl,50                ; default PT T#1s, kept from an existing box
+        ld e,0
         call ld_isbox
         jr nz,.dpt
         ld hl,(ld_gpt)
+        inc e
 .dpt:   ld (ld_ppt),hl
+        ld a,(ld_newt)          ; box <-> contact/coil: no operand to keep
+        call ld_isbox
+        ld a,0
+        jr nz,.nb
+        inc a
+.nb:    cp e
+        jp z,.kept
+        xor a
+        ld (ld_ar),a
+.kept:
         ld a,(ld_newt)
         call ld_ask_operand
         jp c,.redraw
@@ -1076,7 +1225,11 @@ ld_editor:
         jp .full
 
         ; ---- ENTER: operand of the current element
-.enter: ld a,(ld_row)              ; element picker
+.enter: ld a,(ld_row)              ; comment row: edit it
+        ld (ld_r),a
+        call ld_cmt_text
+        jp nc,.cedit
+        ld a,(ld_row)              ; element picker
         ld d,a
         ld a,(ld_pos)
         ld e,a
@@ -1088,7 +1241,15 @@ ld_editor:
         jp .place
 
         ; ---- DELETE: clear the position (the link stays)
-.del:   ld a,(ld_row)
+.del:   ld a,(ld_row)           ; comment row: remove the comment
+        ld (ld_r),a
+        call ld_cmt_text
+        jr c,.dl
+        xor a
+        ld (ld_cbuf),a
+        call ld_put_cmt
+        jp .redraw
+.dl:    ld a,(ld_row)
         ld d,a
         ld a,(ld_pos)
         ld e,a
@@ -1127,12 +1288,27 @@ ld_editor:
 .mins:  ld a,(ld_row)
         ld d,a
         call ld_ins_row
-        jr .redraw
+        jp .redraw
 .mdel:  ld a,(ld_row)
         ld d,a
         call ld_del_row
-        jr .redraw
+        jp .redraw
 
+
+; ---- ld_row_empty: Z if row ld_row has no records
+ld_row_empty:
+        ld a,(ld_row)
+        ld d,a
+        ld e,0
+.l:     call ld_get
+        or a
+        ret nz
+        inc e
+        ld a,e
+        cp LD_CPOS+1
+        jr c,.l
+        xor a
+        ret
 
 ; ---- ld_autowire: fills empty positions left of the new element with wires
 ;      (up to the previous element, the left rail or an incoming link)
@@ -1176,11 +1352,20 @@ ld_autowire:
 ;      NC: B = area, C = index; C = cancelled
 ld_ask_operand:
         ld (ld_kind),a
-        ; initial text = current operand
+        ; initial text = current operand (or the first key typed)
         ld de,ld_obuf
         xor a
         ld (de),a
-        ld a,(ld_ar)
+        ld a,(ld_first)
+        or a
+        jr z,.nf
+        ld (de),a
+        inc de
+        xor a
+        ld (de),a
+        ld (ld_first),a
+        jr .ask
+.nf:    ld a,(ld_ar)
         or a
         jr z,.ask
         ld hl,ld_ar
@@ -1364,6 +1549,8 @@ ld_info:
         and LT_MASK
         cp LT_NO
         jr c,.show
+        cp LT_CMT
+        jr z,.show
         ld a,b
         and AR_MASK
         cp AR_FBM
@@ -1416,6 +1603,7 @@ err_ld_op:  db "Invalid operand for this element",0
 err_ld_pt:  db "Invalid time",0
 txt_ld_ptq: db "PT (time, e.g. T#4s):",0," ",0," ",0,0
 txt_ld_pt:  db " PT=",0
+txt_ld_sl:  db "// ",0
 
 ld_pou:   db 0xFF
 ld_row:   db 0
@@ -1441,6 +1629,9 @@ lp_rec:   ds 7
 ld_gpt:   dw 0              ; PT of the last ld_get box
 ld_ppt:   dw 0              ; PT for ld_put
 ld_infop: dw 0
+ld_first: db 0              ; first key of an operand typed after '/'
+lc_len:   db 0
+ld_cbuf:  ds 40
 ld_lbl:   ds 16
 lg_row:   dw 0              ; ld_put_glyphs: cell, row
 lk_cur:   db 0
