@@ -11,6 +11,7 @@
 ; ============================================================
 
 ATTR_FBON EQU ATTR_ON        ; TRUE (as in LD / IL)
+ATTR_FBSIG EQU 0x3C          ; simulation: lines carrying TRUE (dark green ink)
 
 ; ---- fb_editor: edits the FBD POU cur_pou, returns a menu command
 fb_editor:
@@ -2173,6 +2174,10 @@ fb_set_state:
         ld b,(hl)
         inc hl
         ld c,(hl)
+        push af
+        ld a,b
+        ld (fs_a),a
+        pop af
         and FT_MASK
         cp FT_WIRE
         jp z,fs_wire
@@ -2207,33 +2212,29 @@ fb_set_state:
         ret nz
         ld hl,(cp_arg)
         ld a,(cp_arg3)
-        and (hl)                ; state of the variable (a negation is
-        ld e,ATTR_NORMAL        ; shown only by the o)
+        and (hl)                ; state of the variable
+        ld a,0
         jr z,.v0
-        ld e,ATTR_FBON
-.v0:    ld a,(fs_off)           ; signal of the row: input (negation
-        cp 1                    ; included) or block; an output passes it on
-        jr z,.set
-        ld d,0
-        ld a,e
-        cp ATTR_FBON
-        jr nz,.v1
-        inc d
-.v1:    ld a,(fs_off)
-        cp 3
-        jr nz,.v2
-        ld a,(fs_t)
-        rlca
-        jr nc,.v2
-        ld a,d
-        xor 1
-        ld d,a
-.v2:    ld a,d
-        ld (fs_sig),a
-.set:   ld a,(fs_off)           ; input / output: the cells of its name
+        inc a
+.v0:    ld (fs_v),a
+        ld a,(fs_off)
         cp 2
-        jr z,.blk
-        ld a,(fs_row)
+        jr z,.blkv
+        cp 1
+        jr z,.outp              ; output: the signal of the row goes on
+        ld a,(fs_t)             ; input: signal = state, negation included
+        rlca
+        ld a,(fs_v)
+        jr nc,.in1
+        xor 1
+.in1:   ld (fs_sig),a
+.outp:  call fs_wire            ; its line: the signal
+        ld a,(fs_v)             ; its name: the state of the variable
+        or a
+        ld e,ATTR_NORMAL
+        jr z,.set
+        ld e,ATTR_FBON
+.set:   ld a,(fs_row)
         ld b,a
         ld a,(fs_p)
         ld c,a
@@ -2281,23 +2282,35 @@ fb_set_state:
         ld a,(hl)
         pop hl
         and (hl)
-        ld e,ATTR_NORMAL
         ld a,0
         jr z,.lg0
-        ld e,ATTR_FBON
         inc a
-.lg0:   ld (fs_sig),a
-.blk:   ld a,(fs_p)
+.lg0:   ld (fs_v),a
+.blkv:  ld a,(fs_v)             ; block: its lines by its result, on all
+        ld (fs_sig),a           ; its rows
+        ld a,(fs_a)
         ld c,a
+        ld a,(fs_t)
+        call fb_height_t
+        or a
+        ret z
+        ld b,a
+.br:    ld a,(ld_vn)            ; (only the visible char rows)
         add a,a
+        ld c,a
+        ld a,(ld_vbase)
         add a,c
-        ld hl,fs_off
-        add a,(hl)              ; cell 1+3p .. 3+3p
         ld c,a
         ld a,(fs_row)
-        ld b,a
-        call attr_addr
-        ld (hl),e
+        cp c
+        ret nc
+        push bc
+        call fs_wire
+        pop bc
+        ld hl,fs_row
+        inc (hl)
+        inc (hl)
+        djnz .br
         ret
 
 ; fs_wire: (fb_set_state) a wire takes the signal of its row
@@ -2306,7 +2319,7 @@ fs_wire:
         or a
         ld e,ATTR_NORMAL
         jr z,.w1
-        ld e,ATTR_FBON
+        ld e,ATTR_FBSIG
 .w1:    ld a,(fs_p)             ; cells 1+3p .. 3+3p
         ld c,a
         add a,a
@@ -2706,6 +2719,8 @@ fm_n:     db 0
 fd_tx:    db 0
 fs_k:     db 0
 fs_lr:    db 0
+fs_v:     db 0
+fs_a:     db 0
 fs_sig:   db 0
 fs_li:    db 0
 fs_span:  ds 24*10*2
