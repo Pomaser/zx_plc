@@ -941,7 +941,29 @@ ld_editor:
         cp K_EDIT
         jp z,.menu
         call to_upper           ; shortcut keys of the picker items
-        ld b,a
+        cp 'T'                  ; T on a timer box: only its PT
+        jr nz,.nt
+        push af
+        ld a,(ld_row)
+        ld d,a
+        ld a,(ld_pos)
+        ld e,a
+        call ld_get
+        ld (ld_newt),a          ; same type (keeps the link bit, see .pl3)
+        call ld_isbox
+        jr nz,.ntb
+        pop af
+        ld a,(ld_newt)
+        and LT_MASK
+        ld (ld_newt),a
+        call ld_set_ar          ; same instance
+        ld hl,(ld_gpt)
+        ld (ld_ppt),hl
+        call ld_ask_pt
+        jp c,.redraw
+        jp .pl3
+.ntb:   pop af
+.nt:    ld b,a
         ld hl,ld_pick_c
         ld a,(ld_pos)
         cp LD_CPOS

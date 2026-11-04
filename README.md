@@ -97,7 +97,7 @@ The letter keys below work as shortcuts both in the editor and in the picker.
 | `P` / `N` | rising / falling edge contact | |
 | `S` / `R` | | set / reset coil |
 | `-` (SS+J) | wire | |
-| `T` / `F` / `U` | TON / TOF / TP timer box | |
+| `T` / `F` / `U` | TON / TOF / TP timer box (`T` on an existing timer box: edit only its PT) | |
 
 Timer boxes `[TON]`, `[TOF]`, `[TP]` sit on a contact position: the power from the left is the input IN, the
 output Q powers the rest of the row. The box asks for the instance (`TON1` or its symbol) and the preset time
