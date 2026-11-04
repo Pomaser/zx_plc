@@ -2116,6 +2116,8 @@ fb_set_state:
         inc hl
         xor a
         ld (fs_k),a
+        dec a
+        ld (fs_lr),a
 .l:     push hl
         ld de,(fs_end)
         or a
@@ -2148,7 +2150,16 @@ fb_set_state:
         dec a
         cp c
         ret c
-        ld a,(hl)
+        ld a,(hl)               ; new row: no signal yet
+        ld b,a
+        ld a,(fs_lr)
+        cp b
+        jr z,.same
+        ld a,b
+        ld (fs_lr),a
+        xor a
+        ld (fs_sig),a
+.same:  ld a,(hl)
         call fb_scr_row
         inc a
         ld (fs_row),a
@@ -2163,6 +2174,8 @@ fb_set_state:
         inc hl
         ld c,(hl)
         and FT_MASK
+        cp FT_WIRE
+        jp z,fs_wire
         ld e,3                  ; colour cell: input = right (its line),
         cp FT_IN                ; output = left, block = middle
         jr z,.opc
@@ -2196,8 +2209,27 @@ fb_set_state:
         ld a,(cp_arg3)
         and (hl)                ; state of the variable (a negation is
         ld e,ATTR_NORMAL        ; shown only by the o)
-        jr z,.set
+        jr z,.v0
         ld e,ATTR_FBON
+.v0:    ld a,(fs_off)           ; signal of the row: input (negation
+        cp 1                    ; included) or block; an output passes it on
+        jr z,.set
+        ld d,0
+        ld a,e
+        cp ATTR_FBON
+        jr nz,.v1
+        inc d
+.v1:    ld a,(fs_off)
+        cp 3
+        jr nz,.v2
+        ld a,(fs_t)
+        rlca
+        jr nc,.v2
+        ld a,d
+        xor 1
+        ld d,a
+.v2:    ld a,d
+        ld (fs_sig),a
 .set:   ld a,(fs_off)           ; input / output: the cells of its name
         cp 2
         jr z,.blk
@@ -2250,8 +2282,11 @@ fb_set_state:
         pop hl
         and (hl)
         ld e,ATTR_NORMAL
-        jr z,.blk
+        ld a,0
+        jr z,.lg0
         ld e,ATTR_FBON
+        inc a
+.lg0:   ld (fs_sig),a
 .blk:   ld a,(fs_p)
         ld c,a
         add a,a
@@ -2262,6 +2297,31 @@ fb_set_state:
         ld a,(fs_row)
         ld b,a
         call attr_addr
+        ld (hl),e
+        ret
+
+; fs_wire: (fb_set_state) a wire takes the signal of its row
+fs_wire:
+        ld a,(fs_sig)
+        or a
+        ld e,ATTR_NORMAL
+        jr z,.w1
+        ld e,ATTR_FBON
+.w1:    ld a,(fs_p)             ; cells 1+3p .. 3+3p
+        ld c,a
+        add a,a
+        add a,c
+        inc a
+        ld c,a
+        ld a,(fs_row)
+        ld b,a
+        push de
+        call attr_addr
+        pop de
+        ld (hl),e
+        inc hl
+        ld (hl),e
+        inc hl
         ld (hl),e
         ret
 
@@ -2645,6 +2705,8 @@ fm_t:     db 0
 fm_n:     db 0
 fd_tx:    db 0
 fs_k:     db 0
+fs_lr:    db 0
+fs_sig:   db 0
 fs_li:    db 0
 fs_span:  ds 24*10*2
 fm_p:     db 0
