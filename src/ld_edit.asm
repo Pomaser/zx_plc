@@ -521,12 +521,29 @@ ld_draw_elem:
         call pt_width
         cp 23
         jr c,.w
-        ld a,22
+        ld b,a                  ; longer: right-aligned, into the cell on the
+        ld a,(ld_p)             ; left when no labelled element is there
+        or a
+        jr z,.cl
+        dec a
+        ld e,a
+        ld d,0
+        ld hl,lw_t
+        add hl,de
+        ld a,(hl)
+        and LT_MASK
+        cp LT_NO
+        jr nc,.cl
+        ld a,c
+        add a,23
+        sub b
+        jr .x
+.cl:    ld a,22
 .w:     neg
         add a,24
         srl a
         add a,c
-        ld (pt_x),a
+.x:     ld (pt_x),a
         ld a,(ld_lrow)
         ld (pt_row),a
         ld hl,ld_lbl
