@@ -2294,7 +2294,26 @@ fd_ptcell:
         ld a,AR_KT
         ld bc,0
         call op_format
-        ld bc,20*256+24
+        call fd_in_left         ; room: from the left limit to x+20
+        ld b,a
+        ld a,(fd_x)
+        add a,20
+        sub b
+        ld b,a
+        ld hl,FMT_BUF
+        call pt_width
+        cp b
+        jr c,.fit
+        jr z,.fit
+        ld hl,FMT_BUF+2         ; too long: without "T#" (e.g. "100s")
+        ld de,FMT_BUF
+.cp:    ld a,(hl)
+        ld (de),a
+        inc hl
+        inc de
+        or a
+        jr nz,.cp
+.fit:   ld bc,20*256+24
         call fd_in_txt
         or 1
         ret
