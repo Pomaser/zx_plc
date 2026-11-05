@@ -82,6 +82,8 @@ il_editor:
         jp z,.right
         cp K_DEL
         jp z,.del
+        cp K_WATCH
+        jp z,.wak
         cp K_XREF
         jp z,.xrk
         cp K_UNDO
@@ -417,6 +419,9 @@ il_editor:
         call il_draw_row
         jp .redrawf
 
+.wak:   ld a,CMD_WADD           ; SS+W: add to the watch list
+        ld (mk_cmd),a
+        jp .menu
 .xrk:   ld a,CMD_XREF           ; SS+X: cross references through the menu path
         ld (mk_cmd),a
         jp .menu
@@ -433,13 +438,16 @@ il_editor:
         jr nz,.m1
         call il_load
         jp .full
-.m1:    cp CMD_XREF
+.m1:    cp CMD_WADD
+        jr z,.x0
+        cp CMD_XREF
         jr nz,.m2
+.x0:    ld (tl_cmd),a
         ld hl,ed_o              ; operand of the line
         call op_parse
         jr nc,.x1
         xor a
-.x1:    BCALL xref_show
+.x1:    BCALL tl_run
         ld hl,0
         ld (st_left),hl
         ret

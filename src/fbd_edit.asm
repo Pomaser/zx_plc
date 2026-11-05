@@ -89,6 +89,8 @@ fb_editor:
         jp z,.enter
         cp K_DEL
         jp z,.del
+        cp K_WATCH
+        jp z,.wak
         cp K_XREF
         jp z,.xrk
         cp K_UNDO
@@ -470,6 +472,9 @@ fb_editor:
         BCALL ld_put
         jr .redraw
 
+.wak:   ld a,CMD_WADD           ; SS+W: add to the watch list
+        ld (mk_cmd),a
+        jp .menu
 .xrk:   ld a,CMD_XREF           ; SS+X: cross references through the menu path
         ld (mk_cmd),a
         jp .menu
@@ -480,8 +485,11 @@ fb_editor:
         jp z,.cur
         cp CMD_REDRAW
         jp z,.full
+        cp CMD_WADD
+        jr z,.x0
         cp CMD_XREF
         jr nz,.nx
+.x0:    ld (tl_cmd),a
         call fb_to_owner        ; operand of the element (logic boxes: none)
         call fb_cur_get
         and FT_MASK
@@ -494,7 +502,7 @@ fb_editor:
         jr z,.xo
         ld b,0
 .xo:    ld a,b
-        BCALL xref_show
+        BCALL tl_run
         ld hl,0
         ld (st_left),hl
         ret

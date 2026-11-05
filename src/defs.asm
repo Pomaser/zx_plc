@@ -123,6 +123,8 @@ CMD_DEMO        EQU 23
 CMD_UNDO        EQU 24
 CMD_REOPEN      EQU 25          ; the same screen opens again (after undo, cross references)
 CMD_XREF        EQU 26
+CMD_WADD        EQU 27          ; add the operand at the cursor to the watch list
+CMD_WATCH       EQU 28          ; Run > Watch: the simulation with the watch page
 
 ; ---- status bar text markers (st_left): symbol name shown inverted
 ST_SYM      EQU 1           ; start of the symbol name
@@ -138,6 +140,7 @@ K_SSENTER   EQU 5           ; SS + ENTER: IL new line below, LD next row
 K_INS       EQU 6           ; SS + I: LD insert in front of the element
 K_UNDO      EQU 14          ; SS + U: undo the last change
 K_XREF      EQU 15          ; SS + X: cross references
+K_WATCH     EQU 16          ; SS + W: add to the watch list
 K_EDIT      EQU 7
 K_LEFT      EQU 8
 K_RIGHT     EQU 9

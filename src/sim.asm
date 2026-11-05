@@ -213,6 +213,8 @@ scr_run:
         jr z,.mc
         cp CMD_RESET
         jr z,.mc
+        cp CMD_WATCH
+        jr z,.mc
         cp CMD_REDRAW
         jr nz,.exit
         call sim_draw_list
@@ -231,7 +233,13 @@ scr_run:
 
 ; ---- sim_cmd: A = CMD_RUN, CMD_STOP, CMD_STEP, CMD_RESET
 sim_cmd:
-        cp CMD_RESET
+        cp CMD_WATCH            ; the watch page
+        jr nz,.nw
+        ld a,1
+        ld (sm_page),a
+        call sim_hint
+        jp sim_draw_list
+.nw:    cp CMD_RESET
         jr z,.reset
         cp CMD_STOP
         jr z,.stop

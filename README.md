@@ -221,6 +221,8 @@ Compile errors are reported with the POU name and line number.
   (the last row adds one, an empty text removes it), DELETE removes it, `F` forces it: a BOOL cycles forced
   TRUE -> forced FALSE -> not forced, an INT asks for the value (F again releases it). Forced values show an
   `F` and stay forced for the program and the outputs while the simulation screen is open.
+  Run > Watch opens the simulation on this page. In the IL, LD, FBD and symbol editors SYMBOL SHIFT + `W`
+  (Edit > Add to watch) adds the operand at the cursor to the list (an FB instance adds its ET, CV or Q).
 * Standard FBs: TON, TOF, TP, CTU, CTD, R_TRIG (instances `RT0`-`RT3`), F_TRIG (`RF0`-`RF3`), SR, RS. Calls of other POUs: max. depth 8.
   A watchdog stops a scan that executes more than 30000 instructions.
 * FBD POUs are not compiled yet (a call of such a POU does nothing).

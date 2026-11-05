@@ -11,6 +11,18 @@ XR_ROW0   EQU 3
 XR_X_LOC  EQU 56
 XR_X_KIND EQU 132
 
+; ---- tl_run: editor tool for the operand at the cursor (A = area,
+;      C = index): tl_cmd = CMD_WADD adds it to the watch list, else the
+;      cross references; A = command for the screen (CMD_REOPEN / CMD_EDIT)
+tl_run: push af
+        ld a,(tl_cmd)
+        cp CMD_WADD
+        jr z,.w
+        pop af
+        jp xref_show
+.w:     pop af
+        jp wt_add_op
+
 ; ---- xref_show: A = area, C = index -> A = CMD_EDIT (go to the chosen use)
 ;      or CMD_REOPEN (back to the screen it was called from)
 xref_show:
@@ -1204,3 +1216,110 @@ wt_all:   db 0
 wt_na:    db 0
 wt_ni:    db 0
 wt_cache: ds WT_MAX*3
+
+; ---- wt_add_op: A = area, C = index -> appended to the watch list (an FB
+;      instance: its ET / CV / Q); message; A = CMD_REOPEN
+wt_add_op:
+        ld b,a
+        and AR_MASK
+        cp AR_FBI
+        jr nz,.n
+        ld a,c                  ; FB type -> member to watch
+        rrca
+        rrca
+        and 0x3F
+        cp FB_TYPES
+        jr nc,.bad
+        ld e,a
+        ld d,0
+        ld hl,wt_fbm
+        add hl,de
+        ld a,(hl)
+        rlca
+        rlca
+        rlca
+        rlca
+        or AR_FBM
+        ld b,a
+.n:     ld a,b
+        and AR_MASK
+        cp AR_I
+        jr z,.ok
+        cp AR_Q
+        jr z,.ok
+        cp AR_M
+        jr z,.ok
+        cp AR_MW
+        jr z,.ok
+        cp AR_SX
+        jr z,.ok
+        cp AR_SM
+        jr z,.ok
+        cp AR_FBM
+        jr z,.ok
+.bad:   ld hl,txt_xr_noop
+.err:   call ui_error
+        ld a,CMD_REOPEN
+        ret
+.ok:    ld a,b
+        ld (wt_na),a
+        ld a,c
+        ld (wt_ni),a
+        call wt_count           ; already there?
+        ld (wt_n),a
+        or a
+        jr z,.add
+        ld b,a
+.dup:   ld a,(wt_na)
+        cp (hl)
+        inc hl
+        jr nz,.dn
+        ld a,(wt_ni)
+        cp (hl)
+        jr nz,.dn
+        ld hl,txt_wt_dup
+        jr .err
+.dn:    inc hl
+        djnz .dup
+        ld a,(wt_n)
+        cp WT_MAX
+        ld hl,txt_wt_full
+        jr nc,.err
+.add:   ld a,(wt_n)             ; at the end
+        add a,a
+        ld e,a
+        ld d,0
+        ld bc,2
+        ld a,WATCH_SLOT
+        call pou_insert         ; HL = the new 2 bytes
+        jr c,.mem
+        ld a,(wt_na)
+        ld (hl),a
+        inc hl
+        ld a,(wt_ni)
+        ld (hl),a
+        ld de,rd_o              ; "Added to watch: %QX1.0"
+        ld hl,txt_wt_added
+        call put_str
+        ld a,(wt_ni)
+        ld c,a
+        ld a,(wt_na)
+        ld hl,0
+        ld b,0
+        call op_format
+        xor a
+        ld (de),a
+        inc de
+        ld (de),a
+        ld hl,rd_o
+        call msg_box
+        ld a,CMD_REOPEN
+        ret
+
+.mem:   ld hl,err_il_mem
+        jr .err
+
+wt_fbm:       db 3,3,3,4,4,1,1,2,2      ; ET (timers), CV (counters), Q / Q1
+txt_wt_added: db "Added to watch: ",0
+txt_wt_dup:   db "Already in the watch list",0
+txt_wt_full:  db "The watch list is full",0

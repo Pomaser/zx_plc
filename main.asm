@@ -49,6 +49,8 @@ main_loop:
 cmd_target:
         cp CMD_REOPEN           ; undo: the same screen opens again
         ret z
+        cp CMD_WATCH            ; Run > Watch: the RUN screen
+        jr z,.run
         cp CMD_POU_MANAGE
         ret c
         ld b,SCR_POU
@@ -62,7 +64,7 @@ cmd_target:
         jr z,.set
         cp CMD_KEYS
         ret nc
-        ld (sim_pending),a      ; Run/Step/Reset, executed by the RUN screen
+.run:   ld (sim_pending),a      ; Run/Step/Reset/Watch, executed by the RUN screen
         ld b,SCR_RUN
 .set:   ld a,b
         ld (cur_screen),a

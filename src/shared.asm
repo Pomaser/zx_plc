@@ -428,3 +428,4 @@ ld_cbuf:  ds 40
 xr_jf:    db 0              ; cross reference jump: the editor opens at
 xr_jl:    dw 0              ;   line / row xr_jl, position xr_jp
 xr_jp:    db 0
+tl_cmd:   db 0              ; tl_run: CMD_XREF or CMD_WADD

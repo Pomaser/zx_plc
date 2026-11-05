@@ -58,6 +58,8 @@ scr_sym:
         jp z,.pgdn
         cp K_DEL
         jp z,.del
+        cp K_WATCH
+        jp z,.wak
         cp K_XREF
         jp z,.xrk
         cp K_UNDO
@@ -275,6 +277,9 @@ scr_sym:
 .mfull: call il_fix_top
         jp .full
 
+.wak:   ld a,CMD_WADD           ; SS+W: add to the watch list
+        ld (mk_cmd),a
+        jp .menu
 .xrk:   ld a,CMD_XREF           ; SS+X: cross references through the menu path
         ld (mk_cmd),a
         jp .menu
@@ -292,13 +297,16 @@ scr_sym:
         jp z,.loop
         cp CMD_REDRAW
         jp z,.full
+        cp CMD_WADD
+        jr z,.x0
         cp CMD_XREF
         jr nz,.nx
+.x0:    ld (tl_cmd),a
         ld hl,ed_o              ; address of the symbol
         call op_parse
         jr nc,.x1
         xor a
-.x1:    BCALL xref_show
+.x1:    BCALL tl_run
         ret
 .nx:    cp CMD_IL_DEL
         jr nz,.exit

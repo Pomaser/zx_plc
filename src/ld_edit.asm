@@ -1066,6 +1066,8 @@ ld_editor:
         jp z,.enter
         cp K_DEL
         jp z,.del
+        cp K_WATCH
+        jp z,.wak
         cp K_XREF
         jp z,.xrk
         cp K_UNDO
@@ -1416,6 +1418,9 @@ ld_editor:
         call ld_put
         jp .redraw
 
+.wak:   ld a,CMD_WADD           ; SS+W: add to the watch list
+        ld (mk_cmd),a
+        jp .menu
 .xrk:   ld a,CMD_XREF           ; SS+X: cross references through the menu path
         ld (mk_cmd),a
         jp .menu
@@ -1426,15 +1431,18 @@ ld_editor:
         jp z,.cur
         cp CMD_REDRAW
         jp z,.full
+        cp CMD_WADD
+        jr z,.x0
         cp CMD_XREF
         jr nz,.nx
+.x0:    ld (tl_cmd),a
         ld a,(ld_row)           ; operand of the element
         ld d,a
         ld a,(ld_pos)
         ld e,a
         call ld_get
         ld a,b
-        BCALL xref_show
+        BCALL tl_run
         ld hl,0
         ld (st_left),hl
         ret

@@ -45,6 +45,7 @@ mi_pou:
 mi_edit:
         db CMD_EDIT,  'E',"Edit POU",0
         db CMD_UNDO,  'U',"Undo",0
+        db CMD_WADD,  'W',"Add to watch",0
         db CMD_SYMBOLS,'S',"Symbols",0
         db CMD_IL_INS,'I',"Insert line",0
         db CMD_IL_DEL,'D',"Delete line",0
@@ -60,6 +61,7 @@ mi_run:
         db CMD_STOP, 'T',"Stop",0
         db CMD_STEP, 'S',"Step",0
         db CMD_RESET,'E',"Reset",0
+        db CMD_WATCH,'W',"Watch",0
         db 0
 mi_help:
         db CMD_KEYS, 'C',"Controls",0
