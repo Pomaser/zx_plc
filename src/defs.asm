@@ -118,6 +118,8 @@ CMD_REDRAW      EQU 20
 CMD_STOP        EQU 21
 CMD_SOUND       EQU 22
 CMD_DEMO        EQU 23
+CMD_UNDO        EQU 24
+CMD_UNDONE      EQU 25          ; project restored: the screen opens again
 
 ; ---- status bar text markers (st_left): symbol name shown inverted
 ST_SYM      EQU 1           ; start of the symbol name
@@ -131,6 +133,7 @@ K_PGUP      EQU 3           ; SS + UP    (CS+SS+7): page up
 K_PGDN      EQU 4           ; SS + DOWN  (CS+SS+6): page down
 K_SSENTER   EQU 5           ; SS + ENTER: IL new line below, LD next row
 K_INS       EQU 6           ; SS + I: LD insert in front of the element
+K_UNDO      EQU 14          ; SS + U: undo the last change
 K_EDIT      EQU 7
 K_LEFT      EQU 8
 K_RIGHT     EQU 9

@@ -172,6 +172,8 @@ tape_load:
         ld de,BANKED
         ld bc,PROJ_END-PROJ
         call bank_copy
+        xor a                   ; (the undo copy is gone)
+        ld (um_valid),a
 .hdr:   ld ix,tp_lhdr           ; wait for a header of a project file
         ld de,17
         xor a

@@ -11,6 +11,7 @@
 
 ; ---- proj_new: A = language of MAIN
 proj_new:
+        call undo_save
         push af
         ld hl,PROJ
         ld bc,HDR_LEN
@@ -38,6 +39,7 @@ proj_new:
 
 ; ---- proj_load_demo: copies the demo project from the DEMO bank
 proj_load_demo:
+        call undo_save
         ld a,BANK_DEMO
         ld hl,demo_img
         ld de,PROJ
@@ -46,6 +48,53 @@ proj_load_demo:
         xor a
         ld (cur_pou),a
         ret
+
+; ---- undo_save: before a change of the project: the first change after a
+;      key copies the project to BANK_SPARE (one undo step per key);
+;      keeps all registers
+undo_save:
+        push af
+        ld a,(um_arm)
+        or a
+        jr z,.e
+        xor a
+        ld (um_arm),a
+        push bc
+        push de
+        push hl
+        ld bc,(PROJ+P_LEN)
+        ld (um_len),bc
+        ld a,BANK_SPARE
+        ld hl,PROJ
+        ld de,BANKED
+        call bank_copy
+        ld a,1
+        ld (um_valid),a
+        pop hl
+        pop de
+        pop bc
+.e:     pop af
+        ret
+
+; ---- undo_do: the project before the last change back; C = nothing to undo
+undo_do:
+        ld a,(um_valid)
+        or a
+        scf
+        ret z
+        ld a,BANK_SPARE
+        ld hl,BANKED
+        ld de,PROJ
+        ld bc,(um_len)
+        call bank_copy
+        xor a
+        ld (um_valid),a
+        ld (um_arm),a
+        ret
+
+um_arm:   db 0
+um_valid: db 0              ; (cleared by a tape load, which uses BANK_SPARE)
+um_len:   dw 0
 
 ; ---- bank_copy: A = bank paged in at 0xC000 during the copy, HL -> DE,
 ;      BC bytes (BC = 0: nothing); the caller's bank is restored
@@ -166,6 +215,7 @@ pou_add_len:
 ; ---- pou_insert: A = slot, DE = offset in body, BC = byte count
 ;      creates a gap, HL = gap address; C = out of memory
 pou_insert:
+        call undo_save
         ld (pt_slot),a
         ld (pt_off),de
         ld (pt_cnt),bc
@@ -198,6 +248,7 @@ pou_insert:
 
 ; ---- pou_delete: A = slot, DE = offset in body, BC = number of bytes to remove
 pou_delete:
+        call undo_save
         ld (pt_slot),a
         ld (pt_off),de
         ld (pt_cnt),bc
@@ -235,6 +286,7 @@ pt_addr: dw 0
 
 ; ---- pou_add: HL = name (8 chars), A = language -> A = slot, C = full
 pou_add:
+        call undo_save
         ld (pt_lang),a
         ld (pt_name),hl
         ld b,0

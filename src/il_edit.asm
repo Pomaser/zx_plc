@@ -71,6 +71,8 @@ il_editor:
         jp z,.right
         cp K_DEL
         jp z,.del
+        cp K_UNDO
+        jp z,.undk
         cp K_BREAK
         jp z,.menu
         cp K_EDIT
@@ -402,11 +404,14 @@ il_editor:
         call il_draw_row
         jp .redrawf
 
+.undk:  ld a,CMD_UNDO           ; SS+U: undo through the menu path
+        ld (mk_cmd),a
+        jp .menu
         ; ---- menu
 .menu:  call il_commit
         jp c,.loop
         call il_draw_cur
-        call menu_handle
+        call menu_key
         jp z,.loop
         cp CMD_REDRAW
         jr nz,.m1

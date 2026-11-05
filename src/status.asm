@@ -230,7 +230,7 @@ str_eq: ld a,(de)
         jr str_eq
 
 txt_st_open: db " (",0
-txt_st_free: db "Mem ",0
+txt_st_free: db "Free ",0
 txt_st_b:    db "B",0
 st_left:     dw 0             ; text for the left part (0 = POU info)
 st_right:    dw 0             ; text for the right part (0 = free memory)

@@ -76,6 +76,8 @@ fb_editor:
         jp z,.enter
         cp K_DEL
         jp z,.del
+        cp K_UNDO
+        jp z,.undk
         cp K_BREAK
         jp z,.menu
         cp K_EDIT
@@ -453,7 +455,10 @@ fb_editor:
         BCALL ld_put
         jr .redraw
 
-.menu:  call menu_handle
+.undk:  ld a,CMD_UNDO           ; SS+U: undo through the menu path
+        ld (mk_cmd),a
+        jp .menu
+.menu:  call menu_key
         jp z,.cur
         cp CMD_REDRAW
         jp z,.full
@@ -1074,6 +1079,7 @@ fb_rows_fit:
         ld a,(hl)
         cp b
         ret nc
+        call undo_save
         ld (hl),b
         ret
 

@@ -167,8 +167,15 @@ kb_get:
 kb_wait:
         call kb_get
         or a
-        ret nz
-        halt
+        jr z,.w
+        push af                 ; a key: the next change may be undone
+        ld a,1
+        ld (um_arm),a
+        xor a
+        ld (mk_cmd),a
+        pop af
+        ret
+.w:     halt
         jr kb_wait
 
 ; ---- kb_flush: waits until no key is held, then empties the queue
@@ -215,6 +222,6 @@ kt_sym:
         db 0,0,0,'<','>'
         db '!','@','#','$','%'
         db '_',')','(',0x27,'&'
-        db '"',';',K_INS,0,0
+        db '"',';',K_INS,K_UNDO,0
         db K_SSENTER,'=','+','-','^'
         db ' ',0,'.',',','*'

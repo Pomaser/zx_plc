@@ -111,5 +111,8 @@ on tape. See README.md for the user-facing description of every editor and key.
   breaks its local jumps. Label names are global across all banks, so names like `fb_tp` (VM) can clash.
 - Text patches done with Python string replacement must anchor on exact code lines, not on comment
   headers.
+- Undo: every change of the project must call `undo_save` (core) first; `pou_insert`, `pou_delete`,
+  `ld_put`, `ld_ins_row` / `ld_del_row`, `pou_add`, POU rename / language / comment and `proj_new` do.
+  A new in-place write needs it too. The snapshot is in BANK_SPARE (also used by the tape load).
 - The tape routines (`tp_sa_bytes` / `tp_ld_bytes`) are cycle-exact copies of the ROM. Do not add
   instructions inside their timing loops.

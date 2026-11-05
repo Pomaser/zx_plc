@@ -47,6 +47,8 @@ main_loop:
 
 ; ---- cmd_target: A = command -> selects the screen to show next
 cmd_target:
+        cp CMD_UNDONE           ; undo: the same screen opens again
+        ret z
         cp CMD_POU_MANAGE
         ret c
         ld b,SCR_POU

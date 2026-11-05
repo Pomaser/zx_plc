@@ -44,6 +44,7 @@ mi_pou:
         db 0
 mi_edit:
         db CMD_EDIT,  'E',"Edit POU",0
+        db CMD_UNDO,  'U',"Undo",0
         db CMD_SYMBOLS,'S',"Symbols",0
         db CMD_IL_INS,'I',"Insert line",0
         db CMD_IL_DEL,'D',"Delete line",0
@@ -949,15 +950,33 @@ pt_width_full:
         pop hl
         ret
 
+txt_no_undo: db "Nothing to undo",0
 mb_text: dw 0
 mb_x:    db 0
 
 ; ---- menu_handle: runs the menu and executes global commands in place.
 ;      Z = nothing left to do; NZ + A = command for the screen / main loop
+; menu_key: the menu, or the command of a shortcut key set by the editor in
+;      mk_cmd (SS+U -> CMD_UNDO); same results as menu_handle
+menu_key:
+        ld a,(mk_cmd)
+        or a
+        jr z,menu_handle
+        push af
+        xor a
+        ld (mk_cmd),a
+        pop af
+        jr menu_cmd
+mk_cmd: db 0
+
 menu_handle:
         call menu_run
+; menu_cmd: A = command (also for shortcut keys such as SS+U)
+menu_cmd:
         or a
         ret z
+        cp CMD_UNDO
+        jr z,.undo
         cp CMD_ABOUT
         jr z,.about
         cp CMD_KEYS
@@ -982,6 +1001,20 @@ menu_handle:
         xor 1
         ld (snd_on),a
         xor a                   ; nothing else to do
+        ret
+.undo:  call undo_do
+        jr nc,.ud
+        ld hl,txt_no_undo
+        call ui_error
+        xor a
+        ret
+.ud:    ld a,(cur_pou)          ; (the POU may be gone)
+        call pou_used
+        jr nz,.uk
+        xor a
+        ld (cur_pou),a
+.uk:    ld a,CMD_UNDONE
+        or a
         ret
 .vsym:  ld a,1
         jr .view

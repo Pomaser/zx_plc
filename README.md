@@ -63,6 +63,8 @@ The name and language of the current POU are shown at the right end of the menu 
 The bottom status bar shows, in the editors, the symbol name of the current operand (inverted) and its comment
 (left) and free project memory (right); in the simulation the keys (left) and RUN / STOP (right).
 Messages, questions, name input and language choice appear in popup windows.
+Edit > Undo or SYMBOL SHIFT + `U` (in the POU list and all editors) undoes the last change of the project
+(one step: the project as it was before the last key that changed it, e.g. a deleted line, element or POU).
 Keys are read in the interrupt into an 8-key queue, so typing ahead is not lost.
 
 | Key | Function |

@@ -36,7 +36,8 @@ ATTR_LD_ON EQU ATTR_ON      ; active element (as TRUE in IL / FBD)
 
 ; ---- ld_put: D = row, E = pos, A = type, B = area, C = index
 ;      type 0 without a link removes the record. C = out of memory (shown)
-ld_put: ld (lp_rec+2),a
+ld_put: call undo_save
+        ld (lp_rec+2),a
         push hl
         ld hl,(ld_ppt)
         ld (lp_rec+5),hl
@@ -119,6 +120,7 @@ ld_put: ld (lp_rec+2),a
 
 ; ---- ld_ins_row: D = row -> empty row inserted (rows below move down)
 ld_ins_row:
+        call undo_save
         ld a,d
         ld (lr_row),a
         call ld_nrows
@@ -142,6 +144,7 @@ ld_ins_row:
 
 ; ---- ld_del_row: D = row -> row removed (rows below move up)
 ld_del_row:
+        call undo_save
         ld a,d
         ld (lr_row),a
 .again: call ld_rec_loop        ; remove the records of the row
@@ -1048,6 +1051,8 @@ ld_editor:
         jp z,.enter
         cp K_DEL
         jp z,.del
+        cp K_UNDO
+        jp z,.undk
         cp K_INS
         jp z,.insk
         cp K_BREAK
@@ -1394,7 +1399,10 @@ ld_editor:
         call ld_put
         jp .redraw
 
-.menu:  call menu_handle
+.undk:  ld a,CMD_UNDO           ; SS+U: undo through the menu path
+        ld (mk_cmd),a
+        jp .menu
+.menu:  call menu_key
         jp z,.cur
         cp CMD_REDRAW
         jp z,.full

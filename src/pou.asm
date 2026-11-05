@@ -11,7 +11,7 @@ scr_pou:
         ld a,(hl)
         ld (hl),0
         or a
-        jr .cmd
+        jp .cmd
 .redraw:
         call pou_draw_list
 .key:   call kb_wait
@@ -25,6 +25,8 @@ scr_pou:
         jr z,.last
         cp K_ENTER
         jr z,.edit
+        cp K_UNDO
+        jr z,.undk
         cp K_BREAK
         jr z,.menu
         cp K_EDIT
@@ -69,8 +71,10 @@ scr_pou:
         jp .key
 .edit:  ld a,CMD_EDIT
         ret
-.menu:  call menu_handle
-.cmd:   jr z,.key
+.undk:  ld a,CMD_UNDO           ; SS+U: undo through the menu path
+        ld (mk_cmd),a
+.menu:  call menu_key
+.cmd:   jp z,.key
         cp CMD_POU_NEW
         jp z,.new
         cp CMD_POU_RENAME
@@ -115,6 +119,7 @@ scr_pou:
         ld a,(cur_pou)
         call input_pou_name
         jp c,.key
+        call undo_save
         ld a,(cur_pou)
         call pou_entry
         ex de,hl
@@ -154,6 +159,7 @@ scr_pou:
 .l1:    call ui_choose_lang
         jp c,.key
         ld b,a
+        call undo_save
         ld a,(cur_pou)
         call pou_entry
         ld de,PE_LANG
@@ -370,6 +376,7 @@ pou_cmt:
 
 ; ---- pou_set_cmt: A = slot, pl_cbuf = comment -> stored in the POU table
 pou_set_cmt:
+        call undo_save
         call pou_entry
         ld de,PE_CMT
         add hl,de

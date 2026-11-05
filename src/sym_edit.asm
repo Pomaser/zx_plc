@@ -58,6 +58,8 @@ scr_sym:
         jp z,.pgdn
         cp K_DEL
         jp z,.del
+        cp K_UNDO
+        jp z,.undk
         cp K_BREAK
         jp z,.menu
         cp K_EDIT
@@ -271,6 +273,9 @@ scr_sym:
 .mfull: call il_fix_top
         jp .full
 
+.undk:  ld a,CMD_UNDO           ; SS+U: undo through the menu path
+        ld (mk_cmd),a
+        jp .menu
 .menu:  call sy_commit
         jp c,.loop
         call sy_load
@@ -278,7 +283,7 @@ scr_sym:
         or a
         call nz,sy_redraw_all
         call sy_draw_cur
-        call menu_handle
+        call menu_key
         jp z,.loop
         cp CMD_REDRAW
         jp z,.full
