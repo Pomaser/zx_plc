@@ -188,7 +188,7 @@ only by the `o`); logic blocks (AND, OR, XOR, NOT) are coloured inside when thei
 
 Edit > Symbols opens the list of defined symbols, sorted by address, with an empty row at the end for a new
 one. Each row: line number (like the IL editor), symbolic name (max. 8 chars, identifier, dark blue),
-physical address (`%IX0.0`, `i0.0`, `%QX0.1`, `m5`, `ton1`, `ctu0`, `s0.1` ... I, Q, M, step flags and FB instances, black) and comment (max. 30 chars,
+physical address (`%IX0.0`, `i0.0`, `%QX0.1`, `m0.5`, `ton1`, `ctu0`, `s0.1` ... I, Q, M, step flags and FB instances, black) and comment (max. 30 chars,
 dark green). SPACE moves name -> address -> comment, ENTER/UP/DOWN store the row (the list is re-sorted);
 ENTER at the very start of a row opens an empty row above it (a new symbol is sorted in when stored),
 clearing the name and the comment removes the symbol, Edit > Delete line deletes it too.
@@ -221,7 +221,7 @@ Compile errors are reported with the POU name and line number.
 |---|---|---|---|
 | Inputs | `%IX0.0` | `I0.0` | 0.0-1.7 |
 | Outputs | `%QX0.0` | `Q0.0` | 0.0-1.7 |
-| Bit memory | `%MX5` | `M5` | 0-63 |
+| Bit memory | `%MX0.5` | `M0.5` | 0.0-7.7 |
 | Step flags | `%SX0.2` | `S0.2` | 0.0-7.7 |
 | INT words | `%MW3` | `MW3` | 0-15 |
 | System flags (read only) | `%SM6` | `SM6` | 0-7 |

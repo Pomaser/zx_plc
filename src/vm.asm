@@ -14,7 +14,7 @@
 ; ---- runtime data (RT area) --------------------------------
 RT_I      EQU RT            ; inputs  %IX0.0-1.7 (2 bytes)
 RT_Q      EQU RT+2          ; outputs %QX0.0-1.7 (2 bytes)
-RT_M      EQU RT+4          ; %MX0-63 (8 bytes)
+RT_M      EQU RT+4          ; %MX0.0-7.7 (8 bytes)
 RT_MW     EQU RT+12         ; %MW0-15 (32 bytes)
 RT_FB     EQU RT+44         ; 36 FB instances x 8 bytes
 RT_SCR    EQU RT_FB+36*8    ; LD: power of the rung rows (16 bits)

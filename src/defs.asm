@@ -156,7 +156,7 @@ AR_NONE     EQU 0
 AR_I        EQU 1           ; %IXb.n      index b*8+n (0-15)
 N_IOB       EQU 2           ; I / Q bytes (%IX0.0-1.7, %QX0.0-1.7)
 AR_Q        EQU 2           ; %QX0.n      index 0-7
-AR_M        EQU 3           ; %MXn        index 0-63
+AR_M        EQU 3           ; %MXb.n      index b*8+n (0-63)
 AR_MW       EQU 4           ; %MWn        index 0-15
 AR_SX       EQU 5           ; step flag %SXb.n, index = b*8+n (0-63)
 AR_KB       EQU 6           ; TRUE/FALSE  index 1/0

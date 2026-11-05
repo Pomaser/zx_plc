@@ -1,7 +1,7 @@
 ; ============================================================
 ; operand.asm - IEC 61131-3 operand parser and formatter
 ; ============================================================
-; Accepts:  %IXb.n %Ib.n Ib.n | %QXb.n %Qb.n Qb.n (b = 0-1) | %MXn %Mn Mn | %MWn MWn
+; Accepts:  %IXb.n %Ib.n Ib.n | %QXb.n %Qb.n Qb.n (b = 0-1) | %MXb.n %Mb.n Mb.n (b = 0-7) | %MWn MWn | %SMn SMn
 ;           %SXb.n %Sb.n Sb.n (step flags, b = 0-7)
 ;           TRUE FALSE | integer -32768..32767 | T#..  TIME#.. (units m, s, ms)
 ;           TON0..TON3, TOF, TP, CTU, CTD, RT (R_TRIG), RF (F_TRIG), SR, RS (+ .member)
@@ -140,10 +140,12 @@ op_parse:
         jr nz,.sxaddr
         inc hl
 .sxaddr:                        ; b.n -> index b*8+n
-        ld a,(hl)
+        ld b,AR_SX
+        ld e,N_SB
+.bbit:  ld a,(hl)               ; B = area, E = number of bytes
         sub '0'
         jp c,op_fail_jp
-        cp N_SB
+        cp e
         jp nc,op_fail_jp
         add a,a
         add a,a
@@ -165,7 +167,7 @@ op_parse:
         ld a,(hl)
         or a
         jp nz,op_fail_jp
-        ld a,AR_SX
+        ld a,b
         jp op_ok
 .diq:   ld a,(hl)
         cp 'X'
@@ -199,9 +201,9 @@ op_parse:
         jp nz,op_fail_jp
         ld a,b
         jp op_ok
-.mx:    ld b,AR_M
-        ld e,N_M
-        jr .idxnum
+.mx:    ld b,AR_M               ; %MXb.n / Mb.n
+        ld e,N_M/8
+        jr .bbit
 .mw:    ld b,AR_MW
         ld e,N_MW
 .idxnum:
@@ -605,9 +607,9 @@ op_format:
 .bit:   call .style
         call put_str
         jr .bn
-.f_m:   ld hl,s_iec_m
+.f_m:   ld hl,s_iec_m           ; %MXb.n / Mb.n
         ld bc,s_sh_m
-        jr .numidx
+        jr .bit
 .f_mw:  ld hl,s_iec_mw
         ld bc,s_sh_mw
         jr .numidx
