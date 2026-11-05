@@ -150,7 +150,7 @@ green comment above the network. ENTER, LEFT, RIGHT, DELETE or typing on a comme
 another key still places a normally closed contact (the key starts its operand).
 
 Arrows move. DELETE removes the element and the rest of the row moves one position to the left (with
-links at or right of it in this row or the row above it only clears the position). SYMBOL SHIFT + `I`
+links at or right of it in this row or the row above it a wire takes its place and the link stays). SYMBOL SHIFT + `I`
 inserts an element (chosen in the picker) in front of the cursor element: the whole rung moves one position
 to the right (position 8 must be free or a wire), branches get a wire in the new column where needed. `V`
 toggles a vertical link at the right edge of the position (parallel branches); a new branch gets an empty
@@ -182,7 +182,8 @@ block itself and its output on the right - cells inside a block and the empty sp
 are skipped. Outputs are not offered on a block input (a cell whose signal goes, through wires, straight into a
 block). An output or a wire needs a signal coming from the left (an element, possibly over empty
 cells that are then filled with wires). Placing a block needs free cells below it; DELETE on a block
-removes the whole block. A block placed on an input inserts itself behind it: the network moves one
+removes the whole block; afterwards the network closes up (columns holding only wires move out, a block
+keeps one free cell for each of its inputs). A block placed on an input inserts itself behind it: the network moves one
 position to the right, the input feeds the first input of the new block and the cursor goes to the
 second input. If a block does not fit, it is not placed ("No room for the block"). Wires are
 added automatically between a new block or output and the element on its left. In the simulation inputs,

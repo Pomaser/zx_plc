@@ -1392,13 +1392,19 @@ ld_editor:
         jp .redraw
 .dl:    call ld_pull_left       ; the rest of the row moves left
         jp nc,.redraw
-        ld a,(ld_row)           ; (links there: only clear the position)
-        ld d,a
+        ld a,(ld_row)           ; (links there: a wire takes its place, the
+        ld d,a                  ; link stays; the coil is just cleared)
         ld a,(ld_pos)
         ld e,a
         call ld_get
         and LT_VL
-        ld bc,0
+        ld b,a
+        ld a,(ld_pos)
+        cp LD_CPOS
+        ld a,b
+        jr nc,.dk
+        or LT_WIRE
+.dk:    ld bc,0
         call ld_put
         jp .redraw
 

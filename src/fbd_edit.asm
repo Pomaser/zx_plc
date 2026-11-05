@@ -470,6 +470,8 @@ fb_editor:
         xor a
         ld bc,0
         BCALL ld_put
+        call fb_compact         ; no gap: the network moves left
+        call fb_snap
         jr .redraw
 
 .wak:   ld a,CMD_WADD           ; SS+W: add to the watch list
@@ -564,6 +566,28 @@ fb_to_timer:
 fb_skip_e:
         ld a,(ld_row)
         ld d,a
+        push de                 ; inside a block: skipped
+        call fb_owner
+        pop de
+        ccf
+        ret c
+        ld a,e                  ; the input cell of a block on the right:
+        cp LD_CPOS              ; allowed
+        jr nc,.l
+        push de
+        inc e
+        call fb_owner
+        jr nc,.inp
+        call ld_get
+        ld c,b
+        call fb_height_t
+        or a
+        jr nz,.inp
+        pop de
+        jr .l
+.inp:   pop de
+        or a
+        ret
 .l:     push de
         call fb_owner
         pop de
@@ -945,6 +969,11 @@ fb_ins_col:
 ;      from fm_p (<= 7); the freed column gets wires where an element on the
 ;      left feeds something on the right. C = position 8 used
 fb_net_shift:
+        call fb_net_rows
+        jr fb_net_shift.chk
+
+; fb_net_rows: fm_r0 .. fm_r1 = the rows of the network of ld_row
+fb_net_rows:
         ld a,(ld_row)           ; first row of the network
 .up:    ld (fm_r0),a
         or a
@@ -959,13 +988,16 @@ fb_net_shift:
 .dn:    ld (fm_r1),a
         inc a
         cp LD_MAXROWS
-        jr nc,.chk
+        ret nc
         push af
         call fb_net_row
         pop bc
         ld a,b
         jr c,.dn
-.chk:   ld a,(fm_r0)            ; position 8 must be free
+        ret
+
+fb_net_shift.chk:
+        ld a,(fm_r0)            ; position 8 must be free
 .c8:    ld (fm_rr),a
         ld d,a
         ld e,LD_CPOS-1
@@ -1017,6 +1049,216 @@ fb_net_shift:
         jr .w
 .done:  or a
         ret
+
+; ---- fb_compact: removes the columns of the network of ld_row that hold
+;      only wires / empty cells (not covered by a block, no PT input of a
+;      timer) while elements follow on the right: positions right of such a
+;      column move one to the left (outputs at position 9 stay, joined by a
+;      wire); the cursor moves with them
+fb_compact:
+        call fb_net_rows
+        xor a
+        ld (fk_q),a
+.col:   ld a,(fk_q)
+        cp LD_CPOS-1
+        jr nc,fk_fill
+        call fk_free
+        jr c,.nx
+        call fk_del
+        ld a,(fk_q)             ; cursor right of it: one to the left
+        ld b,a
+        ld a,(ld_pos)
+        cp LD_CPOS
+        jr nc,.col
+        cp b
+        jr z,.col
+        jr c,.col
+        dec a
+        ld (ld_pos),a
+        jr .col
+.nx:    ld hl,fk_q
+        inc (hl)
+        jr .col
+
+; fk_fill: one-cell gaps between an element and an element / block input on
+;      the right get a wire (rows fm_r0 .. fm_r1)
+fk_fill:
+        ld a,(fm_r0)
+.r:     ld (fm_rr),a
+        ld e,1
+.c:     ld a,(fm_rr)
+        ld d,a
+        call ld_get             ; empty and not inside a block?
+        or a
+        jr nz,.n
+        call fb_owner
+        jr nc,.n
+        dec e                   ; something on the left
+        call ld_get
+        inc e
+        or a
+        jr z,.n
+        inc e                   ; something on the right (or a block input)
+        call ld_get
+        or a
+        jr nz,.y
+        call fb_owner
+.y:     dec e
+        jr c,.n
+        push de
+        ld a,FT_WIRE
+        ld bc,0
+        BCALL ld_put
+        pop de
+.n:     inc e
+        ld a,e
+        cp LD_CPOS
+        jr c,.c
+        ld a,(fm_rr)
+        ld hl,fm_r1
+        cp (hl)
+        ret z
+        inc a
+        jr .r
+
+; fk_free: NC if column fk_q can go (see fb_compact)
+fk_free:
+        xor a
+        ld (fk_el),a
+        ld a,(fm_r0)
+.r:     ld (fm_rr),a
+        ld d,a
+        ld a,(fk_q)
+        ld e,a
+        call ld_get
+        or a
+        jr z,.e
+        cp FT_WIRE
+        scf
+        ret nz                  ; an element in the column
+.e:     call fb_owner
+        ccf
+        ret c                   ; covered by a block
+        ld a,(fm_rr)            ; PT input of a timer on the right?
+        or a
+        jr z,.pt
+        dec a
+        ld d,a
+        ld a,(fk_q)
+        inc a
+        ld e,a
+        call ld_get
+        call ld_isbox
+        scf
+        ret z
+.pt:    ld a,(fm_rr)            ; an input cell of a block on the right that
+        ld d,a                  ; would land next to a covered cell: kept
+        ld a,(fk_q)
+        inc a
+        ld e,a
+        call fb_owner
+        jr nc,.ib
+        call ld_get
+        ld c,b
+        call fb_height_t
+        or a
+        jr z,.ok
+.ib:    ld a,(fk_q)
+        or a
+        scf
+        ret z                   ; (left edge: no cell for the input)
+        dec a
+        ld e,a
+        call fb_owner
+        ccf
+        ret c
+.ok:    ld a,(fm_rr)            ; elements right of the column?
+        ld d,a
+        ld a,(fk_q)
+        ld e,a
+.rt:    inc e
+        ld a,e
+        cp LD_CPOS
+        jr nc,.rn
+        call ld_get
+        and FT_MASK
+        jr z,.rt
+        cp FT_WIRE
+        jr z,.rt
+        ld a,1
+        ld (fk_el),a
+.rn:    ld a,(fm_rr)
+        ld hl,fm_r1
+        cp (hl)
+        jr z,.end
+        inc a
+        jr .r
+.end:   ld a,(fk_el)
+        or a
+        ret nz                  ; (NC)
+        scf
+        ret
+
+; fk_del: column fk_q goes, positions fk_q+1 .. 8 move one to the left
+fk_del: ld a,(fm_r0)
+.r:     ld (fm_rr),a
+        ld d,a
+        ld e,LD_CPOS-1
+        call ld_get
+        ld (fk_el),a            ; position 8 used before?
+        ld a,(fm_rr)
+        ld d,a
+        ld a,(fk_q)
+        ld e,a
+        xor a
+        ld bc,0
+        BCALL ld_put
+        ld a,(fk_q)
+.c:     inc a
+        cp LD_CPOS
+        jr nc,.w
+        ld (fk_c),a
+        ld a,(fm_rr)
+        ld d,a
+        ld a,(fk_c)
+        ld e,a
+        call ld_get
+        or a
+        jr z,.n
+        ld (fm_t),a
+        ld hl,(ld_gpt)
+        ld (ld_ppt),hl
+        dec e
+        ld a,(fm_t)
+        BCALL ld_put            ; (B, C passed through)
+        ld a,(fm_rr)
+        ld d,a
+        ld a,(fk_c)
+        ld e,a
+        xor a
+        ld bc,0
+        BCALL ld_put
+.n:     ld a,(fk_c)
+        jr .c
+.w:     ld a,(fk_el)            ; an output at 9 stays joined
+        or a
+        jr z,.nr
+        ld a,(fm_rr)
+        ld d,a
+        ld e,LD_CPOS
+        call ld_get
+        or a
+        jr z,.nr
+        ld e,LD_CPOS-1
+        ld a,FT_WIRE
+        ld bc,0
+        BCALL ld_put
+.nr:    ld a,(fm_rr)
+        ld hl,fm_r1
+        cp (hl)
+        ret z
+        inc a
+        jp .r
 
 ; fb_net_row: A = row -> C if it belongs to a network (an element that is
 ;      not a comment, or a cell covered by a block)
@@ -2714,6 +2956,9 @@ fs_k:     db 0
 fs_li:    db 0
 fs_span:  ds 24*10*2
 fm_p:     db 0
+fk_q:     db 0
+fk_c:     db 0
+fk_el:    db 0
 fm_err:   db 0
 fb_hh:    db 0
 fb_ins:   db 0
