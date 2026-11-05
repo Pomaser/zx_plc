@@ -42,7 +42,8 @@ popup_buf EQU rd_c+64           ; 80  popup text
 st_buf    EQU popup_buf+80      ; 60  status bar text
 st_last   EQU st_buf+60         ; 24  status bar: last right text
 st_llast  EQU st_last+24        ; 60  status bar: last left text
-RT_END    EQU st_llast+60
+RT_FRC    EQU st_llast+60       ; WT_MAX x 5 forced values of the watch list
+RT_END    EQU RT_FRC+WT_MAX*5
         ASSERT RT_END <= PROJ
 
 VM_MB     EQU 1
@@ -101,8 +102,10 @@ vm_reset:
 ;      first scan after a reset only.
 vm_scan:
         call vm_sm_upd
+        call vm_force
         call vm_scan0
         push af
+        call vm_force           ; (forced outputs stay)
         xor a
         ld (vm_first),a
         pop af
@@ -160,6 +163,51 @@ vm_sm_upd:
 .mod:   sub d
         jr nc,.mod
         add a,d
+        ret
+
+; ---- vm_force: applies the forced values (RT_FRC): [kind][addr][x][y]
+;      kind 1: bit, x = mask, y = 0 / 1; kind 2: word = x + 256*y
+vm_force:
+        ld hl,RT_FRC
+        ld b,WT_MAX
+.l:     ld a,(hl)
+        or a
+        jr z,.n
+        push bc
+        push hl
+        inc hl
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        inc hl
+        cp 2
+        jr z,.w
+        ld c,(hl)               ; mask
+        inc hl
+        ld a,(hl)
+        ex de,hl
+        or a
+        ld a,c
+        jr z,.clr
+        or (hl)
+        ld (hl),a
+        jr .d
+.clr:   cpl
+        and (hl)
+        ld (hl),a
+        jr .d
+.w:     ld a,(hl)
+        inc hl
+        ld c,(hl)
+        ex de,hl
+        ld (hl),a
+        inc hl
+        ld (hl),c
+.d:     pop hl
+        pop bc
+.n:     ld de,5
+        add hl,de
+        djnz .l
         ret
 
 vm_first: db 1

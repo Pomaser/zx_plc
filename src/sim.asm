@@ -49,7 +49,12 @@ scr_run:
         ld hl,0
         ld (sm_top),hl
         BCALL vm_reset
+        ld hl,RT_FRC            ; no forced values, program page
+        ld bc,WT_MAX*5
         xor a
+        call memset
+        xor a
+        ld (sm_page),a
         ld (sim_tog),a
         ld (sim_tog+1),a
         ld (sm_ib),a
@@ -96,10 +101,30 @@ scr_run:
         call kb_get
         or a
         jr z,.loop
+        ld b,a                  ; watch page: its keys
+        ld a,(sm_page)
+        or a
+        ld a,b
+        jr z,.np
         cp K_UP
-        jr z,.up
+        jr z,.wk
         cp K_DOWN
-        jr z,.down
+        jr z,.wk
+        cp K_ENTER
+        jr z,.wk
+        cp K_DEL
+        jr z,.wk
+        cp 'f'
+        jr z,.wk
+        cp 'F'
+        jr nz,.np
+.wk:    BCALL wt_key
+        jp .loop
+.np:
+        cp K_UP
+        jp z,.up
+        cp K_DOWN
+        jp z,.down
         cp K_BREAK
         jp z,.menu
         cp K_EDIT
@@ -121,16 +146,24 @@ scr_run:
         ld a,(hl)
         xor c
         ld (hl),a
-        jr .loop
+        jp .loop
 .letter:
         call to_upper
-        cp 'B'                  ; B: the other input byte
+        cp 'W'                  ; W: program / watch page
+        jr nz,.nw
+        ld a,(sm_page)
+        xor 1
+        ld (sm_page),a
+        call sim_hint
+        call sim_draw_list
+        jp .loop
+.nw:    cp 'B'                  ; B: the other input byte
         jr nz,.nb
         ld a,(sm_ib)
         xor 1
         ld (sm_ib),a
         call sim_mark
-        jr .loop
+        jp .loop
 .nb:
         cp 'R'                  ; R toggles run / stop
         jr nz,.nr
@@ -230,6 +263,16 @@ sim_cmd:
         ld (sim_tog),a
         ld (sim_tog+1),a
         ret
+
+; ---- sim_hint: key hints of the page in the status bar
+sim_hint:
+        ld hl,txt_sm_hint
+        ld a,(sm_page)
+        or a
+        jr z,.s
+        ld hl,txt_wt_hint
+.s:     ld (st_left),hl
+        jp status_left
 
 ; ---- sim_state: RUN / STOP in the status bar
 sim_state:
@@ -424,7 +467,12 @@ sim_draw_panel:
 
 ; ---- sim_draw_list: listing rows 1-19 + monitor descriptors
 sim_draw_list:
-        ld a,(sm_mon)
+        ld a,(sm_page)          ; watch page
+        or a
+        jr z,.prog
+        BCALL wt_draw
+        ret
+.prog:  ld a,(sm_mon)
         cp 2
         jr c,.nld
         ld a,(sm_top)           ; LD / FBD diagram
@@ -546,7 +594,12 @@ sim_desc_addr:
 
 ; ---- sim_update: redraws changed values and LEDs
 sim_update:
-        ld a,(sm_mon)
+        ld a,(sm_page)
+        or a
+        jr z,.prog
+        BCALL wt_update
+        jr .leds
+.prog:  ld a,(sm_mon)
         cp 2
         jr c,.nld
         jr z,.ld
@@ -722,12 +775,14 @@ sim_draw_val:
 txt_sm_run:   db "RUN",0
 txt_sm_stop:  db "STOP",0
 txt_sm_true:  db "TRUE",0
+txt_wt_hint:  db "ENTER Edit  F Force  DEL Delete  W Program",0
 txt_sm_hint:  db "0-7 Force  SS+n Write  B Byte  R Run  S Step  E Res",0
 txt_sm_nomon: db "No IL or LD POU to monitor.",0
 txt_sm_err:   db "Error in ",0
 txt_sm_line:  db ", line ",0
 
 sim_tog:    dw 0              ; toggled inputs I0, I1
+sm_page:    db 0              ; 0 program listing, 1 watch / force table
 sm_ib:      db 0              ; input byte of the keys 0-7
 sm_lf:      db 0              ; LEDs: redraw all
 sm_lv:      dw 0

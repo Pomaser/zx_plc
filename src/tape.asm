@@ -192,7 +192,7 @@ tape_load:
         sbc hl,de
         jr nz,.hdr
         ld hl,(tp_lhdr+11)
-        ld de,HDR_LEN
+        ld de,HDR_LEN-POU_ESIZE ; (version 1: one slot less)
         or a
         sbc hl,de
         jr c,.hdr
@@ -221,7 +221,14 @@ tape_load:
         or a
         sbc hl,de
         jr nz,.bad
-        call .end
+        ld a,(PROJ+P_VER)       ; version 1: insert the watch list slot
+        cp PROJ_VER
+        jr z,.vok
+        cp 1
+        jr nz,.bad
+        call tp_conv1
+        jr c,.bad
+.vok:   call .end
         ld hl,tp_lhdr+1         ; "Project loaded:" + name
         ld de,tp_lname
         ld bc,10
@@ -402,3 +409,45 @@ tp_lname:     ds 10
 err_tp_load:  db "Tape loading error",0
 err_tp_bad:   db "Not a ZX-PLC project",0
 err_tp_brk:   db "Loading interrupted",0
+
+; ---- tp_conv1: version 1 project -> version 2 (an empty 10th table entry
+;      in front of the bodies); C = no room
+tp_conv1:
+        ld hl,(PROJ+P_LEN)
+        ld de,PROJ_END-PROJ-POU_ESIZE+1
+        or a
+        sbc hl,de
+        ccf
+        ret c
+        ld hl,(PROJ+P_LEN)      ; bytes from the old body start to the end
+        ld de,POU_BODIES-PROJ-POU_ESIZE
+        or a
+        sbc hl,de
+        ld b,h
+        ld c,l
+        ld a,b
+        or c
+        jr z,.z
+        ld hl,(PROJ+P_LEN)
+        ld de,PROJ-1
+        add hl,de               ; last byte
+        ld d,h
+        ld e,l
+        ld a,POU_ESIZE
+        add a,e
+        ld e,a
+        jr nc,.m
+        inc d
+.m:     lddr
+.z:     ld hl,POU_BODIES-POU_ESIZE
+        ld bc,POU_ESIZE
+        xor a
+        call memset
+        ld hl,(PROJ+P_LEN)
+        ld de,POU_ESIZE
+        add hl,de
+        ld (PROJ+P_LEN),hl
+        ld a,PROJ_VER
+        ld (PROJ+P_VER),a
+        or a
+        ret

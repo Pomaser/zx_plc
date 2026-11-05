@@ -595,3 +595,612 @@ xr_i:     db 0
 xr_sel:   db 0
 xr_ep:    dw 0
 xr_list:  ds XR_MAX*5           ; [slot][line lo][line hi][pos][kind]
+
+; ============================================================
+; watch / force table (simulation page, list in WATCH_SLOT)
+; ============================================================
+; Rows 1-19 of the simulation screen: row 1 column names, rows 2-17 the
+; entries (> marks the selected one), the row after the last entry adds
+; a new one. Values are redrawn when they change; forced values get an
+; "F". Forcing: runtime table RT_FRC (applied by vm_force).
+WT_ROW0   EQU 2
+WT_X_SYM  EQU 64
+WT_X_F    EQU 168
+WT_VCOL   EQU 22            ; first cell of the value
+
+; ---- wt_count: A = number of entries, HL = list start
+wt_count:
+        ld a,WATCH_SLOT
+        call pou_body
+        srl b
+        rr c
+        ld a,c
+        ret
+
+; ---- wt_draw: the whole page
+wt_draw:
+        ld b,1
+.cl:    push bc
+        ld c,0
+        ld d,32
+        ld e,ATTR_NORMAL
+        call scr_fill_attr
+        pop bc
+        push bc
+        call pt_clear_row
+        pop bc
+        inc b
+        ld a,b
+        cp WT_ROW0+WT_MAX+2
+        jr c,.cl
+        ld bc,1*256             ; column names
+        ld de,0x2000+ATTR_TITLE
+        call scr_fill_attr
+        ld a,1
+        ld (pt_row),a
+        ld a,8
+        ld (pt_x),a
+        ld hl,txt_wt_op
+        call pt_puts
+        ld a,WT_X_SYM
+        ld (pt_x),a
+        ld hl,txt_wt_sym
+        call pt_puts
+        ld hl,txt_wt_val
+        ld a,252
+        call pt_puts_r
+        call wt_count
+        ld (wt_n),a
+        ld b,a                  ; selection within 0 .. n (n = add row)
+        ld a,(wt_sel)
+        cp b
+        jr c,.s1
+        jr z,.s1
+        ld a,b
+        ld (wt_sel),a
+.s1:    ld a,(wt_sel)
+        cp WT_MAX
+        jr c,.s2
+        ld a,WT_MAX-1
+        ld (wt_sel),a
+.s2:    xor a
+        ld (wt_i),a
+.e:     ld a,(wt_n)
+        ld b,a
+        ld a,(wt_i)
+        cp b
+        jr nc,.add
+        call wt_draw_entry
+        ld hl,wt_i
+        inc (hl)
+        jr .e
+.add:   ld a,(wt_n)
+        cp WT_MAX
+        jr nc,.mk
+        add a,WT_ROW0
+        ld (pt_row),a
+        ld a,8
+        ld (pt_x),a
+        ld hl,txt_wt_add
+        call pt_puts
+.mk:    ld a,(wt_sel)           ; selection mark
+        add a,WT_ROW0
+        ld (pt_row),a
+        xor a
+        ld (pt_x),a
+        ld a,'>'
+        call pt_putc
+        ld a,0xFF               ; values: draw all
+        ld (wt_all),a
+        ; fall through
+
+; ---- wt_update: redraws the values that changed
+wt_update:
+        xor a
+        ld (wt_i),a
+.l:     ld a,(wt_n)
+        ld b,a
+        ld a,(wt_i)
+        cp b
+        jr nc,.e
+        call wt_value           ; DE = value, A = kind (0 none, 1 BOOL, 2 INT, 3 TIME)
+        ld (wt_k),a
+        ld a,(wt_i)             ; forced?
+        call wt_frc
+        ld a,(hl)
+        ld c,a
+        ld a,(wt_i)             ; cache [value lo][value hi][forced]
+        ld l,a
+        add a,a
+        add a,l
+        ld l,a
+        ld h,0
+        push de
+        ld de,wt_cache
+        add hl,de
+        pop de
+        ld a,(wt_all)
+        or a
+        jr nz,.dr
+        ld a,(hl)
+        cp e
+        jr nz,.dr
+        inc hl
+        ld a,(hl)
+        dec hl
+        cp d
+        jr nz,.dr
+        inc hl
+        inc hl
+        ld a,(hl)
+        dec hl
+        dec hl
+        cp c
+        jr z,.n
+.dr:    ld (hl),e
+        inc hl
+        ld (hl),d
+        inc hl
+        ld (hl),c
+        ld a,c
+        ld (wt_f),a
+        call wt_draw_val
+.n:     ld hl,wt_i
+        inc (hl)
+        jr .l
+.e:     xor a
+        ld (wt_all),a
+        ret
+
+; wt_entry: A = index -> HL = [area][index] in the list
+wt_entry:
+        push af
+        ld a,WATCH_SLOT
+        call pou_body
+        pop af
+        add a,a
+        add a,l
+        ld l,a
+        ret nc
+        inc h
+        ret
+
+; wt_frc: A = index -> HL = its RT_FRC entry
+wt_frc: ld l,a
+        add a,a
+        add a,a
+        add a,l
+        ld l,a
+        ld h,0
+        push de
+        ld de,RT_FRC
+        add hl,de
+        pop de
+        ret
+
+; wt_value: entry wt_i -> A = kind (0 none, 1 BOOL, 2 INT, 3 TIME), DE = value;
+;      cp_arg / cp_arg3 = address / bit mask
+wt_value:
+        ld a,(wt_i)
+        call wt_entry
+        ld a,(hl)
+        inc hl
+        ld c,(hl)
+        ld de,0
+        call cp_operand_av
+        ld a,0
+        ret c
+        ld a,(cp_mode)
+        cp VM_MB
+        jr z,.b
+        cp VM_MW
+        ld a,0
+        ret nz
+        ld hl,(cp_arg)
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        ld a,(cp_istime)
+        or a
+        ld a,2
+        ret z
+        inc a
+        ret
+.b:     ld hl,(cp_arg)
+        ld a,(cp_arg3)
+        and (hl)
+        ld de,0
+        jr z,.f
+        inc e
+.f:     ld a,1
+        ret
+
+; wt_draw_entry: operand and symbol of entry wt_i
+wt_draw_entry:
+        ld a,(wt_i)
+        add a,WT_ROW0
+        ld (pt_row),a
+        ld a,(wt_i)
+        call wt_entry
+        ld a,(hl)
+        inc hl
+        ld c,(hl)
+        push af
+        push bc
+        ld de,rd_o
+        ld hl,0
+        ld b,0
+        call op_format
+        xor a
+        ld (de),a
+        ld a,8
+        ld (pt_x),a
+        ld hl,rd_o
+        call pt_puts
+        pop bc
+        pop af
+        and AR_MASK             ; FB member: the instance symbol
+        cp AR_FBM
+        jr nz,.s
+        ld a,AR_FBI
+.s:     call sym_name_of
+        ret c
+        ld a,WT_X_SYM
+        ld (pt_x),a
+        ld a,WT_X_F-4
+        ld (pt_xmax),a
+        call pt_puts
+        ld a,255
+        ld (pt_xmax),a
+        ret
+
+; wt_draw_val: value DE of kind wt_k, forced flag wt_f, row of entry wt_i
+wt_draw_val:
+        ld a,(wt_i)
+        add a,WT_ROW0
+        ld (pt_row),a
+        ld b,a                  ; clear the F cell and the value cells
+        ld c,WT_X_F/8
+        call pix_addr
+        ld c,8
+.cl:    push hl
+        ld b,32-WT_X_F/8
+        xor a
+.z:     ld (hl),a
+        inc l
+        djnz .z
+        pop hl
+        inc h
+        dec c
+        jr nz,.cl
+        ld a,(pt_row)
+        ld b,a
+        ld c,WT_VCOL
+        push de
+        ld de,(32-WT_VCOL)*256+ATTR_NORMAL
+        ld a,(wt_k)             ; TRUE: black on bright green
+        cp 1
+        jr nz,.at
+        pop hl
+        push hl
+        ld a,l
+        or a
+        jr z,.at
+        ld e,ATTR_ON
+.at:    call scr_fill_attr
+        pop de
+        ld a,(wt_f)
+        or a
+        jr z,.nf
+        ld a,WT_X_F
+        ld (pt_x),a
+        ld a,'F'
+        push de
+        call pt_putc
+        pop de
+.nf:    ld a,(wt_k)
+        or a
+        ret z
+        ld hl,rd_c
+        ex de,hl                ; HL = value, DE = text
+        cp 1
+        jr z,.bool
+        cp 3
+        jr z,.time
+        call itoa16
+        jr .pr
+.time:  ld a,AR_KT
+        ld b,0
+        call op_format
+        jr .pr
+.bool:  ld a,l
+        ld hl,kw_false
+        or a
+        jr z,.bs
+        ld hl,kw_true
+.bs:    call put_str
+.pr:    xor a
+        ld (de),a
+        ld hl,rd_c
+        ld a,252
+        jp pt_puts_r
+
+; ---- wt_key: A = key on the watch page (UP, DOWN, ENTER, DELETE, F)
+wt_key:
+        cp K_UP
+        jr z,.up
+        cp K_DOWN
+        jr z,.down
+        cp K_ENTER
+        jp z,wt_edit
+        cp K_DEL
+        jp z,wt_del
+        jp wt_force
+.up:    ld a,(wt_sel)
+        or a
+        ret z
+        dec a
+        jr .mv
+.down:  ld a,(wt_n)
+        ld b,a
+        ld a,(wt_sel)
+        cp b
+        ret nc                  ; (on the add row)
+        inc a
+        cp WT_MAX
+        ret nc
+.mv:    push af                 ; old mark off (cell 0 holds only the mark)
+        ld a,(wt_sel)
+        add a,WT_ROW0
+        ld b,a
+        ld c,0
+        call pix_addr
+        ld b,8
+.c:     ld (hl),0
+        inc h
+        djnz .c
+        pop af
+        ld (wt_sel),a
+        add a,WT_ROW0
+        ld (pt_row),a
+        xor a
+        ld (pt_x),a
+        ld a,'>'
+        jp pt_putc
+
+; wt_edit: ENTER: operand of the selected entry (new on the add row);
+;      an empty text removes the entry
+wt_edit:
+        ld hl,rd_o
+        ld (hl),0
+        ld a,(wt_n)
+        ld b,a
+        ld a,(wt_sel)
+        cp b
+        jr nc,.ask
+        call wt_entry           ; current operand as the initial text
+        ld a,(hl)
+        inc hl
+        ld c,(hl)
+        ld de,rd_o
+        ld hl,0
+        ld b,0
+        call op_format
+        xor a
+        ld (de),a
+.ask:   ld hl,txt_wt_q
+        call popup_open
+        ld a,(win_r)
+        add a,2
+        ld b,a
+        ld a,(win_bx)
+        add a,8
+        ld c,a
+        ld hl,rd_o
+        ld de,0x1401            ; 20 chars, upper case
+        call ui_input
+        push af
+        call win_close
+        pop af
+        jp c,wt_draw
+        ld a,(rd_o)
+        or a
+        jp z,wt_del
+        ld hl,rd_o
+        call op_parse
+        jr c,.bad
+        ld b,a
+        ld a,(hl)
+        or a
+        jr nz,.bad
+        ld a,b                  ; something with a value
+        and AR_MASK
+        cp AR_FBI
+        jr z,.bad
+        cp AR_POU
+        jr z,.bad
+        cp AR_KB
+        jr z,.bad
+        cp AR_K16
+        jr z,.bad
+        cp AR_KT
+        jr z,.bad
+        ld a,b
+        ld (wt_na),a
+        ld a,c
+        ld (wt_ni),a
+        ld a,(wt_sel)           ; not forced any more
+        call wt_frc
+        ld (hl),0
+        ld a,(wt_n)
+        ld b,a
+        ld a,(wt_sel)
+        cp b
+        jr c,.repl
+        add a,a                 ; new entry at the end
+        ld e,a
+        ld d,0
+        ld bc,2
+        ld a,WATCH_SLOT
+        call pou_insert
+        jr c,.mem
+        jr .put
+.repl:  call undo_save
+        call wt_entry
+.put:   ld a,(wt_na)
+        ld (hl),a
+        inc hl
+        ld a,(wt_ni)
+        ld (hl),a
+        jp wt_draw
+.bad:   ld hl,txt_wt_bad
+        call ui_error
+        jp wt_draw
+.mem:   ld hl,err_il_mem
+        call ui_error
+        jp wt_draw
+
+; wt_del: DELETE: removes the selected entry (its force too)
+wt_del: ld a,(wt_n)
+        ld b,a
+        ld a,(wt_sel)
+        cp b
+        jp nc,wt_draw
+        add a,a
+        ld e,a
+        ld d,0
+        ld bc,2
+        ld a,WATCH_SLOT
+        call pou_delete
+        ld a,(wt_sel)           ; forces of the following entries move up
+        ld b,a
+        ld a,WT_MAX-1
+        sub b
+        jr z,.last
+        ld b,a                  ; (WT_MAX-1-sel) * 5 bytes
+        add a,a
+        add a,a
+        add a,b
+        ld c,a
+        ld b,0
+        push bc
+        ld a,(wt_sel)
+        call wt_frc
+        pop bc
+        push hl
+        ld de,5
+        add hl,de
+        pop de
+        ldir
+.last:  ld hl,RT_FRC+(WT_MAX-1)*5   ; the last entry is free
+        ld (hl),0
+        jp wt_draw
+
+; wt_force: F: BOOL cycles off -> TRUE -> FALSE -> off; INT asks a value
+wt_force:
+        call to_upper
+        cp 'F'
+        ret nz
+        ld a,(wt_n)
+        ld b,a
+        ld a,(wt_sel)
+        cp b
+        ret nc
+        ld (wt_i),a
+        call wt_value
+        or a
+        jp z,.no
+        cp 3
+        jp z,.no
+        ld (wt_k),a
+        ld a,(wt_sel)
+        call wt_frc
+        push hl
+        pop ix
+        ld a,(wt_k)
+        cp 2
+        jr z,.int
+        ld a,(ix+0)             ; BOOL
+        or a
+        jr z,.t
+        ld a,(ix+4)
+        or a
+        jr z,.off
+        ld (ix+4),0             ; TRUE -> FALSE
+        jr .ap
+.t:     ld (ix+0),1             ; off -> TRUE
+        ld hl,(cp_arg)
+        ld (ix+1),l
+        ld (ix+2),h
+        ld a,(cp_arg3)
+        ld (ix+3),a
+        ld (ix+4),1
+        jr .ap
+.off:   ld (ix+0),0             ; FALSE -> off
+        jr .ap
+.int:   ld a,(ix+0)             ; forced INT: off again
+        or a
+        jr z,.ask
+        ld (ix+0),0
+        jr .ap
+.ask:   push ix
+        ld hl,txt_wt_vq
+        call popup_open
+        ld a,(win_r)
+        add a,2
+        ld b,a
+        ld a,(win_bx)
+        add a,8
+        ld c,a
+        ld hl,rd_o
+        ld (hl),0
+        ld de,0x0701
+        call ui_input
+        push af
+        call win_close
+        pop af
+        pop ix
+        jr c,.ap
+        ld hl,rd_o
+        call op_parse
+        jr c,.bad
+        and AR_MASK
+        cp AR_K16
+        jr nz,.bad
+        ld (ix+3),e
+        ld (ix+4),d
+        push de
+        ld a,(wt_i)             ; (cp_arg again)
+        call wt_value
+        pop de
+        ld hl,(cp_arg)
+        ld (ix+1),l
+        ld (ix+2),h
+        ld (ix+0),2
+.ap:    BCALL vm_force          ; shown at once
+        jp wt_draw
+.bad:   ld hl,txt_wt_bad
+        call ui_error
+        jp wt_draw
+.no:    ld hl,txt_wt_nof
+        call ui_error
+        jp wt_draw
+
+txt_wt_op:   db "Operand",0
+txt_wt_sym:  db "Symbol",0
+txt_wt_val:  db "Value",0
+txt_wt_add:  db "+ ENTER: add an operand",0
+txt_wt_q:    db "Operand to watch:",0," ",0," ",0,0
+txt_wt_vq:   db "Forced value:",0," ",0," ",0,0
+txt_wt_bad:  db "Invalid operand",0
+txt_wt_nof:  db "Only BOOL and INT can be forced",0
+
+wt_n:     db 0
+wt_i:     db 0
+wt_sel:   db 0
+wt_k:     db 0
+wt_f:     db 0
+wt_all:   db 0
+wt_na:    db 0
+wt_ni:    db 0
+wt_cache: ds WT_MAX*3

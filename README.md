@@ -216,6 +216,11 @@ Compile errors are reported with the POU name and line number.
 * Keys: `0`-`7` toggle inputs %IXb.0-b.7 of the selected byte b (key = bit number), `B` selects byte 0 / 1,
   SYMBOL SHIFT + `0`-`7` push button (input on while held),
   `R` run/stop, `S` single scan, `E` reset all data. The status bar shows these keys and RUN / STOP.
+* `W` switches between the program listing and the **watch / force table** (saved with the project, max. 16
+  operands: BOOL bits, %MW, FB members such as `TON0.ET`). UP/DOWN select a row, ENTER edits its operand
+  (the last row adds one, an empty text removes it), DELETE removes it, `F` forces it: a BOOL cycles forced
+  TRUE -> forced FALSE -> not forced, an INT asks for the value (F again releases it). Forced values show an
+  `F` and stay forced for the program and the outputs while the simulation screen is open.
 * Standard FBs: TON, TOF, TP, CTU, CTD, R_TRIG (instances `RT0`-`RT3`), F_TRIG (`RF0`-`RF3`), SR, RS. Calls of other POUs: max. depth 8.
   A watchdog stops a scan that executes more than 30000 instructions.
 * FBD POUs are not compiled yet (a call of such a POU does nothing).

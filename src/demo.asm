@@ -84,6 +84,16 @@ demo_build:
         ld hl,dm_fbdc
         call dm_cmts
         jp c,dm_fail
+        ; watch list (simulation, W)
+        ld a,WATCH_SLOT
+        ld de,0
+        ld bc,DM_WLEN
+        call pou_insert
+        jp c,dm_fail
+        ex de,hl
+        ld hl,dm_watch
+        ld bc,DM_WLEN
+        ldir
         ; POU comments
         ld a,7
         ld (TEST_RES+3),a
@@ -207,6 +217,14 @@ dm_c_main: db "Calls the 3 demos",0
 dm_c_il:   db "Traffic light (IL)",0
 dm_c_ld:   db "Pump and fan (LD)",0
 dm_c_fbd:  db "Valve and horn (FBD)",0
+
+; ---- watch list: [area][index]
+dm_watch:
+        db AR_I,11                              ; HighLvl
+        db AR_Q,8                               ; Valve
+        db AR_Q,9                               ; Horn
+        db AR_FBM+0x30,FBT_TOF*FB_PER_TYPE+1    ; TValve.ET
+DM_WLEN EQU $-dm_watch
 
 ; ---- symbols: area, index, name, comment
 dm_syms:

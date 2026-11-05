@@ -47,7 +47,7 @@ P_SIG       EQU 0           ; "ZXPLC"
 P_VER       EQU 5
 P_NPOU      EQU 6           ; number of used slots
 P_LEN       EQU 8           ; word: total project length
-PROJ_VER    EQU 1
+PROJ_VER    EQU 2           ; 2: + watch list slot (version 1 is converted on load)
 MAX_POU     EQU 8
 POU_ESIZE   EQU 32
 POU_TAB     EQU PROJ+16
@@ -58,7 +58,9 @@ PE_LEN      EQU 10          ; word: body length
 PE_CMT      EQU 12          ; comment, max. 20 chars (0-terminated if shorter)
 POU_CMAX    EQU 20
 SYM_SLOT    EQU MAX_POU     ; hidden 9th slot: symbol table
-POU_BODIES  EQU POU_TAB+(MAX_POU+1)*POU_ESIZE
+WATCH_SLOT  EQU MAX_POU+1   ; hidden 10th slot: watch list [area][index] ...
+WT_MAX      EQU 16          ; watch list entries
+POU_BODIES  EQU POU_TAB+(MAX_POU+2)*POU_ESIZE
 HDR_LEN     EQU POU_BODIES-PROJ
 
 LANG_IL     EQU 0

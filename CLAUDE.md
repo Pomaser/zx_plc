@@ -49,7 +49,7 @@ on tape. See README.md for the user-facing description of every editor and key.
   - EDIT 0: IL, LD and symbol editors, simulation screen, tests.
   - RUN 4: compilers, VM, bytecode at 0xF000, POU list, tape. It is uncontended, which tape timing needs.
   - DATA 1: the popup save buffer.
-  - DEMO 3: `src/tools.asm` (cross references) and the demo image.
+  - DEMO 3: `src/tools.asm` (cross references, watch / force page of the simulation) and the demo image.
   - FBD 6: the FBD editor.
   - SPARE 7: the project copy while loading from tape.
 
@@ -80,7 +80,8 @@ on tape. See README.md for the user-facing description of every editor and key.
     ST_TAB = column.
 - **Project format** (src/project.asm, defs.asm):
   - A header with "ZXPLC" and P_LEN, then a table of 8 POU slots + a hidden slot 8 (the symbol table),
-    32 B each: name, language, length, comment. Bodies follow in slot order.
+    32 B each: name, language, length, comment, plus a hidden slot 9 (watch list, PROJ_VER 2;
+    tape_load converts version 1). Bodies follow in slot order.
   - Grow or shrink a body only with `pou_insert` / `pou_delete`.
 - **IL body:** binary line records `[len][kind][...]`. `il_check` (src/il_parse.asm, core) turns text
   into a record, `il_split` (il_edit) turns a record back into text. Operands are encoded by `op_parse` /
