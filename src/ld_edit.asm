@@ -1048,6 +1048,8 @@ ld_editor:
         jp z,.enter
         cp K_DEL
         jp z,.del
+        cp K_INS
+        jp z,.insk
         cp K_BREAK
         jp z,.menu
         cp K_EDIT
@@ -1225,6 +1227,28 @@ ld_editor:
         jp nz,.full
         jp .cur
 
+        ; ---- SS+I: insert an element in front of the cursor element (the
+        ;      rung moves one position to the right)
+.insk:  ld a,(ld_pos)
+        cp LD_CPOS
+        jp nc,.cur
+        xor a
+        call ld_pick
+        jp c,.cur
+        cp LT_VLITEM
+        jp z,.cur
+        ld (ld_newt),a
+        ld a,1
+        ld (ld_insf),a
+        ld hl,50                ; empty operand, PT T#1s
+        ld (ld_ppt),hl
+        xor a
+        ld (ld_ar),a
+        ld a,(ld_newt)
+        cp LT_NO
+        jp c,.pl2
+        jp .kept
+
         ; ---- place an element (A = type)
 .place: ld (ld_newt),a
         cp LT_NO
@@ -1266,7 +1290,19 @@ ld_editor:
         jr .pl3
 .pl2:   ld bc,0
         call ld_set_ar
-.pl3:   ld a,(ld_row)
+.pl3:   ld a,(ld_insf)          ; insert: make room first
+        or a
+        jr z,.pl4
+        ld hl,(ld_ppt)
+        push hl
+        call ld_ins_col
+        pop hl
+        ld (ld_ppt),hl
+        jr nc,.pl4
+        ld hl,err_ld_room
+        call ui_error
+        jp .redraw
+.pl4:   ld a,(ld_row)
         ld d,a
         ld a,(ld_pos)
         ld e,a
@@ -1300,6 +1336,8 @@ ld_editor:
         inc a
         ld (ld_pos),a
 .redraw:
+        xor a
+        ld (ld_insf),a
         call status_right
         jp .full
 
@@ -1328,7 +1366,9 @@ ld_editor:
         ld (ld_cbuf),a
         call ld_put_cmt
         jp .redraw
-.dl:    ld a,(ld_row)
+.dl:    call ld_pull_left       ; the rest of the row moves left
+        jp nc,.redraw
+        ld a,(ld_row)           ; (links there: only clear the position)
         ld d,a
         ld a,(ld_pos)
         ld e,a
@@ -1336,20 +1376,23 @@ ld_editor:
         and LT_VL
         ld bc,0
         call ld_put
-        jr .redraw
+        jp .redraw
 
         ; ---- V: vertical link at the right edge
 .vlink: ld a,(ld_pos)
         cp LD_CPOS
         jp nc,.cur
+        call ld_branch_row      ; new branch: an empty row below if needed
         ld a,(ld_row)
         ld d,a
         ld a,(ld_pos)
         ld e,a
         call ld_get
+        ld hl,(ld_gpt)          ; (a timer keeps its PT)
+        ld (ld_ppt),hl
         xor LT_VL
         call ld_put
-        jr .redraw
+        jp .redraw
 
 .menu:  call menu_handle
         jp z,.cur
@@ -1373,6 +1416,323 @@ ld_editor:
         call ld_del_row
         jp .redraw
 
+
+; ---- ld_row_links: A = row -> NZ if a record of it has a link down
+ld_row_links:
+        ld d,a
+        ld e,0
+.l:     call ld_get             ; (keeps DE)
+        and LT_VL
+        ret nz
+        inc e
+        ld a,e
+        cp LD_CPOS+1
+        jr c,.l
+        xor a
+        ret
+
+; li_links_from: D = row, E = first pos -> NZ if a record of the row at E..8
+;      has a link down
+li_links_from:
+.l:     call ld_get
+        and LT_VL
+        ret nz
+        inc e
+        ld a,e
+        cp LD_CPOS
+        jr c,.l
+        xor a
+        ret
+
+; li_any_from: D = row, E = first pos -> NZ if the row has a record at E..9
+li_any_from:
+.l:     call ld_get
+        or a
+        ret nz
+        inc e
+        ld a,e
+        cp LD_CPOS+1
+        jr c,.l
+        xor a
+        ret
+
+; ---- ld_ins_col: room at ld_pos in the rung of ld_row (rows chained by
+;      links): positions ld_pos..7 move one to the right; position 8 must be
+;      empty or a plain wire (dropped); the freed column of the other rows
+;      gets a wire where power comes from the left and something follows.
+;      C = no room
+ld_ins_col:
+        ld a,(ld_row)           ; first row of the rung
+.up:    ld (li_r0),a
+        or a
+        jr z,.dn0
+        dec a
+        push af
+        call ld_row_links
+        pop bc
+        ld a,b
+        jr nz,.up
+.dn0:   ld a,(ld_row)           ; last row
+.dn:    ld (li_r1),a
+        call ld_row_links
+        jr z,.chk
+        ld a,(li_r1)
+        inc a
+        cp LD_MAXROWS
+        jr c,.dn
+.chk:   ld a,(li_r0)            ; position 8: empty or a plain wire
+.c8:    ld (li_rr),a
+        ld d,a
+        ld e,LD_CPOS-1
+        call ld_get
+        or a
+        jr z,.c8n
+        cp LT_WIRE
+        scf
+        ret nz
+.c8n:   ld a,(li_rr)
+        ld hl,li_r1
+        cp (hl)
+        jr z,.drop
+        inc a
+        jr .c8
+.drop:  ld a,(li_r0)            ; drop those wires
+.d8:    ld (li_rr),a
+        ld d,a
+        ld e,LD_CPOS-1
+        xor a
+        ld bc,0
+        call ld_put
+        ret c
+        ld a,(li_rr)
+        ld hl,li_r1
+        cp (hl)
+        jr z,.sh
+        inc a
+        jr .d8
+.sh:    ld a,(ld_pos)           ; move positions 7 .. ld_pos one right
+        cp LD_CPOS-1
+        jr nc,.wires
+        ld a,LD_CPOS-2
+.qcol:  ld (li_q),a
+        ld a,(li_r0)
+        ld (li_rr),a
+.qrow:  ld a,(li_rr)
+        ld d,a
+        ld a,(li_q)
+        ld e,a
+        call ld_get
+        or a
+        jr z,.qn
+        ld (li_t),a
+        ld hl,(ld_gpt)
+        ld (ld_ppt),hl
+        ld a,(li_q)
+        inc a
+        ld e,a
+        ld a,(li_t)
+        call ld_put             ; (D = row, B, C = operand)
+        ret c
+        ld a,(li_rr)
+        ld d,a
+        ld a,(li_q)
+        ld e,a
+        xor a
+        ld bc,0
+        call ld_put
+        ret c
+.qn:    ld hl,li_rr
+        ld a,(li_r1)
+        cp (hl)
+        jr z,.qe
+        inc (hl)
+        jr .qrow
+.qe:    ld a,(ld_pos)
+        ld b,a
+        ld a,(li_q)
+        cp b
+        jr z,.wires
+        dec a
+        jr .qcol
+.wires: ld a,(li_r0)            ; freed column of the other rows
+.w:     ld (li_rr),a
+        ld hl,ld_row
+        cp (hl)
+        jr z,.wn
+        ld a,(ld_pos)           ; power from the left?
+        or a
+        jr z,.wl
+        dec a
+        ld e,a
+        ld a,(li_rr)
+        ld d,a
+        call ld_get
+        or a
+        jr nz,.wl
+        call .above             ; link from the row above at p-1
+        jr z,.wn
+        ld a,(ld_pos)
+        dec a
+        ld e,a
+        call ld_get
+        and LT_VL
+        jr z,.wn
+.wl:    ld a,(li_rr)            ; something on the right?
+        ld d,a
+        ld a,(ld_pos)
+        inc a
+        ld e,a
+        call li_any_from
+        jr nz,.wy
+        call .above
+        jr z,.wn
+        ld a,(ld_pos)
+        inc a
+        ld e,a
+        call li_links_from
+        jr z,.wn
+.wy:    ld a,(li_rr)
+        ld d,a
+        ld a,(ld_pos)
+        ld e,a
+        ld a,LT_WIRE
+        ld bc,0
+        call ld_put
+        ret c
+.wn:    ld a,(li_rr)
+        ld hl,li_r1
+        cp (hl)
+        jr z,.ok
+        inc a
+        jr .w
+.ok:    or a
+        ret
+; .above: NZ and D = the row above when li_rr is not the first rung row
+.above: ld a,(li_rr)
+        ld hl,li_r0
+        cp (hl)
+        ret z
+        dec a
+        ld d,a
+        or 1
+        ret
+
+; ---- ld_pull_left: DELETE at ld_pos (0-8): the element goes, positions
+;      ld_pos+1..8 of the row move one to the left; position 8 becomes a wire
+;      if it was used. C = not possible (coil position, or links at or right
+;      of ld_pos in this row or the row above), nothing changed
+ld_pull_left:
+        ld a,(ld_pos)
+        cp LD_CPOS
+        ccf
+        ret c
+        ld a,(ld_row)
+        ld d,a
+        ld a,(ld_pos)
+        ld e,a
+        call li_links_from
+        scf
+        ret nz
+        ld a,(ld_row)
+        or a
+        jr z,.go
+        dec a
+        ld d,a
+        ld a,(ld_pos)
+        ld e,a
+        call li_links_from
+        scf
+        ret nz
+.go:    ld a,(ld_row)
+        ld d,a
+        ld e,LD_CPOS-1
+        call ld_get
+        ld (li_t),a             ; position 8 used before (by another element)?
+        ld a,(ld_pos)
+        cp LD_CPOS-1
+        jr nz,.k
+        xor a
+        ld (li_t),a
+        ld a,(ld_pos)
+.k:     ld e,a
+        xor a
+        ld bc,0
+        call ld_put             ; the element goes
+        ret c
+        ld a,(ld_pos)
+.l:     inc a
+        cp LD_CPOS
+        jr nc,.e
+        ld (li_q),a
+        ld a,(ld_row)
+        ld d,a
+        ld a,(li_q)
+        ld e,a
+        call ld_get
+        or a
+        jr z,.n
+        ld (li_rr),a
+        ld hl,(ld_gpt)
+        ld (ld_ppt),hl
+        dec e
+        ld a,(li_rr)
+        call ld_put
+        ret c
+        ld a,(ld_row)
+        ld d,a
+        ld a,(li_q)
+        ld e,a
+        xor a
+        ld bc,0
+        call ld_put
+        ret c
+.n:     ld a,(li_q)
+        jr .l
+.e:     ld a,(li_t)
+        or a
+        ret z                   ; (NC)
+        ld a,(ld_row)
+        ld d,a
+        ld e,LD_CPOS-1
+        ld a,LT_WIRE
+        ld bc,0
+        call ld_put
+        or a
+        ret
+
+; ---- ld_branch_row: before a link is added at (ld_row, ld_pos): if the row
+;      below is a comment row, or another rung (this row has no link yet and
+;      the row below is used), an empty row is inserted below
+ld_branch_row:
+        ld a,(ld_row)
+        ld d,a
+        ld a,(ld_pos)
+        ld e,a
+        call ld_get
+        and LT_VL
+        ret nz                  ; the link is being removed
+        call ld_nrows
+        ld b,a
+        ld a,(ld_row)
+        inc a
+        cp b
+        ret nc                  ; no row below
+        ld (ld_r),a
+        call ld_cmt_text
+        jr nc,.ins              ; comment row below
+        ld a,(ld_row)
+        call ld_row_links
+        ret nz                  ; already a rung with branches
+        ld a,(ld_row)
+        inc a
+        ld d,a
+        ld e,0
+        call li_any_from
+        ret z                   ; empty row below
+.ins:   ld a,(ld_row)
+        inc a
+        ld d,a
+        jp ld_ins_row
 
 ; ---- ld_row_empty: Z if row ld_row has no records
 ld_row_empty:
@@ -1707,6 +2067,7 @@ ld_info:
 
 txt_ld_opq: db "Operand (address or symbol):",0," ",0," ",0,0
 err_ld_op:  db "Invalid operand for this element",0
+err_ld_room: db "No room in the rung",0
 err_ld_pt:  db "Invalid time",0
 txt_ld_ptq: db "PT (time, e.g. T#4s):",0," ",0," ",0,0
 txt_ld_pt:  db " PT=",0
@@ -1732,6 +2093,12 @@ lp_rec:   ds 7
 ld_infop: dw 0
 ld_first: db 0              ; first key of an operand typed after '/'
 lc_len:   db 0
+ld_insf:  db 0
+li_r0:    db 0
+li_r1:    db 0
+li_rr:    db 0
+li_q:     db 0
+li_t:     db 0
 ld_lbl:   ds 16
 lg_row:   dw 0              ; ld_put_glyphs: cell, row
 lk_cur:   db 0

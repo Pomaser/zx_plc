@@ -130,6 +130,7 @@ K_END       EQU 2           ; SS + RIGHT (CS+SS+8): end of the line
 K_PGUP      EQU 3           ; SS + UP    (CS+SS+7): page up
 K_PGDN      EQU 4           ; SS + DOWN  (CS+SS+6): page down
 K_SSENTER   EQU 5           ; SS + ENTER: IL new line below, LD next row
+K_INS       EQU 6           ; SS + I: LD insert in front of the element
 K_EDIT      EQU 7
 K_LEFT      EQU 8
 K_RIGHT     EQU 9

@@ -144,9 +144,13 @@ Network comments: type `//` at the start of an empty row (position 0) and then t
 green comment above the network. ENTER, LEFT, RIGHT, DELETE or typing on a comment row edit it in place (an empty comment is removed). A single `/` followed by
 another key still places a normally closed contact (the key starts its operand).
 
-Arrows move, DELETE clears the position, `V` toggles a vertical
-link at the right edge of the position (parallel branches), Edit > Insert line / Delete line insert or delete
-a row. Placing an element fills the empty positions to its left with wires (up to the previous element, the
+Arrows move. DELETE removes the element and the rest of the row moves one position to the left (with
+links at or right of it in this row or the row above it only clears the position). SYMBOL SHIFT + `I`
+inserts an element (chosen in the picker) in front of the cursor element: the whole rung moves one position
+to the right (position 8 must be free or a wire), branches get a wire in the new column where needed. `V`
+toggles a vertical link at the right edge of the position (parallel branches); a new branch gets an empty
+row inserted below when the row below is a comment or another rung. Edit > Insert line / Delete line insert
+or delete a row. Placing an element fills the empty positions to its left with wires (up to the previous element, the
 rail or an incoming link). Rungs (rows joined by links) are compiled column by column; P/N contacts keep their
 edge memory (max. 32 per project).
 
