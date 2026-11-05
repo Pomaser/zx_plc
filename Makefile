@@ -30,6 +30,12 @@ test: zxplc_test1.sna zxplc_test2.sna
 run: zxplc.sna
 	fuse zxplc.sna &
 
+# tape image for a real ZX Spectrum 128K (BASIC + machine code loader)
+zxplc.tap: zxplc.sna
+	python3 tools/mktap.py zxplc.sna zxplc.sym $@
+
+tap: zxplc.tap
+
 # screenshots for docs/MANUAL.md (docs/img/*.png)
 docs: zxplc.sna
 	$(PYTHON) tools/docshots.py
@@ -38,6 +44,6 @@ run-test: zxplc_test1.sna
 	fuse zxplc_test1.sna &
 
 clean:
-	rm -f *.sna *.sym *.lst .test.out
+	rm -f *.sna *.sym *.lst *.tap .test.out
 
-.PHONY: all test docs run run-test clean
+.PHONY: all test docs tap run run-test clean

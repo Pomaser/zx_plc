@@ -6,6 +6,9 @@ Projects can be saved to tape.
 
 **User manual with screenshots: [docs/MANUAL.md](docs/MANUAL.md).**
 
+Download: the [releases](https://github.com/Pomaser/zx_plc/releases) contain `zxplc.tap` (loads on a real
+ZX Spectrum 128K: Tape Loader or `LOAD ""`) and the snapshot `zxplc.sna`. `make tap` builds the tape.
+
 ## Demo project
 
 The program starts with a demo project (also File > Open demo); File > New project starts an empty one.
