@@ -467,7 +467,7 @@ fb_editor:
         ld d,a
         ld a,(ld_pos)
         ld e,a
-        call fb_del_tree        ; a block: also what feeds it
+        call fb_del_top         ; a block: first input goes through
         call fb_compact         ; no gap: the network moves left
         call fb_trim            ; and no empty rows below it
         call fb_snap
@@ -1047,6 +1047,53 @@ fb_net_shift.chk:
         inc a
         jr .w
 .done:  or a
+        ret
+
+; ---- fb_del_top: DELETE at D = row, E = pos: a block goes, the signal of its
+;      first input goes on through a wire in its place, what feeds its other
+;      inputs is removed (fb_chain); other elements just go
+fb_del_top:
+        push de
+        call ld_get
+        ld c,b
+        call fb_height_t        ; A = rows of the block (0 = no block)
+        pop de
+        ld (fk_c),a
+        push de
+        xor a
+        ld bc,0
+        BCALL ld_put
+        pop de
+        ld a,(fk_c)
+        or a
+        ret z
+        push de
+        dec a                   ; the lower inputs: their chains go
+        jr z,.w
+        ld b,a
+.k:     inc d
+        push bc
+        push de
+        ld a,e
+        or a
+        jr z,.kn
+        dec e
+        call fb_chain
+.kn:    pop de
+        pop bc
+        djnz .k
+.w:     pop de
+        ld a,e                  ; first input: a wire takes the block's place
+        or a
+        ret z
+        dec e
+        call ld_get
+        inc e
+        or a
+        ret z                   ; (nothing on the left)
+        ld a,FT_WIRE
+        ld bc,0
+        BCALL ld_put
         ret
 
 ; ---- fb_del_tree: D = row, E = pos: removes the element; a block also takes
