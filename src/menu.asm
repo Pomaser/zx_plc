@@ -1026,12 +1026,10 @@ menu_cmd:
         ld a,CMD_REDRAW         ; the screen redraws itself
         or a
         ret
-.about: ld hl,txt_about
-        call msg_box
+.about: BCALL tl_about        ; (texts in the DEMO bank)
         xor a
         ret
-.keys:  ld hl,txt_keys
-        call msg_box
+.keys:  BCALL tl_keys
         xor a
         ret
 .load:  BCALL tape_load         ; A = command (NZ) or 0 (EDIT bank)
@@ -1058,22 +1056,4 @@ menu_cmd:
 .no:    xor a
         ret
 
-txt_about:
-        db "ZX-PLC  version 0.1",0
-        db "PLC editor and simulator",0
-        db "IEC 61131-3: IL, LD, FBD",0
-        db "for ZX Spectrum 48K",0
-        db " ",0
-        db "J.Masopust 2026",0
-        db "github.com/Pomaser/zx_plc",0
-        db 0
-txt_keys:
-        db "BREAK, EDIT",PT_TAB,"menu",0
-        db "Arrows",PT_TAB,"move (CS+5..8)",0
-        db "SS+Arrows",PT_TAB,"line start/end, page",0
-        db "SS+ENTER",PT_TAB,"new line / LD next row",0
-        db "ENTER",PT_TAB,"confirm",0
-        db "DELETE",PT_TAB,"delete (CS+0)",0
-        db "Letters",PT_TAB,"hotkeys",0
-        db 0
 txt_new_q:     db "Discard current project?",0

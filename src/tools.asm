@@ -1323,3 +1323,34 @@ wt_fbm:       db 3,3,3,4,4,1,1,2,2      ; ET (timers), CV (counters), Q / Q1
 txt_wt_added: db "Added to watch: ",0
 txt_wt_dup:   db "Already in the watch list",0
 txt_wt_full:  db "The watch list is full",0
+
+; ---- tl_about / tl_keys: Help > About / Controls
+tl_about:
+        ld hl,txt_about
+        jp msg_box
+tl_keys:
+        ld hl,txt_keys
+        jp msg_box
+
+txt_about:
+        db "ZX-PLC  version 0.1",0
+        db "PLC editor and simulator",0
+        db "IEC 61131-3: IL, LD, FBD",0
+        db "for ZX Spectrum 128K",0
+        db " ",0
+        db "J.Masopust 2026",0
+        db "github.com/Pomaser/zx_plc",0
+        db 0
+txt_keys:
+        db "BREAK, EDIT",PT_TAB,"menu",0
+        db "Arrows",PT_TAB,"move (CS+5..8)",0
+        db "SS+Arrows",PT_TAB,"line start/end, page",0
+        db "SS+ENTER",PT_TAB,"new line / LD next row",0
+        db "ENTER",PT_TAB,"confirm",0
+        db "DELETE",PT_TAB,"delete (CS+0)",0
+        db "Letters",PT_TAB,"hotkeys",0
+        db "SS+U",PT_TAB,"undo",0
+        db "SS+X",PT_TAB,"cross references",0
+        db "SS+W",PT_TAB,"add to watch",0
+        db "SS+I",PT_TAB,"LD: insert element",0
+        db 0
