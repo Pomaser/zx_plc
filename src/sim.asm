@@ -356,9 +356,9 @@ sim_dim:
 .l:     push bc
         push de
         ld a,(sm_ib)            ; byte of this cell = c / 8: active -> BRIGHT
-        rrca
-        rrca
-        rrca
+        rlca
+        rlca
+        rlca
         xor c
         and 8
         jr nz,.n
