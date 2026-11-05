@@ -224,6 +224,7 @@ dm_watch:
         db AR_Q,8                               ; Valve
         db AR_Q,9                               ; Horn
         db AR_FBM+0x30,FBT_TOF*FB_PER_TYPE+1    ; TValve.ET
+        db AR_FBM+0x40,FBT_CTU*FB_PER_TYPE+0    ; Fills.CV
 DM_WLEN EQU $-dm_watch
 
 ; ---- symbols: area, index, name, comment
@@ -266,6 +267,9 @@ dm_syms:
         db AR_FBI,FBT_RTRIG*FB_PER_TYPE+0,"OvEdge",0,"High level edge",0
         db AR_FBI,FBT_SR*FB_PER_TYPE+0,"HornMem",0,"Horn memory",0
         db AR_FBI,FBT_TOF*FB_PER_TYPE+1,"TValve",0,"Valve run-on",0
+        db AR_I,13,"SvcRst",0,"Service reset",0
+        db AR_Q,10,"Service",0,"Service needed",0
+        db AR_FBI,FBT_CTU*FB_PER_TYPE+0,"Fills",0,"Fill counter",0
         db 0xFF
 
 ; ---- MAIN
@@ -438,8 +442,17 @@ dm_fbd:
         db 7,0,FT_IN,AR_I,12
         dw 0
         DM_FWIRES 7,1,1
+        ; service: CTU0 counts the valve openings, after 3 the service lamp
+        db 6,4,FT_IN,AR_Q,8
+        dw 0
+        db 6,5,FT_CTU,AR_FBI,FBT_CTU*FB_PER_TYPE+0
+        dw 3                    ; PV
+        db 6,6,FT_OUT,AR_Q,10
+        dw 0
+        db 7,4,FT_IN,AR_I,13
+        dw 0
         db 0xFF
 dm_fbdc:
         db 0,"Valve: auto, manual or low, 2 s run-on",0
-        db 5,"Horn: overflow until acknowledged",0
+        db 5,"Horn on overflow, service: 3 fills",0
         db 0xFF

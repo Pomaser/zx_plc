@@ -2799,8 +2799,9 @@ fb_set_state:
         cp FT_FTRIG
         jr nz,.op
 .q1:    ld b,AR_FBM+0x10        ; R_TRIG/F_TRIG: Q
-        jr .opc
+        jr .op                  ; (fs_off = 2: the middle cell)
 .q3:    ld b,AR_FBM+0x30        ; counters: Q
+        jr .op
 .opc:   ld a,e
         ld (fs_off),a
 .op:    ld a,b

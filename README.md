@@ -15,11 +15,13 @@ The program starts with a demo project (also File > Open demo); File > New proje
 * **DEMO_LD** - a pump with self-holding (`4` Start, `5` Stop as a normally closed contact, Q0.4), a fan
   running on 5 s after the pump (TOF, Q0.5), a fault memory set by the rising edge of `6` (Fault) and
   reset by `7` (Ack), and a fault lamp blinking with two TP pulse timers (Q0.6).
-* **DEMO_FBD** - uses only I/O byte 1 (press `B` in the simulation, then `0`-`4`):
+* **DEMO_FBD** - uses only I/O byte 1 (press `B` in the simulation, then `0`-`5`):
   - an inlet valve with nested gates: `Valve` = `Auto` AND (`Manual` OR (`LowLvl` AND NOT `HighLvl`))
     with a 2 s run-on (TOF) (I1.0-I1.3 -> Q1.0),
   - an overflow horn: the rising edge of `HighLvl` (RT) sets an SR flip-flop, `HornAck` (I1.4) resets it
-    (Q1.1).
+    (Q1.1),
+  - a service counter: CTU `Fills` counts the valve openings; after 3 the `Service` lamp (Q1.2) is on until
+    `SvcRst` (I1.5) resets the counter.
 * Each demo has its own I/O: DEMO_IL I0.0-0.1 / Q0.0-0.2, DEMO_LD I0.4-0.7 / Q0.4-0.6, DEMO_FBD byte 1.
 * A complete symbol table for all inputs, outputs, flags, steps and timers.
 
