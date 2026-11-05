@@ -801,8 +801,24 @@ fb_make_room:
         cp FT_OR
         jr z,.lg
         cp FT_XOR
-        scf
-        ret nz
+        jr z,.lg
+        ld c,b                  ; SR / RS / timers: their rows below the
+        ld a,(fb_t)             ; first need a free cell on the left too
+        call fb_height_t
+        cp 2
+        ret c                   ; (C: one row, nothing to do)
+        ld (fm_h),a
+        ld a,(fb_olda)          ; the same block was there already?
+        ld c,a
+        ld a,(fb_oldt)
+        call fb_height_t
+        ld hl,fm_h
+        cp (hl)
+        ccf
+        ret c
+        ld a,1
+        ld (fm_h0),a
+        jr .chk0
 .lg:    ld a,b                  ; new number of inputs
         ld (fm_h),a
         ld a,(fb_oldt)          ; inputs that already had a connection
@@ -822,7 +838,7 @@ fb_make_room:
         cp (hl)
         ccf
         ret c                   ; no new inputs
-        ld a,(ld_pos)
+.chk0:  ld a,(ld_pos)
         or a
         jr z,.need              ; position 0: no cell on the left
         ld a,(fm_h0)
