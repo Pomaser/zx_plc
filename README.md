@@ -139,11 +139,15 @@ The letter keys below work as shortcuts both in the editor and in the picker.
 | `S` / `R` | | set / reset coil |
 | `-` (SS+J) | wire | |
 | `T` / `F` / `U` | TON / TOF / TP timer box (`T` on an existing timer box: edit only its PT) | |
+| `K` / `D` | CTU / CTD counter box (`T` on it: edit only its PV) | |
 
 Timer boxes `[TON]`, `[TOF]`, `[TP]` sit on a contact position: the power from the left is the input IN, the
 output Q powers the rest of the row. The box asks for the instance (`TON1` or its symbol) and the preset time
 PT (`T#4s`); the instance is shown above the box, PT in the status bar, and in the simulation the middle cell
 shows Q.
+Counter boxes `[CTU]`, `[CTD]` work the same way: the power from the left counts (CU / CD), the box asks for
+the instance (`CTU0`) and the preset PV (a number); reset (R) or load (LD) the counter with a coil on
+`CTU0.R` / `CTD0.LD`.
 
 Network comments: type `//` at the start of an empty row (position 0) and then the text; the row becomes a dark
 green comment above the network. ENTER, LEFT, RIGHT, DELETE or typing on a comment row edit it in place (an empty comment is removed). A single `/` followed by
@@ -174,6 +178,7 @@ ENTER opens the picker (shortcut keys in brackets):
 | SR (S), RS (R), RT rising edge (P), RF falling edge (E) - an FB instance | |
 | output (Q), negated output (W) - e.g. right behind a block | |
 | TON (T), TOF (F), TP (U) - two rows: IN and the PT input (`T#4s--PT` on the left of the second row); ENTER or `T` on the PT input or `T` on the timer edits PT | |
+| CTU (K), CTD (D) - three rows: CU and R (CTD: CD and LD) and the PV input (`10--PV`), edited like PT | |
 
 A block with h inputs covers h rows: input k comes from the left on the k-th row, the output leaves on the
 top row to the right, so blocks can be chained (e.g. an OR one row lower feeding the second input of an
