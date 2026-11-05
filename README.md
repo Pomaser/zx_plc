@@ -182,7 +182,8 @@ block itself and its output on the right - cells inside a block and the empty sp
 are skipped. Outputs are not offered on a block input (a cell whose signal goes, through wires, straight into a
 block). An output or a wire needs a signal coming from the left (an element, possibly over empty
 cells that are then filled with wires). Placing a block needs free cells below it; DELETE on a block
-removes the whole block; afterwards the network closes up (columns holding only wires move out, a block
+removes the whole block together with everything that feeds its inputs (inputs, wires, blocks with their
+own inputs); afterwards the network closes up, empty rows below it are removed (columns holding only wires move out, a block
 keeps one free cell for each of its inputs). A block placed on an input inserts itself behind it: the network moves one
 position to the right, the input feeds the first input of the new block and the cursor goes to the
 second input. If a block does not fit, it is not placed ("No room for the block"). Wires are

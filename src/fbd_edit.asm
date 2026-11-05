@@ -467,10 +467,9 @@ fb_editor:
         ld d,a
         ld a,(ld_pos)
         ld e,a
-        xor a
-        ld bc,0
-        BCALL ld_put
+        call fb_del_tree        ; a block: also what feeds it
         call fb_compact         ; no gap: the network moves left
+        call fb_trim            ; and no empty rows below it
         call fb_snap
         jr .redraw
 
@@ -1048,6 +1047,112 @@ fb_net_shift.chk:
         inc a
         jr .w
 .done:  or a
+        ret
+
+; ---- fb_del_tree: D = row, E = pos: removes the element; a block also takes
+;      everything that feeds its inputs from the left (inputs, wires, blocks
+;      with their own inputs); stops at an empty or covered cell
+fb_del_tree:
+        push de
+        call ld_get
+        ld c,b
+        call fb_height_t        ; A = rows of the block (0 = no block)
+        pop de
+        push af
+        push de
+        xor a
+        ld bc,0
+        BCALL ld_put
+        pop de
+        pop af
+        or a
+        ret z                   ; a single element
+        ld b,a
+.k:     push bc                 ; each input row: the chain on the left
+        push de
+        ld a,e
+        or a
+        jr z,.kn
+        dec e
+        call fb_chain
+.kn:    pop de
+        pop bc
+        inc d
+        djnz .k
+        ret
+
+; fb_chain: D = row, E = pos: removes the chain that ends here (going left)
+fb_chain:
+.l:     call fb_owner
+        ret nc                  ; inside a block (its lower rows): stop
+        call ld_get
+        or a
+        ret z                   ; empty: nothing connected
+        and FT_MASK
+        cp FT_CMT
+        ret z
+        cp FT_IN
+        jr z,.last
+        cp FT_WIRE
+        jr z,.go
+        cp FT_OUT
+        jr z,.go
+        jp fb_del_tree          ; a block with its inputs
+.last:  xor a                   ; an input: the start of the chain
+        ld bc,0
+        BCALL ld_put
+        ret
+.go:    push de
+        xor a
+        ld bc,0
+        BCALL ld_put
+        pop de
+        ld a,e
+        or a
+        ret z
+        dec e
+        jr .l
+
+; ---- fb_trim: after fb_compact: the empty rows right below the network go
+;      (one stays in front of a following network without a comment)
+fb_trim:
+.l:     ld a,(fm_r1)
+        inc a
+        ld (fk_q),a
+        call ld_nrows           ; A = number of rows
+        ld (fk_c),a
+        ld b,a
+        ld a,(fk_q)
+        cp b
+        ret nc                  ; no row below the network
+        call fb_blank
+        ret nc                  ; not empty
+        ld a,(fk_c)             ; the row after it: end, comment or empty
+        ld b,a
+        ld a,(fk_q)
+        inc a
+        cp b
+        jr nc,.del
+        call fb_cmt_text
+        jr nc,.del
+        ld a,(fk_q)
+        inc a
+        call fb_blank
+        ret nc                  ; a network follows: this row stays
+.del:   ld a,(fk_q)
+        ld d,a
+        BCALL ld_del_row
+        jr .l
+
+; fb_blank: A = row -> C if it is empty (no comment, no element, not covered)
+fb_blank:
+        push af
+        call fb_cmt_text
+        pop bc
+        ret nc                  ; a comment row (NC)
+        ld a,b
+        call fb_net_row
+        ccf
         ret
 
 ; ---- fb_compact: removes the columns of the network of ld_row that hold
