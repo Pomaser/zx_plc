@@ -281,6 +281,8 @@ fb_editor:
         ; ---- place an element (A = type incl. FT_NEG)
 .place: ld (fb_newt),a
         call fb_to_owner
+        call fb_pt_left         ; left of a PT input: nothing can go there
+        jr nc,.ptl
         ld a,(fb_newt)          ; output / wire: a signal must come from the left
         and FT_MASK
         cp FT_OUT
@@ -293,6 +295,11 @@ fb_editor:
         call ui_error
         jp .redraw
 .srcok:
+        jr .srco2
+.ptl:   ld hl,err_fb_ptl
+        call ui_error
+        jp .redraw
+.srco2:
         call fb_cur_get         ; old element: fb_t, B/C operand, ld_gpt
         ld hl,50                ; default PT T#1s, kept from a timer block
         ld a,(fb_t)
@@ -526,6 +533,28 @@ fb_editor:
         ld d,a
         BCALL ld_del_row
         jp .redraw
+
+; ---- fb_pt_left: NC if the cell right of the cursor is the PT input of a
+;      timer (the timer is at row-1, pos+2)
+fb_pt_left:
+        ld a,(ld_row)
+        or a
+        scf
+        ret z
+        dec a
+        ld d,a
+        ld a,(ld_pos)
+        add a,2
+        cp LD_CPOS
+        ccf
+        ret c
+        ld e,a
+        call ld_get
+        call ld_isbox
+        scf
+        ret nz
+        or a
+        ret
 
 ; ---- fb_pt_cell: NC if the cursor is on the PT input of a timer (the cell
 ;      left of its PT row): fpt_row / fpt_pos = the timer
@@ -1593,7 +1622,7 @@ fb_autowire_r:
         cp LD_CPOS
         ret nc
         call fb_owner           ; (keeps DE)
-        jr nc,.blk              ; a block row: fill
+        jr nc,.cov              ; a lower block row: fill (not a PT row)
         call ld_get
         or a
         jr z,.f
@@ -1601,6 +1630,13 @@ fb_autowire_r:
         call fb_height_t
         or a
         ret z                   ; another element: nothing to do
+        jr .blk
+.cov:   push de                 ; the PT row of a timer: no wires
+        ld d,a
+        call ld_get
+        pop de
+        call ld_isbox
+        ret z
 .blk:   ld a,e                  ; wires from ld_pos+1 to E-1
         ld (fb_aw),a
 .w:     ld a,(fb_aw)
@@ -3127,6 +3163,7 @@ txt_fb_pt:   db " PT=",0
 txt_fb_ptl:  db "PT",0
 err_fb_room: db "No room for the block",0
 err_fb_src:  db "No signal here (nothing on the left)",0
+err_fb_ptl:  db "Right of it is the PT of a timer",0
 
 fb_pou:   db 0xFF
 fb_t:     db 0
