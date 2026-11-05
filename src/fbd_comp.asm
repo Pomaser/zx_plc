@@ -200,6 +200,10 @@ fc_height:
         jr z,.one
         cp FT_FTRIG
         jr z,.one
+        cp FT_CTU               ; counters: CU, R / CD, LD, PV
+        jr z,.three
+        cp FT_CTD
+        jr z,.three
         call ld_isbox           ; timers: IN row + PT row
         jr z,.two
         xor a
@@ -209,6 +213,8 @@ fc_height:
 .two:   ld a,2
         ret
 .one:   ld a,1
+        ret
+.three: ld a,3
         ret
 
 ; ---- fc_elem: element at (lc_r0+lc_i, lc_p): A = type, lc_area/lc_idx
@@ -340,10 +346,10 @@ fc_fb:  ld a,(lc_i)
         ld a,(fc_h)             ; BOOL inputs (timers: IN only, PT is preset)
         ld (fc_nin),a
         ld a,(fc_t)
-        call ld_isbox
+        call ld_isbox           ; timers / counters: the last row is the preset
         jr nz,.nt
-        ld a,1
-        ld (fc_nin),a
+        ld hl,fc_nin
+        dec (hl)
 .nt:    xor a
         ld (fc_k),a
 .inp:   ld a,OP_LD
@@ -377,8 +383,12 @@ fc_fb:  ld a,(lc_i)
         ld a,OP_LD
         call cp_emit
         ret c
-        ld a,OP_ST
-        ld b,1                  ; member PT
+        ld a,(fc_t)             ; member PT (timers) / PV (counters)
+        call ld_iscnt
+        ld b,1
+        jr nz,.pm
+        inc b
+.pm:    ld a,OP_ST
         call lc_emit_mem
         ret c
 .cal:   ld a,(lc_idx)           ; CAL instance
@@ -402,11 +412,17 @@ fc_fb:  ld a,(lc_i)
         ld a,(fc_t)             ; member of the BOOL output
         and FT_MASK
         ld b,2                  ; TON/TOF/TP: Q, SR/RS: Q1
+        cp FT_CTU
+        jr z,.q3
+        cp FT_CTD
+        jr z,.q3
         cp FT_RTRIG
         jr z,.q1
         cp FT_FTRIG
         jr nz,.q
 .q1:    ld b,1                  ; R_TRIG/F_TRIG: Q
+        jr .q
+.q3:    ld b,3                  ; counters: Q
 .q:     ld a,OP_LD
         call lc_emit_mem
         ret c

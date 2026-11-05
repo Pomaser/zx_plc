@@ -294,7 +294,7 @@ lc_elem:
         ld b,0                  ; member IN
         call lc_emit_mem
         ret c
-        ld hl,(lc_pt)           ; PT := preset time
+        ld hl,(lc_pt)           ; PT / PV := preset
         ld (cp_arg),hl
         xor a
         ld (cp_arg3),a
@@ -303,8 +303,12 @@ lc_elem:
         ld a,OP_LD
         call cp_emit
         ret c
-        ld a,OP_ST
-        ld b,1                  ; member PT
+        ld a,(lc_t)             ; member PT (timers) / PV (counters)
+        call ld_iscnt
+        ld b,1
+        jr nz,.pm
+        ld b,2
+.pm:    ld a,OP_ST
         call lc_emit_mem
         ret c
         ld a,(lc_idx)           ; CAL instance
@@ -325,8 +329,12 @@ lc_elem:
         ld a,OP_CALFB
         call cp_emit
         ret c
-        ld a,OP_LD
-        ld b,2                  ; power := Q
+        ld a,(lc_t)             ; power := Q (member 2, counters 3)
+        call ld_iscnt
+        ld b,2
+        jr nz,.qm
+        inc b
+.qm:    ld a,OP_LD
         call lc_emit_mem
         ret c
         ld a,OP_ST

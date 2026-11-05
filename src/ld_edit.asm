@@ -25,7 +25,9 @@ LT_VLITEM EQU 13            ; picker item: toggle the vertical link
 LT_CMT    EQU 14            ; network comment row: [row][0][14][n][text n]
 ATTR_LDCMT EQU 0x3C         ; dark green: comments
 LT_VL     EQU 0x80          ; vertical link down
-LT_MASK   EQU 0x0F
+LT_MASK   EQU 0x1F
+LT_CTU    EQU 16            ; counter boxes (record + PV)
+LT_CTD    EQU 17
 LD_CPOS   EQU 9             ; coil position
 LD_MAXROWS EQU 99
 ATTR_LD_ON EQU ATTR_ON      ; active element (as TRUE in IL / FBD)
@@ -225,6 +227,10 @@ G_BRN   EQU 15
 G_BRF   EQU 16
 G_BR    EQU 17
 G_BXT   EQU 18              ; -[ + first column of T (TON / TOF, centred)
+G_BXC   EQU 19              ; -[ + first column of C (counters)
+G_CT    EQU 20
+G_BRU   EQU 21
+G_BRD   EQU 22
 ld_gfx:
         db 0x00,0x00,0x00,0x00,0xFF,0x00,0x00,0x00      ; wire
         db 0x00,0x02,0x02,0x02,0xFE,0x02,0x02,0x02      ; --|
@@ -245,6 +251,10 @@ ld_gfx:
         db 0x00,0x0C,0xC4,0x04,0x87,0x04,0x04,0x0C      ; F]-
         db 0x00,0x0C,0x04,0x04,0x07,0x04,0x04,0x0C      ; ]-
         db 0x00,0x30,0x21,0x20,0xE0,0x20,0x20,0x30      ; -[ + T
+        db 0x00,0x30,0x20,0x21,0xE1,0x21,0x20,0x30      ; -[ + C
+        db 0x00,0x00,0xDD,0x09,0x09,0x09,0xC9,0x00      ; CT
+        db 0x00,0x0C,0x44,0x44,0x47,0x44,0xC4,0x0C      ; U]-
+        db 0x00,0x0C,0x84,0x44,0x47,0x44,0x84,0x0C      ; D]-
 ; glyphs (left, middle, right) per element type 0-13
 ld_types:
         db G_BL,G_BL,G_BL, G_WIRE,G_WIRE,G_WIRE, G_CL,G_BL,G_CR, G_CL,G_SL,G_CR
@@ -252,6 +262,8 @@ ld_types:
         db G_OL,G_BL,G_OR, G_OL,G_SL,G_OR,     G_OL,G_S,G_OR,  G_OL,G_R,G_OR
         db G_BXL,G_TPG,G_BR                     ; TP
         db G_BL,G_BL,G_VL                       ; picker: vertical link
+        db G_BL,G_BL,G_BL, G_BL,G_BL,G_BL       ; (comment, unused)
+        db G_BXC,G_CT,G_BRU, G_BXC,G_CT,G_BRD   ; CTU, CTD
 
 ; ---- ld_draw_view: rows ld_top.. on screen rows ld_vbase.. (ld_vn rows)
 ld_draw_view:
@@ -527,7 +539,7 @@ ld_draw_elem:
 ;      draws the 3 cells of the element symbol
 ld_put_glyphs:
         and LT_MASK
-        cp LT_VLITEM+1
+        cp LT_CTD+1
         ret nc
         ld (lg_row),bc          ; C = cell, B = row
         ld c,a
@@ -745,6 +757,8 @@ ld_pick_c:
         db LT_TON,  'T',"TON timer",0
         db LT_TOF,  'F',"TOF timer",0
         db LT_TP,   'U',"TP pulse",0
+        db LT_CTU,  'K',"CTU counter",0
+        db LT_CTD,  'D',"CTD counter",0
         db 0xFF
 ld_pick_q:
         db LT_COIL, 'C',"Coil",0
@@ -914,7 +928,7 @@ ld_set_state:
         ld b,a
         ld a,(hl)
         sub b
-        jr c,.n
+        jp c,.n
         ld c,a
         ld a,(ld_vn)
         dec a
@@ -953,7 +967,11 @@ ld_set_state:
         call ld_isbox
         ld a,b
         jr nz,.op
-        ld a,AR_FBM+0x20        ; timer box: state = Q
+        ld a,(ld_t)             ; box: state = Q (counters: member 3)
+        call ld_iscnt
+        ld a,AR_FBM+0x20
+        jr nz,.op
+        ld a,AR_FBM+0x30
 .op:    ld de,0
         call cp_operand_av
         ld e,ATTR_NORMAL
@@ -1097,6 +1115,7 @@ ld_editor:
         call ld_set_ar          ; same instance
         ld hl,(ld_gpt)
         ld (ld_ppt),hl
+        ld a,(ld_newt)
         call ld_ask_pt
         jp c,.redraw
         jp .pl3
@@ -1288,9 +1307,14 @@ ld_editor:
         ld hl,50                ; default PT T#1s, kept from an existing box
         ld e,0
         call ld_isbox
-        jr nz,.dpt
+        jr nz,.dp0
         ld hl,(ld_gpt)
         inc e
+        jr .dpt
+.dp0:   ld a,(ld_newt)          ; a new counter: PV 10
+        call ld_iscnt
+        jr nz,.dpt
+        ld hl,10
 .dpt:   ld (ld_ppt),hl
         ld a,(ld_newt)          ; box <-> contact/coil: no operand to keep
         call ld_isbox
@@ -1309,7 +1333,8 @@ ld_editor:
         ld a,(ld_newt)
         call ld_isbox
         jr nz,.pl3
-        call ld_ask_pt          ; timer box: preset time
+        ld a,(ld_newt)
+        call ld_ask_pt          ; box: preset time / count
         jp c,.redraw
         jr .pl3
 .pl2:   ld bc,0
@@ -1889,7 +1914,7 @@ ld_ask_operand:
         ld b,a
         ld a,(hl)
         or a
-        jr nz,.bad
+        jp nz,.bad
         ld a,(ld_kind)          ; FBD box: kind = LK_FB + FB type
         cp LK_FB
         jr c,.nfbk
@@ -1911,6 +1936,12 @@ ld_ask_operand:
         jr z,.bt
         ld e,FBT_TOF
         cp LT_TOF
+        jr z,.bt
+        ld e,FBT_CTU
+        cp LT_CTU
+        jr z,.bt
+        ld e,FBT_CTD
+        cp LT_CTD
         jr z,.bt
         ld e,FBT_TP
 .bt:    ld a,c
@@ -1992,13 +2023,20 @@ ld_set_ar:
 
 ; ---- ld_ask_pt: popup for the preset time of a timer box (ld_ppt)
 ;      C = cancelled
-ld_ask_pt:
-        ld hl,(ld_ppt)          ; initial text: current PT
-        ld de,ld_obuf
+ld_ask_pt:                      ; A = box type: PT (timers) / PV (counters)
+        call ld_iscnt
         ld a,AR_KT
+        ld hl,txt_ld_ptq
+        jr nz,.t
+        ld a,AR_K16
+        ld hl,txt_ld_pvq
+.t:     ld (lp_kind),a
+        ld (lp_q),hl
+        ld hl,(ld_ppt)          ; initial text: current value
+        ld de,ld_obuf
         ld bc,0
         call op_format
-.ask:   ld hl,txt_ld_ptq
+.ask:   ld hl,(lp_q)
         call popup_open
         ld a,(win_r)
         add a,2
@@ -2021,11 +2059,15 @@ ld_ask_pt:
         or a
         jr nz,.bad
         ld a,b
-        cp AR_KT
+        cp AR_K16               ; a number: always
         jr z,.ok
-        cp AR_K16
+        ld hl,lp_kind           ; T#...: timers only
+        cp (hl)
         jr nz,.bad
-.ok:    ld (ld_ppt),de
+.ok:    ld a,d                  ; (no negative values)
+        rlca
+        jr c,.bad
+        ld (ld_ppt),de
         or a
         ret
 .bad:   ld hl,err_ld_pt
@@ -2050,10 +2092,20 @@ ld_info:
         call ld_set_ar          ; "TON1 PT=T#4s  " in front of the comment
         ld hl,ld_ar
         call il_fmt_one
+        pop bc
+        pop af
+        push af
+        push bc
+        call ld_iscnt
         ld hl,txt_ld_pt
-        call put_str
-        ld hl,(ld_gpt)
         ld a,AR_KT
+        jr nz,.it
+        ld hl,txt_ld_pv
+        ld a,AR_K16
+.it:    push af
+        call put_str
+        pop af
+        ld hl,(ld_gpt)
         ld bc,0
         call op_format
         ld a,' '
@@ -2124,9 +2176,11 @@ ld_info:
 txt_ld_opq: db "Operand (address or symbol):",0," ",0," ",0,0
 err_ld_op:  db "Invalid operand for this element",0
 err_ld_room: db "No room in the rung",0
-err_ld_pt:  db "Invalid time",0
+err_ld_pt:  db "Invalid value",0
 txt_ld_ptq: db "PT (time, e.g. T#4s):",0," ",0," ",0,0
 txt_ld_pt:  db " PT=",0
+txt_ld_pv:  db " PV=",0
+txt_ld_pvq: db "PV (count, e.g. 10):",0," ",0," ",0,0
 txt_ld_sl:  db "// ",0
 
 ld_pou:   db 0xFF
@@ -2149,6 +2203,8 @@ lp_rec:   ds 7
 ld_infop: dw 0
 ld_first: db 0              ; first key of an operand typed after '/'
 lc_len:   db 0
+lp_kind:  db 0
+lp_q:     dw 0
 ld_insf:  db 0
 li_r0:    db 0
 li_r1:    db 0

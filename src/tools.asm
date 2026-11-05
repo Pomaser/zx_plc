@@ -271,6 +271,10 @@ xr_grid_rec:
         jr z,.m
         cp LT_TP
         jr z,.m
+        cp LT_CTU
+        jr z,.m
+        cp LT_CTD
+        jr z,.m
         ld b,'R'
         cp LT_NO
         ret c

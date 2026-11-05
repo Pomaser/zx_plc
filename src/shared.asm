@@ -297,7 +297,17 @@ ld_isbox:
         cp LT_TOF
         ret z
         cp LT_TP
+        ret z
+ld_iscnt0:
+        cp LT_CTU
+        ret z
+        cp LT_CTD
         ret
+
+; ---- ld_iscnt: A = type -> Z if it is a counter box (keeps BC, DE, HL)
+ld_iscnt:
+        and LT_MASK
+        jr ld_iscnt0
 
 ; ---- ld_tlen: A = type -> A = record length (keeps BC, DE, HL)
 ld_tlen:

@@ -117,6 +117,7 @@ fb_editor:
         ld (fb_newt),a
         ld hl,(ld_gpt)
         ld (ld_ppt),hl
+        ld a,(fb_newt)
         BCALL ld_ask_pt
         jp c,.redraw
         jp .put
@@ -301,11 +302,16 @@ fb_editor:
         jp .redraw
 .srco2:
         call fb_cur_get         ; old element: fb_t, B/C operand, ld_gpt
-        ld hl,50                ; default PT T#1s, kept from a timer block
+        ld hl,50                ; default PT T#1s / PV 10, kept from a box
         ld a,(fb_t)
         call ld_isbox
-        jr nz,.dpt
+        jr nz,.dp0
         ld hl,(ld_gpt)
+        jr .dpt
+.dp0:   ld a,(fb_newt)
+        call ld_iscnt
+        jr nz,.dpt
+        ld hl,10
 .dpt:   ld (ld_ppt),hl
         ld a,(fb_newt)
         call fb_kind            ; A = kind of operand, Z = none
@@ -331,7 +337,8 @@ fb_editor:
         ld a,(fb_newt)
         call ld_isbox
         jr nz,.room
-        BCALL ld_ask_pt         ; timer: preset time
+        ld a,(fb_newt)
+        BCALL ld_ask_pt         ; timer / counter: preset
         jp c,.redraw
         jr .room
 .noop:  ld a,(fb_newt)          ; logic blocks: number of inputs
@@ -371,14 +378,16 @@ fb_editor:
 .rows:  ld a,(fb_hh)
         call fb_make_rows       ; free rows below (rows inserted if needed)
         jr c,.noroom
-        ld a,(fb_newt)          ; timer: its PT input needs the cell on the
-        call ld_isbox           ; left of the PT row
+        ld a,(fb_newt)          ; timer / counter: its PT / PV input needs
+        call ld_isbox           ; the cell left of the last row
         jr nz,.put
         ld a,(ld_pos)
         or a
         jr z,.noroom
-        ld a,(ld_row)
-        inc a
+        ld a,(fb_hh)
+        dec a
+        ld hl,ld_row
+        add a,(hl)
         ld d,a
         ld a,(ld_pos)
         dec a
@@ -424,8 +433,12 @@ fb_editor:
         call fb_cur_get
         ld c,b
         ld b,a
-        call ld_isbox
-        jr z,.nins
+        call ld_isbox           ; (timers: the second row is the PT)
+        jr nz,.ni2
+        ld a,b
+        call ld_iscnt
+        jr nz,.nins
+.ni2:
         ld a,b
         call fb_height_t
         cp 2
@@ -537,46 +550,58 @@ fb_editor:
 ; ---- fb_pt_left: NC if the cell right of the cursor is the PT input of a
 ;      timer (the timer is at row-1, pos+2)
 fb_pt_left:
-        ld a,(ld_row)
-        or a
-        scf
-        ret z
-        dec a
-        ld d,a
         ld a,(ld_pos)
         add a,2
         cp LD_CPOS
         ccf
         ret c
         ld e,a
-        call ld_get
-        call ld_isbox
-        scf
-        ret nz
-        or a
-        ret
+        ld a,(ld_row)
+        ld d,a
+        jr fb_prow
 
 ; ---- fb_pt_cell: NC if the cursor is on the PT input of a timer (the cell
 ;      left of its PT row): fpt_row / fpt_pos = the timer
 fb_pt_cell:
-        ld a,(ld_row)
-        or a
-        scf
-        ret z
         ld a,(ld_pos)
         cp LD_CPOS-1
         ccf
         ret c
-        ld a,(ld_row)
-        dec a
-        ld (fpt_row),a
-        ld d,a
-        ld a,(ld_pos)
         inc a
-        ld (fpt_pos),a
         ld e,a
-        call ld_get
+        ld (fpt_pos),a
+        ld a,(ld_row)
+        ld d,a
+        call fb_prow
+        ret c
+        ld a,d
+        ld (fpt_row),a
+        ret
+
+; fb_prow: D = row, E = pos -> NC if row D is the preset row (PT of a timer
+;      one row below it, PV of a counter two rows below) of a box at
+;      position E: D = the row of the box (keeps E)
+fb_prow:
+        ld a,d
+        or a
+        scf
+        ret z
+        dec d
+        call ld_get             ; (keeps DE)
         call ld_isbox
+        jr nz,.c2
+        call ld_iscnt           ; a counter one row up: its R row
+        scf
+        ret z
+        or a
+        ret
+.c2:    ld a,d
+        or a
+        scf
+        ret z
+        dec d
+        call ld_get
+        call ld_iscnt
         scf
         ret nz
         or a
@@ -763,6 +788,12 @@ fb_kind:
         ld d,LK_FB+FBT_FTRIG
         cp FT_FTRIG
         jr z,.fb
+        ld d,LK_FB+FBT_CTU
+        cp FT_CTU
+        jr z,.fb
+        ld d,LK_FB+FBT_CTD
+        cp FT_CTD
+        jr z,.fb
         xor a                   ; Z: no operand
         ret
 .fb:    ld a,d
@@ -788,9 +819,15 @@ fb_height_t:
         jr z,.one
         cp FT_FTRIG
         jr z,.one
+        cp FT_CTU               ; counters: CU, R, PV rows
+        jr z,.three
+        cp FT_CTD
+        jr z,.three
         call ld_isbox           ; timers: IN row + PT row
         jr z,.two
         xor a
+        ret
+.three: ld a,3
         ret
 .lg:    ld a,c
         ret
@@ -1322,18 +1359,14 @@ fk_free:
 .e:     call fb_owner
         ccf
         ret c                   ; covered by a block
-        ld a,(fm_rr)            ; PT input of a timer on the right?
-        or a
-        jr z,.pt
-        dec a
+        ld a,(fm_rr)            ; PT / PV input of a box on the right?
         ld d,a
         ld a,(fk_q)
         inc a
         ld e,a
-        call ld_get
-        call ld_isbox
-        scf
-        ret z
+        call fb_prow
+        ccf
+        ret c
 .pt:    ld a,(fm_rr)            ; an input cell of a block on the right that
         ld d,a                  ; would land next to a covered cell: kept
         ld a,(fk_q)
@@ -1631,12 +1664,10 @@ fb_autowire_r:
         or a
         ret z                   ; another element: nothing to do
         jr .blk
-.cov:   push de                 ; the PT row of a timer: no wires
-        ld d,a
-        call ld_get
+.cov:   push de                 ; the PT / PV row of a box: no wires
+        call fb_prow
         pop de
-        call ld_isbox
-        ret z
+        ret nc
 .blk:   ld a,e                  ; wires from ld_pos+1 to E-1
         ld (fb_aw),a
 .w:     ld a,(fb_aw)
@@ -2186,20 +2217,35 @@ fb_draw_cov:
         ld a,(fd_srow)
         call fd_sides
         call fd_in_stub
-        ld a,(fd_p)             ; timer: its PT pin
+        ld a,(fd_p)             ; timer: its PT pin; counter: R / LD, PV
         ld e,a
         ld d,0
         ld hl,fd_cbt
         add hl,de
         ld a,(hl)
+        ld (fd_bt),a
         call ld_isbox
         jr nz,.np
-        ld a,(fd_srow)
+        ld hl,txt_fb_ptl
+        ld a,(fd_bt)
+        call ld_iscnt
+        jr nz,.pin
+        pop af                  ; (rows left below)
+        push af
+        ld hl,txt_fb_pvl
+        or a
+        jr z,.pin
+        ld hl,txt_fb_rl
+        ld a,(fd_bt)
+        and FT_MASK
+        cp FT_CTU
+        jr z,.pin
+        ld hl,txt_fb_ldl
+.pin:   ld a,(fd_srow)
         ld b,a
         ld a,(fd_x)
         add a,4
         ld c,a
-        ld hl,txt_fb_ptl
         call pt_tiny
 .np:    pop af
         or a
@@ -2273,14 +2319,15 @@ fd_ptcell:
         inc a
         ld e,a
         ld d,0
-        ld hl,fd_cov
+        ld hl,fd_cov            ; (the last row of the block)
         add hl,de
         ld a,(hl)
-        or a
-        ret z
+        cp 1
+        jr nz,.no
         ld hl,fd_cbt
         add hl,de
         ld a,(hl)
+        ld (fd_bt),a
         call ld_isbox
         jr nz,.no
         ld hl,fd_cpt
@@ -2291,8 +2338,12 @@ fd_ptcell:
         ld h,(hl)
         ld l,a
         ld de,FMT_BUF
+        ld a,(fd_bt)
+        call ld_iscnt
         ld a,AR_KT
-        ld bc,0
+        jr nz,.kt
+        ld a,AR_K16
+.kt:    ld bc,0
         call op_format
         call fd_in_left         ; room: from the left limit to x+20
         ld b,a
@@ -2583,6 +2634,9 @@ fd_out_lim:
 fd_names:
         dw 0, 0, 0, 0, fdn_and, fdn_or, fdn_ton, fdn_tof
         dw fdn_xor, fdn_not, fdn_sr, fdn_rs, fdn_tp, fdn_rt, 0, fdn_ft
+        dw fdn_ctu, fdn_ctd
+fdn_ctu: db "CTU",0
+fdn_ctd: db "CTD",0
 fdn_and: db "AND",0
 fdn_or:  db "OR",0
 fdn_xor: db "XOR",0
@@ -2736,11 +2790,17 @@ fb_set_state:
         ld a,(fs_t)
         and FT_MASK
         ld b,AR_FBM+0x20        ; Q (TON/TOF/TP), Q1 (SR/RS)
+        cp FT_CTU
+        jr z,.q3
+        cp FT_CTD
+        jr z,.q3
         cp FT_RTRIG
         jr z,.q1
         cp FT_FTRIG
         jr nz,.op
 .q1:    ld b,AR_FBM+0x10        ; R_TRIG/F_TRIG: Q
+        jr .opc
+.q3:    ld b,AR_FBM+0x30        ; counters: Q
 .opc:   ld a,e
         ld (fs_off),a
 .op:    ld a,b
@@ -2909,10 +2969,17 @@ fb_info0:
         ld hl,FMT_BUF
         ld de,FB_INFOB
         call put_str
+        ld a,(fb_t)             ; " PT=T#4s" / " PV=10"
+        call ld_iscnt
         ld hl,txt_fb_pt
-        call put_str
-        ld hl,(ld_gpt)
         ld a,AR_KT
+        jr nz,.it
+        ld hl,txt_fb_pv
+        ld a,AR_K16
+.it:    push af
+        call put_str
+        pop af
+        ld hl,(ld_gpt)
         ld bc,0
         call op_format
         ld a,' '
@@ -3152,6 +3219,8 @@ fb_pick_i:
         db FT_TON,       'T',"TON timer",0
         db FT_TOF,       'F',"TOF timer",0
         db FT_TP,        'U',"TP pulse",0
+        db FT_CTU,       'K',"CTU counter",0
+        db FT_CTD,       'D',"CTD counter",0
         db 0xFF
 fb_pick_l:
         db FT_IN,        'I',"Input",0
@@ -3168,6 +3237,8 @@ fb_pick_l:
         db FT_TON,       'T',"TON timer",0
         db FT_TOF,       'F',"TOF timer",0
         db FT_TP,        'U',"TP pulse",0
+        db FT_CTU,       'K',"CTU counter",0
+        db FT_CTD,       'D',"CTD counter",0
         db FT_OUT,       'Q',"Output",0
         db FT_OUT|FT_NEG,'W',"Negated output",0
         db 0xFF
@@ -3179,7 +3250,11 @@ fb_pick_o:
 txt_fb_inq:  db "Number of inputs (2-4)?",0,0
 txt_fb_sl:   db "// ",0
 txt_fb_pt:   db " PT=",0
+txt_fb_pv:   db " PV=",0
 txt_fb_ptl:  db "PT",0
+txt_fb_pvl:  db "PV",0
+txt_fb_rl:   db "R",0
+txt_fb_ldl:  db "LD",0
 err_fb_room: db "No room for the block",0
 err_fb_src:  db "No signal here (nothing on the left)",0
 err_fb_ptl:  db "Right of it is the PT of a timer",0
@@ -3207,6 +3282,7 @@ fs_k:     db 0
 fs_li:    db 0
 fs_span:  ds 24*10*2
 fm_p:     db 0
+fd_bt:    db 0
 fk_q:     db 0
 fk_c:     db 0
 fk_el:    db 0

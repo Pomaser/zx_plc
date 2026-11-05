@@ -86,7 +86,9 @@ FT_RTRIG    EQU 13
 FT_CMT      EQU 14
 FT_FTRIG    EQU 15
 FT_NEG      EQU 0x80        ; negated input / output
-FT_MASK     EQU 0x0F
+FT_MASK     EQU 0x1F
+FT_CTU      EQU 16          ; counters: AR_FBI instance + PV, 3 rows (CU, R / CD, LD, PV)
+FT_CTD      EQU 17
 FT_MAXIN    EQU 4           ; inputs of a logic box
 
 ; ---- application screens ------------------------------------
