@@ -137,7 +137,7 @@ il_mnem_find:
 ;   operand (optional): [area][index] or [area][value lo][value hi] (AR_K16,
 ;   AR_KT) or [AR_LBL][label name...]; an FB call may be followed by
 ;   parameters [member][operand]...
-AR_LBL  EQU 12              ; operand = jump label (name follows)
+AR_LBL  EQU 12              ; operand = jump label (name follows); AR_SM = 13
 il_check:
         ld (ilc_op),de
         call il_mnem_find

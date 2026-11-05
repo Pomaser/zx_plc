@@ -1831,7 +1831,7 @@ ld_ask_operand:
         ret c
         ld hl,ld_obuf
         call op_parse
-        jr c,.bad
+        jp c,.bad
         ld b,a
         ld a,(hl)
         or a
@@ -1877,9 +1877,11 @@ ld_ask_operand:
         jr z,.ok
         cp AR_SX
         jr z,.ok
+        cp AR_SM
+        jr z,.inq
         cp AR_I
         jr nz,.bad
-        ld a,(ld_kind)          ; inputs only for contacts
+.inq:   ld a,(ld_kind)          ; inputs, system flags only for contacts
         cp LT_COIL
         jr nc,.bad
 .ok:    or a

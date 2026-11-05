@@ -21,7 +21,8 @@ RT_SCR    EQU RT_FB+36*8    ; LD: power of the rung rows (16 bits)
 RT_EDGE   EQU RT_SCR+2      ; LD: memory of P/N contacts (32 bits)
 RT_STEP   EQU RT_EDGE+4     ; step flags S0-S7 (one active bit per byte)
 RT_LGC    EQU RT_STEP+N_SB  ; FBD: results of logic blocks (64 bits, sim)
-RT_DATA_LEN EQU 44+36*8+6+N_SB+8  ; cleared by Reset
+RT_SM     EQU RT_LGC+8      ; system flags %SM0-7 (written before each scan)
+RT_DATA_LEN EQU 44+36*8+6+N_SB+8+1  ; cleared by Reset
 RT_POU    EQU RT+RT_DATA_LEN        ; code address of each POU slot (8 words)
 RT_LBL    EQU RT_POU+16             ; compiler label table (32 x 10 bytes)
 RT_PSTK   EQU RT_LBL+320            ; "(" stack: 8 x 4 bytes
@@ -87,13 +88,84 @@ VM_MODE_CR EQU 5            ; internal: operand = value saved by POP
 
 ; ---- vm_reset: clears all PLC data
 vm_reset:
+        ld a,1
+        ld (vm_first),a
+        xor a
+        ld (vm_smc),a
         ld hl,RT
         ld bc,RT_DATA_LEN
-        xor a
         jp memset
 
 ; ---- vm_scan: runs MAIN once. NC = ok, C = error (vm_err = message)
+;      The system flags are updated before the scan; SM0 is on in the
+;      first scan after a reset only.
 vm_scan:
+        call vm_sm_upd
+        call vm_scan0
+        push af
+        xor a
+        ld (vm_first),a
+        pop af
+        ret
+
+; vm_sm_upd: RT_SM = SM0 first scan, SM1 TRUE, SM2 FALSE, SM3 10 Hz, SM4 5 Hz,
+;      SM5 2 Hz, SM6 1 Hz, SM7 0.5 Hz (from a 0-99 tick counter + vm_dt)
+vm_sm_upd:
+        ld a,(vm_dt)
+        ld b,a
+        ld a,(vm_smc)
+        add a,b
+.m:     cp 100
+        jr c,.k
+        sub 100
+        jr .m
+.k:     ld (vm_smc),a
+        ld c,a
+        ld b,0x02               ; SM1
+        ld a,(vm_first)
+        or a
+        jr z,.f
+        set 0,b
+.f:     ld a,c                  ; 10 Hz
+        ld d,5
+        call .mod
+        cp 3
+        jr nc,.n3
+        set 3,b
+.n3:    ld a,c                  ; 5 Hz
+        ld d,10
+        call .mod
+        cp 5
+        jr nc,.n4
+        set 4,b
+.n4:    ld a,c                  ; 2 Hz
+        ld d,25
+        call .mod
+        cp 13
+        jr nc,.n5
+        set 5,b
+.n5:    ld a,c                  ; 1 Hz
+        ld d,50
+        call .mod
+        cp 25
+        jr nc,.n6
+        set 6,b
+.n6:    ld a,c                  ; 0.5 Hz
+        cp 50
+        jr nc,.n7
+        set 7,b
+.n7:    ld a,b
+        ld (RT_SM),a
+        ret
+.mod:   sub d
+        jr nc,.mod
+        add a,d
+        ret
+
+vm_first: db 1
+vm_smc:   db 0
+
+vm_scan0:
         ld hl,(RT_POU)
         ld (vm_pc),hl
         xor a

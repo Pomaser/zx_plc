@@ -224,9 +224,14 @@ Compile errors are reported with the POU name and line number.
 | Bit memory | `%MX5` | `M5` | 0-63 |
 | Step flags | `%SX0.2` | `S0.2` | 0.0-7.7 |
 | INT words | `%MW3` | `MW3` | 0-15 |
+| System flags (read only) | `%SM6` | `SM6` | 0-7 |
 | Constants | `TRUE`, `FALSE`, `-123`, `T#1s500ms`, `T#2m` | | |
 | FB instances | `TON0`...`TON3`, `TOF`, `TP`, `CTU`, `CTD`, `RT` (R_TRIG), `RF` (F_TRIG), `SR`, `RS` | | |
 | FB members | `TON0.Q`, `CTU1.CV`, `RT2.CLK` ... | | |
+
+System flags, written before every scan: `SM0` first scan after Run / Reset, `SM1` always TRUE, `SM2`
+always FALSE, clock pulses (50 % duty) `SM3` 10 Hz, `SM4` 5 Hz, `SM5` 2 Hz, `SM6` 1 Hz, `SM7` 0.5 Hz.
+They can only be read (contacts, inputs, LD / AND ...).
 
 The time base is 20 ms (one frame).
 

@@ -165,6 +165,8 @@ AR_KT       EQU 8           ; TIME constant (20 ms ticks), value in DE
 AR_FBI      EQU 9           ; FB instance, index = type*4+n
 AR_FBM      EQU 10          ; FB member, area bits 4-6 = member
 AR_POU      EQU 11          ; POU, index = slot
+AR_SM       EQU 13          ; (12 = AR_LBL in IL records) system flag %SMn (read only), index 0-7
+N_SM        EQU 8
 AR_MASK     EQU 0x0F
 
 N_IN        EQU 8

@@ -339,6 +339,8 @@ il_cases:
         db "and(",0,0,"AND(",0
         db "st",0,"5",0,0
         db "st",0,"i0.0",0,0
+        db "st",0,"sm1",0,0
+        db "ld",0,"sm6",0,"LD",9,"%SM6",0
         db "st",0,"mw3",0,"ST",9,"%MW3",0
         db "s",0,"q0.7",0,"S",9,"%QX0.7",0
         db "r",0,"mw1",0,0
@@ -1116,12 +1118,15 @@ op_cases:
         db "SR1.S1",0,"SR1.S1",0
         db "RS2.R1",0,"RS2.R1",0
         db "i1.7",0,"%IX1.7",0
+        db "sm3",0,"%SM3",0
+        db "%SM0",0,"%SM0",0
         db "%QX1.0",0,"%QX1.0",0
         db "MAIN",0,"MAIN",0
         db "MOTOR",0,"MOTOR",0
         ; errors
         db "%IX0.8",0,0
         db "%IX2.0",0,0
+        db "%SM8",0,0
         db "Q2.1",0,0
         db "M64",0,0
         db "MW16",0,0

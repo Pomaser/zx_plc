@@ -84,7 +84,14 @@ op_parse:
         jp .ioaddr
 .short_s:
         ld a,(hl)
+        cp 'M'                  ; SMn: system flag
+        jr nz,.ss1
+        inc hl
+        ld a,(hl)
         call is_digit
+        jp c,.fb
+        jr .smaddr
+.ss1:   call is_digit
         jp c,.fb
         jr .sxaddr
 
@@ -107,13 +114,29 @@ op_parse:
         cp 'W'
         jr z,.dmw
         cp 'X'
-        jr nz,.mx
+        jp nz,.mx
         inc hl
-        jr .mx
+        jp .mx
 .dmw:   inc hl
-        jr .mw
+        jp .mw
 .dsx:   ld a,(hl)
-        cp 'X'
+        cp 'M'
+        jr nz,.dsx1
+        inc hl
+.smaddr:                        ; system flag n (0-7)
+        ld a,(hl)
+        sub '0'
+        jp c,op_fail_jp
+        cp N_SM
+        jp nc,op_fail_jp
+        ld c,a
+        inc hl
+        ld a,(hl)
+        or a
+        jp nz,op_fail_jp
+        ld a,AR_SM
+        jp op_ok
+.dsx1:  cp 'X'
         jr nz,.sxaddr
         inc hl
 .sxaddr:                        ; b.n -> index b*8+n
@@ -554,12 +577,22 @@ op_format:
         ld (op_style),a
         ld a,(op_area)
         and AR_MASK
-        cp AR_POU+1
+        cp AR_SM+1
         jr c,.ok
         xor a
 .ok:    ld hl,.tab
         jp jump_table
-.tab:   dw .f_none,.f_i,.f_q,.f_m,.f_mw,.f_s,.f_kb,.f_k16,.f_kt,.f_fbi,.f_fbm,.f_pou
+.tab:   dw .f_none,.f_i,.f_q,.f_m,.f_mw,.f_s,.f_kb,.f_k16,.f_kt,.f_fbi,.f_fbm,.f_pou,.f_none,.f_sm
+
+.f_sm:  ld hl,s_iec_sm          ; %SMn / SMn
+        ld bc,s_sh_sm
+        call .style
+        call put_str
+        ld a,(op_idx)
+        add a,'0'
+        ld (de),a
+        inc de
+        jp .end
 
 .f_none:
         ld hl,s_qq
@@ -755,11 +788,13 @@ s_iec_q:  db "%QX",0
 s_iec_m:  db "%MX",0
 s_iec_mw: db "%MW",0
 s_iec_s:  db "%SX",0
+s_iec_sm: db "%SM",0
 s_sh_i:   db "I",0
 s_sh_q:   db "Q",0
 s_sh_m:   db "M",0
 s_sh_mw:  db "MW",0
 s_sh_s:   db "S",0
+s_sh_sm:  db "SM",0
 
 ; FB type names, 7-byte records
 FBT_TON    EQU 0

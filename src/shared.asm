@@ -57,6 +57,8 @@ cp_operand_core:
         ld (cp_arg3),a
         ld a,(cp_oarea)
         and AR_MASK
+        cp AR_SM
+        jr z,.smb
         cp AR_I
         jr z,.i
         cp AR_Q
@@ -91,6 +93,8 @@ cp_operand_core:
         ld a,VM_MB
         jp .done
 .sx:    ld bc,RT_STEP           ; step flags: byte idx/8, bit idx&7
+        jr .mbit
+.smb:   ld bc,RT_SM             ; system flags (read only)
         jr .mbit
 .m:     ld bc,RT_M
 .mbit:  ld a,(cp_oidx)
