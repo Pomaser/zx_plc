@@ -27,6 +27,8 @@ scr_pou:
         jr z,.edit
         cp K_UNDO
         jr z,.undk
+        cp K_XREF
+        jr z,.xrk
         cp K_BREAK
         jr z,.menu
         cp K_EDIT
@@ -71,10 +73,21 @@ scr_pou:
         jp .key
 .edit:  ld a,CMD_EDIT
         ret
+.xrk:   ld a,CMD_XREF           ; SS+X: calls of this POU
+        ld (mk_cmd),a
+        jr .menu
 .undk:  ld a,CMD_UNDO           ; SS+U: undo through the menu path
         ld (mk_cmd),a
 .menu:  call menu_key
 .cmd:   jp z,.key
+        cp CMD_XREF
+        jr nz,.nx
+        ld a,(cur_pou)
+        ld c,a
+        ld a,AR_POU
+        BCALL xref_show
+        ret
+.nx:
         cp CMD_POU_NEW
         jp z,.new
         cp CMD_POU_RENAME

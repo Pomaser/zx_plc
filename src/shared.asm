@@ -425,3 +425,6 @@ ld_vn:    db 11
 ld_ar:    dw 0              ; area, index of the element operand
 ld_kind:  db 0
 ld_cbuf:  ds 40
+xr_jf:    db 0              ; cross reference jump: the editor opens at
+xr_jl:    dw 0              ;   line / row xr_jl, position xr_jp
+xr_jp:    db 0

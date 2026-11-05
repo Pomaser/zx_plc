@@ -32,7 +32,18 @@ K_NONE    EQU 0xFF          ; row below the last line
 ; ---- il_editor: screen handler for an IL POU, returns a command in A
 il_editor:
         call screen_begin
+        ld a,(xr_jf)            ; opened from the cross references
+        or a
+        jr z,.nj
+        xor a
+        ld (xr_jf),a
         ld a,(cur_pou)
+        ld (il_pou),a
+        ld hl,(xr_jl)
+        ld (il_cur),hl
+        ld (il_top),hl
+        jr .same
+.nj:    ld a,(cur_pou)
         ld hl,il_pou
         cp (hl)
         jr z,.same
@@ -71,6 +82,8 @@ il_editor:
         jp z,.right
         cp K_DEL
         jp z,.del
+        cp K_XREF
+        jp z,.xrk
         cp K_UNDO
         jp z,.undk
         cp K_BREAK
@@ -404,6 +417,9 @@ il_editor:
         call il_draw_row
         jp .redrawf
 
+.xrk:   ld a,CMD_XREF           ; SS+X: cross references through the menu path
+        ld (mk_cmd),a
+        jp .menu
 .undk:  ld a,CMD_UNDO           ; SS+U: undo through the menu path
         ld (mk_cmd),a
         jp .menu
@@ -417,7 +433,17 @@ il_editor:
         jr nz,.m1
         call il_load
         jp .full
-.m1:    cp CMD_IL_INS
+.m1:    cp CMD_XREF
+        jr nz,.m2
+        ld hl,ed_o              ; operand of the line
+        call op_parse
+        jr nc,.x1
+        xor a
+.x1:    BCALL xref_show
+        ld hl,0
+        ld (st_left),hl
+        ret
+.m2:    cp CMD_IL_INS
         jr z,.mins
         cp CMD_IL_DEL
         jr z,.mdel

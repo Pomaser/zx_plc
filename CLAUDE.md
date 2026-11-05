@@ -21,7 +21,7 @@ on tape. See README.md for the user-facing description of every editor and key.
 - `make run`: runs the build in Fuse.
 - `python3 tools/fixjr.py main.asm`: builds and converts every out-of-range `jr` to `jp` in the source,
   then prints the remaining errors. Run it after edits that make code longer.
-- `python3 tools/xref.py --check "pou:R,app:E,il_edit:E,sym_edit:E,ld_edit:E,sim:E,demo:E,il_comp:R,vm:R,ld_comp:R,fbd_comp:R,tape:R,tests:E,fbd_edit:F"`:
+- `python3 tools/xref.py --check "pou:R,app:E,il_edit:E,sym_edit:E,ld_edit:E,sim:E,demo:E,il_comp:R,vm:R,ld_comp:R,fbd_comp:R,tape:R,tests:E,fbd_edit:F,tools:D"`:
   reports labels referenced across paged banks without `BCALL`. Unlisted modules are core. The
   `run_tests` / `demo_build` hits in main.asm are expected. Extend the map when a module moves.
 - Headless emulator: `.scratch/venv/bin/python tools/zxrun.py zxplc.sna -f 30 -s "<script>"`
@@ -49,7 +49,7 @@ on tape. See README.md for the user-facing description of every editor and key.
   - EDIT 0: IL, LD and symbol editors, simulation screen, tests.
   - RUN 4: compilers, VM, bytecode at 0xF000, POU list, tape. It is uncontended, which tape timing needs.
   - DATA 1: the popup save buffer.
-  - DEMO 3: the demo image.
+  - DEMO 3: `src/tools.asm` (cross references) and the demo image.
   - FBD 6: the FBD editor.
   - SPARE 7: the project copy while loading from tape.
 
@@ -57,7 +57,8 @@ on tape. See README.md for the user-facing description of every editor and key.
 - **Cross-bank calls:** use `BCALL label` (macro in `src/defs.asm`, `bcall_` in `src/bank.asm`).
   AF/BC/DE/HL pass through in both directions.
   - Pointers passed across banks must point to fixed memory.
-  - Data shared by two banks lives in `src/shared.asm` (core).
+  - Data shared by two banks lives in `src/shared.asm` (core); the jump target of the cross
+    references (xr_jf / xr_jl / xr_jp) too.
   - Calls within one bank, or from a bank into the core, are plain `call`.
 - `bank_copy` (core) copies with another bank paged in. Core routines that page a bank (`win_open` /
   `win_close` → DATA) restore the caller's bank.

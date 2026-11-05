@@ -52,6 +52,7 @@ mi_edit:
 mi_view:
         db CMD_VIEW_SYM, 'S',"Symbols",0
         db CMD_VIEW_ADDR,'A',"Addresses",0
+        db CMD_XREF,     'X',"Cross references",0
         db CMD_SOUND,    'O',"Sound",0
         db 0
 mi_run:
@@ -1013,7 +1014,7 @@ menu_cmd:
         jr nz,.uk
         xor a
         ld (cur_pou),a
-.uk:    ld a,CMD_UNDONE
+.uk:    ld a,CMD_REOPEN
         or a
         ret
 .vsym:  ld a,1

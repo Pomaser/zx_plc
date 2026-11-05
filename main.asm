@@ -47,7 +47,7 @@ main_loop:
 
 ; ---- cmd_target: A = command -> selects the screen to show next
 cmd_target:
-        cp CMD_UNDONE           ; undo: the same screen opens again
+        cp CMD_REOPEN           ; undo: the same screen opens again
         ret z
         cp CMD_POU_MANAGE
         ret c
@@ -168,12 +168,16 @@ FBD_END:
 
 ; ---- DEMO bank: the demo project image (made by tools/mkdemo.py)
         MMU 3, BANK_DEMO, BANKED
+        INCLUDE "src/tools.asm"     ; cross references
 demo_img:
     IFNDEF MKDEMO
         INCBIN "src/demo_proj.bin"
     ENDIF
 DEMO_LEN EQU $-demo_img
         ASSERT DEMO_LEN <= PROJ_END-PROJ
+DEMO_END:
+        DISPLAY "DEMO:  free: ",/D,IM2_JP-DEMO_END
+        ASSERT DEMO_END <= IM2_JP
         IM2STUB
 
 ; unused banks get the interrupt table too

@@ -15,7 +15,20 @@ ATTR_FBON EQU ATTR_ON        ; TRUE (as in LD / IL)
 ; ---- fb_editor: edits the FBD POU cur_pou, returns a menu command
 fb_editor:
         call screen_begin
+        ld a,(xr_jf)            ; opened from the cross references
+        or a
+        jr z,.nj
+        xor a
+        ld (xr_jf),a
         ld a,(cur_pou)
+        ld (fb_pou),a
+        ld a,(xr_jl)
+        ld (ld_row),a
+        ld (ld_top),a
+        ld a,(xr_jp)
+        ld (ld_pos),a
+        jr .same
+.nj:    ld a,(cur_pou)
         ld hl,fb_pou
         cp (hl)
         jr z,.same
@@ -76,6 +89,8 @@ fb_editor:
         jp z,.enter
         cp K_DEL
         jp z,.del
+        cp K_XREF
+        jp z,.xrk
         cp K_UNDO
         jp z,.undk
         cp K_BREAK
@@ -455,6 +470,9 @@ fb_editor:
         BCALL ld_put
         jr .redraw
 
+.xrk:   ld a,CMD_XREF           ; SS+X: cross references through the menu path
+        ld (mk_cmd),a
+        jp .menu
 .undk:  ld a,CMD_UNDO           ; SS+U: undo through the menu path
         ld (mk_cmd),a
         jp .menu
@@ -462,7 +480,25 @@ fb_editor:
         jp z,.cur
         cp CMD_REDRAW
         jp z,.full
-        cp CMD_IL_INS
+        cp CMD_XREF
+        jr nz,.nx
+        call fb_to_owner        ; operand of the element (logic boxes: none)
+        call fb_cur_get
+        and FT_MASK
+        cp FT_IN
+        jr z,.xo
+        cp FT_OUT
+        jr z,.xo
+        ld a,b
+        cp AR_FBI
+        jr z,.xo
+        ld b,0
+.xo:    ld a,b
+        BCALL xref_show
+        ld hl,0
+        ld (st_left),hl
+        ret
+.nx:    cp CMD_IL_INS
         jr z,.mins
         cp CMD_IL_DEL
         jr z,.mdel

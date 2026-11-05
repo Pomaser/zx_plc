@@ -991,7 +991,20 @@ ld_set_state:
 ; ============================================================
 ld_editor:
         call screen_begin
+        ld a,(xr_jf)            ; opened from the cross references
+        or a
+        jr z,.nj
+        xor a
+        ld (xr_jf),a
         ld a,(cur_pou)
+        ld (ld_pou),a
+        ld a,(xr_jl)
+        ld (ld_row),a
+        ld (ld_top),a
+        ld a,(xr_jp)
+        ld (ld_pos),a
+        jr .same
+.nj:    ld a,(cur_pou)
         ld hl,ld_pou
         cp (hl)
         jp z,.same
@@ -1053,6 +1066,8 @@ ld_editor:
         jp z,.enter
         cp K_DEL
         jp z,.del
+        cp K_XREF
+        jp z,.xrk
         cp K_UNDO
         jp z,.undk
         cp K_INS
@@ -1401,6 +1416,9 @@ ld_editor:
         call ld_put
         jp .redraw
 
+.xrk:   ld a,CMD_XREF           ; SS+X: cross references through the menu path
+        ld (mk_cmd),a
+        jp .menu
 .undk:  ld a,CMD_UNDO           ; SS+U: undo through the menu path
         ld (mk_cmd),a
         jp .menu
@@ -1408,7 +1426,19 @@ ld_editor:
         jp z,.cur
         cp CMD_REDRAW
         jp z,.full
-        cp CMD_IL_INS
+        cp CMD_XREF
+        jr nz,.nx
+        ld a,(ld_row)           ; operand of the element
+        ld d,a
+        ld a,(ld_pos)
+        ld e,a
+        call ld_get
+        ld a,b
+        BCALL xref_show
+        ld hl,0
+        ld (st_left),hl
+        ret
+.nx:    cp CMD_IL_INS
         jr z,.mins
         cp CMD_IL_DEL
         jr z,.mdel

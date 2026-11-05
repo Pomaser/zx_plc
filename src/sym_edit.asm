@@ -58,6 +58,8 @@ scr_sym:
         jp z,.pgdn
         cp K_DEL
         jp z,.del
+        cp K_XREF
+        jp z,.xrk
         cp K_UNDO
         jp z,.undk
         cp K_BREAK
@@ -273,6 +275,9 @@ scr_sym:
 .mfull: call il_fix_top
         jp .full
 
+.xrk:   ld a,CMD_XREF           ; SS+X: cross references through the menu path
+        ld (mk_cmd),a
+        jp .menu
 .undk:  ld a,CMD_UNDO           ; SS+U: undo through the menu path
         ld (mk_cmd),a
         jp .menu
@@ -287,7 +292,15 @@ scr_sym:
         jp z,.loop
         cp CMD_REDRAW
         jp z,.full
-        cp CMD_IL_DEL
+        cp CMD_XREF
+        jr nz,.nx
+        ld hl,ed_o              ; address of the symbol
+        call op_parse
+        jr nc,.x1
+        xor a
+.x1:    BCALL xref_show
+        ret
+.nx:    cp CMD_IL_DEL
         jr nz,.exit
         ; Edit > Delete line: remove the symbol of this row
         ld de,(il_cur)

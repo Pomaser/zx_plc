@@ -65,6 +65,9 @@ The bottom status bar shows, in the editors, the symbol name of the current oper
 Messages, questions, name input and language choice appear in popup windows.
 Edit > Undo or SYMBOL SHIFT + `U` (in the POU list and all editors) undoes the last change of the project
 (one step: the project as it was before the last key that changed it, e.g. a deleted line, element or POU).
+View > Cross references or SYMBOL SHIFT + `X` lists every use of the operand under the cursor (IL line,
+LD / FBD element, symbol; in the POU list: the calls of the POU) with POU, line or row / position and
+Read / Write / Call; ENTER opens that place.
 Keys are read in the interrupt into an 8-key queue, so typing ahead is not lost.
 
 | Key | Function |
