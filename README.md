@@ -4,6 +4,8 @@ A PLC program editor and simulator following IEC 61131-3 (IL, LD, FBD) for the *
 written in Z80 assembler. Programs are not downloaded to any real PLC; they run in a built-in simulation.
 Projects can be saved to tape.
 
+**User manual with screenshots: [docs/MANUAL.md](docs/MANUAL.md).**
+
 ## Demo project
 
 The program starts with a demo project (also File > Open demo); File > New project starts an empty one.
@@ -87,9 +89,9 @@ Keys are read in the interrupt into an 8-key queue, so typing ahead is not lost.
 |---|---|
 | File | New project, Open demo, Load..., Save... |
 | POU | Manage, New..., Rename/Comment..., Language..., Delete |
-| Edit | Edit POU, Symbols, Insert line, Delete line |
-| View | Symbols, Addresses (how operands are shown in the IL editor and the simulation), Sound (on/off) |
-| Run | Run, Stop, Step, Reset |
+| Edit | Edit POU, Undo, Add to watch, Symbols, Insert line, Delete line |
+| View | Symbols, Addresses (how operands are shown in the IL editor and the simulation), Cross references, Sound (on/off) |
+| Run | Run, Stop, Step, Reset, Watch |
 | Help | Controls, About |
 
 * `MAIN` always exists and is the only POU called by the scan cycle; other POUs are called from MAIN.
@@ -234,7 +236,6 @@ Compile errors are reported with the POU name and line number.
   (Edit > Add to watch) adds the operand at the cursor to the list (an FB instance adds its ET, CV or Q).
 * Standard FBs: TON, TOF, TP, CTU, CTD, R_TRIG (instances `RT0`-`RT3`), F_TRIG (`RF0`-`RF3`), SR, RS. Calls of other POUs: max. depth 8.
   A watchdog stops a scan that executes more than 30000 instructions.
-* FBD POUs are not compiled yet (a call of such a POU does nothing).
 
 ## Operands
 

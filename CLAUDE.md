@@ -19,6 +19,8 @@ on tape. See README.md for the user-facing description of every editor and key.
   - It prints `TESTS OK`. Failing cases are printed on the emulated screen; take a screenshot to see them.
   - Tests live in `src/tests.asm` and are split by `IF TPART==1/2` because of space in the EDIT bank.
 - `make run`: runs the build in Fuse.
+- `make docs`: regenerates the screenshots of `docs/MANUAL.md` (`tools/docshots.py`: one zxrun key script
+  per image, `--noborder`). Update the manual and the scripts when the UI changes.
 - `python3 tools/fixjr.py main.asm`: builds and converts every out-of-range `jr` to `jp` in the source,
   then prints the remaining errors. Run it after edits that make code longer.
 - `python3 tools/xref.py --check "pou:R,app:E,il_edit:E,sym_edit:E,ld_edit:E,sim:E,demo:E,il_comp:R,vm:R,ld_comp:R,fbd_comp:R,tape:R,tests:E,fbd_edit:F,tools:D"`:

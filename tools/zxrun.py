@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Headless ZX Spectrum 48K runner for automated tests.
 
-Usage: zxrun.py file.sna [-s script] [-o out.png] [-f frames]
+Usage: zxrun.py file.sna [-s script] [-o out.png] [-f frames] [--noborder]
 Script: whitespace separated commands:
   wN        run N frames
   k:KEY     tap key (held 3 frames, then released 3 frames)
@@ -248,7 +248,7 @@ class Spectrum:
         mem = self.m.memory
         pal = [(0,0,0),(0,0,0xD7),(0xD7,0,0),(0xD7,0,0xD7),(0,0xD7,0),(0,0xD7,0xD7),(0xD7,0xD7,0),(0xD7,0xD7,0xD7)]
         palb = [(0,0,0),(0,0,0xFF),(0xFF,0,0),(0xFF,0,0xFF),(0,0xFF,0),(0,0xFF,0xFF),(0xFF,0xFF,0),(0xFF,0xFF,0xFF)]
-        B = 16
+        B = 0 if getattr(self, "noborder", False) else 16
         W, H = 256 + 2 * B, 192 + 2 * B
         bc = pal[self.border]
         rows = []
@@ -295,8 +295,10 @@ def main():
     ap.add_argument("--peek", default=None, help="addr:len hexdump at end")
     ap.add_argument("--ay", action="store_true", help="print AY volume/mixer writes")
     ap.add_argument("--tap", default=None, help="save the tape output as a .tap file")
+    ap.add_argument("--noborder", action="store_true", help="screenshots without the border")
     a = ap.parse_args()
     z = Spectrum(a.sna)
+    z.noborder = a.noborder
     z.run(a.frames)
     for cmd in a.script.split():
         if cmd.startswith("w"):

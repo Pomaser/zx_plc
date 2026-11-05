@@ -30,10 +30,14 @@ test: zxplc_test1.sna zxplc_test2.sna
 run: zxplc.sna
 	fuse zxplc.sna &
 
+# screenshots for docs/MANUAL.md (docs/img/*.png)
+docs: zxplc.sna
+	$(PYTHON) tools/docshots.py
+
 run-test: zxplc_test1.sna
 	fuse zxplc_test1.sna &
 
 clean:
 	rm -f *.sna *.sym *.lst .test.out
 
-.PHONY: all test run run-test clean
+.PHONY: all test docs run run-test clean
