@@ -162,9 +162,7 @@ scr_run:
         ld a,(sm_ib)
         xor 1
         ld (sm_ib),a
-        call sim_digits         ; numbers clean again, LEDs redrawn: the
-        ld a,0xFF               ; other half is dimmed after that
-        ld (sm_lf),a
+        call sim_dim            ; the active half bright
         jp .loop
 .nb:
         cp 'R'                  ; R toggles run / stop
@@ -346,40 +344,47 @@ sim_inputs:
 .st:    ld (RT_I),hl
         ret
 
-; ---- sim_dim: the half of the panel that the keys do not act on (the other
-;      input byte, its outputs and numbers) is dimmed: every second pixel
+; ---- sim_dim: the half of the panel the keys act on (its input byte, the
+;      outputs and numbers of that byte) gets a bright white paper
 sim_dim:
-        ld c,LED_COL1
-        ld a,(sm_ib)
-        or a
-        jr z,.g
-        ld c,LED_COL0
-.g:     ld b,ROW_IN
-        push bc
+        ld b,ROW_IN
+        ld e,ATTR_LED_I
         call .row
-        pop bc
         ld b,ROW_OUT
-.row:   call pix_addr
-        ld e,0
-.ln:    ld a,e
-        and 1
-        ld a,0xAA
-        jr z,.m
-        ld a,0x55
-.m:     ld d,a
-        push hl
-        ld b,16
-.c:     ld a,(hl)
-        and d
-        ld (hl),a
-        inc l
-        djnz .c
-        pop hl
-        inc h
-        inc e
+        ld e,ATTR_LED_Q
+.row:   ld c,0
+.l:     push bc
+        push de
+        ld a,(sm_ib)            ; byte of this cell = c / 8: active -> BRIGHT
+        rrca
+        rrca
+        rrca
+        xor c
+        and 8
+        jr nz,.n
+        set 6,e
+.n:     ld a,c
+        add a,a
+        add a,LED_COL0
+        ld c,a
+        ld d,1
+        push de
+        push bc
+        call scr_fill_attr      ; LED cell
+        pop bc
+        pop de
+        inc c                   ; number cell: black on white
         ld a,e
-        cp 8
-        jr nz,.ln
+        and 0x40
+        or ATTR_NORMAL
+        ld e,a
+        call scr_fill_attr
+        pop de
+        pop bc
+        inc c
+        ld a,c
+        cp 16
+        jr c,.l
         ret
 
 ; ---- sim_cerr: compile error popup "Error in NAME, line 012" + message
@@ -449,6 +454,7 @@ sim_draw_panel:
         ld e,ATTR_LED_Q
         call .row
         call sim_digits
+        call sim_dim
         ld a,0xFF               ; force the LEDs to be drawn
         ld (sm_lf),a
         ret
@@ -702,7 +708,7 @@ sim_update:
         call .led16
         xor a
         ld (sm_lf),a
-        jp sim_dim              ; (the LEDs clear their cells)
+        ret
 .led16: ld (sm_lv),hl           ; HL = state, DE = last drawn state
         ld a,(sm_lf)
         or a
