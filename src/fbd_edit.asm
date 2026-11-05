@@ -410,6 +410,7 @@ fb_editor:
         or a
         jr nz,.undo             ; no room: the old element comes back
         call fb_autowire
+        call fb_autowire_r
         ld a,(fb_ins)           ; inserted on an input: cursor on the
         or a                    ; free cell of the second input
         jr z,.nins
@@ -457,6 +458,7 @@ fb_editor:
         ld (ld_pos),a
 .redraw:
         call status_right
+        call fb_fix_top         ; (the cursor may have moved below the view)
         jp .full
 
         ; ---- DELETE: the element (inside a block: the block)
@@ -1574,6 +1576,47 @@ fb_autowire:
         ret c
         ld a,(fb_aw)
         jr .l
+
+; ---- fb_autowire_r: a new input: empty positions on its right up to a block
+;      (its first row or a row it covers) become wires
+fb_autowire_r:
+        call fb_cur_get
+        and FT_MASK
+        cp FT_IN
+        ret nz
+        ld a,(ld_row)
+        ld d,a
+        ld a,(ld_pos)
+        ld e,a
+.f:     inc e                   ; find the end of the empty cells
+        ld a,e
+        cp LD_CPOS
+        ret nc
+        call fb_owner           ; (keeps DE)
+        jr nc,.blk              ; a block row: fill
+        call ld_get
+        or a
+        jr z,.f
+        ld c,b
+        call fb_height_t
+        or a
+        ret z                   ; another element: nothing to do
+.blk:   ld a,e                  ; wires from ld_pos+1 to E-1
+        ld (fb_aw),a
+.w:     ld a,(fb_aw)
+        dec a
+        ld (fb_aw),a
+        ld hl,ld_pos
+        cp (hl)
+        ret z
+        ld e,a
+        ld a,(ld_row)
+        ld d,a
+        ld a,FT_WIRE
+        ld bc,0
+        BCALL ld_put
+        ret c
+        jr .w
 
 ; ---- fb_row_empty: Z if row ld_row has no records
 fb_row_empty:
