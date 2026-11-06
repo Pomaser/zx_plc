@@ -10,15 +10,18 @@ The tape holds:
      stops the ROM from printing "Bytes: loader" over the picture)
   2. the loading screen (SCREEN$, 6912 bytes), if given
   3. a machine code loader (CODE at 24064 = 0x5E00, above RAMTOP). It copies itself
-     to 0x5D40, below its stack and above the BASIC line, out of the way of the screen
+     to 0x5D20, below its stack and above the BASIC line, out of the way of the screen
      and of the data it loads, and runs there. (Not the printer buffer: LD-BYTES ends
      with EI and the 128K ROM 1 interrupt uses 0x5B88+ for the keypad.)
   4. headerless data blocks, loaded by the ROM routine LD-BYTES: one for every
      paged bank that holds code or data (the banks are cleared first and get
      the IM2 vector table + "JP isr" at 0xFDFD), then the fixed part from
      0x5E00 (the rest up to 0xBFFF is cleared).
-The machine code loader then jumps to START. A failed block (or BREAK) turns
-the border red.
+With a loading screen the loader then copies the pixels of the hidden "RUN"
+label (white on white, character row 0, columns 29-31) over "STOP" in the
+picture (row 11, columns 2-4; the attributes stay), so the PLC in the picture
+switches to RUN, and waits for a key. Then it jumps to START. A failed block
+(or BREAK) turns the border red.
 """
 import os
 import re
@@ -27,9 +30,12 @@ import sys
 import tempfile
 
 LOADER_ORG = 0x5E00                     # where LOAD ""CODE puts the loader
-LOADER_RUN = 0x5D40                     # where it runs (top of the BASIC area)
+LOADER_RUN = 0x5D20                     # where it runs (top of the BASIC area)
 FIXED = 0x5E00
 IM2_AREA = 0x3DFD                       # bank offset of the IM2 stub (0xFDFD)
+RUN_SRC = 0x4000 + 29                   # "RUN" label: row 0, columns 29-31
+RUN_DST = 0x4800 + (11 - 8) * 32 + 2    # over "STOP": row 11, columns 2-4
+RUN_W = 3
 
 
 def read_sna(path):
@@ -94,7 +100,7 @@ def basic_loader(screen):
     return (10).to_bytes(2, "big") + len(line).to_bytes(2, "little") + line
 
 
-def mc_loader(table, fixed_len, start, isr, start_bank):
+def mc_loader(table, fixed_len, start, isr, start_bank, screen):
     src = """
         DEVICE NONE
         ORG {org}
@@ -162,6 +168,32 @@ fixed:  ld a,0x10|{sbank}
         scf
         call 0x0556
         jr nc,fail
+        IF {screen}
+        di
+        ld hl,{rsrc}            ; "RUN" over "STOP", pixels only
+        ld de,{rdst}
+        ld a,8
+pix:    push hl
+        push de
+        ld bc,{rw}
+        ldir
+        pop de
+        pop hl
+        inc h
+        inc d
+        dec a
+        jr nz,pix
+release:xor a                   ; wait until no key is held ...
+        in a,(0xFE)
+        cpl
+        and 0x1F
+        jr nz,release
+press:  xor a                   ; ... then for a key press
+        in a,(0xFE)
+        cpl
+        and 0x1F
+        jr z,press
+        ENDIF
         jp {start}
 fail:   ld a,2
         out (0xFE),a
@@ -171,7 +203,8 @@ table:
         db 0xFF
 end:
         ENT
-""".format(org=LOADER_ORG, run=LOADER_RUN, fixed=FIXED, isr=isr, sbank=start_bank, flen=fixed_len,
+""".format(org=LOADER_ORG, run=LOADER_RUN, screen=1 if screen else 0,
+           rsrc=RUN_SRC, rdst=RUN_DST, rw=RUN_W, fixed=FIXED, isr=isr, sbank=start_bank, flen=fixed_len,
            start=start, table="\n".join("        db %d\n        dw %d" % t for t in table),
            out="{out}")
     with tempfile.TemporaryDirectory() as tmp:
@@ -183,7 +216,7 @@ end:
             sys.exit(r.stdout + r.stderr)
         code = open(out, "rb").read()
     if LOADER_RUN + len(code) - 15 > FIXED - 0x20:         # 15: the copy stub
-        sys.exit("loader too long for the area below its stack")
+        sys.exit("loader too long for the area below its stack (%d bytes)" % len(code))
     return code
 
 
@@ -204,8 +237,10 @@ def main():
         table.append((b, n))
         if n:
             data.append(banks[b][:n])
-    loader = mc_loader(table, flen, start, isr, paged)
+    loader = mc_loader(table, flen, start, isr, paged, screen is not None)
     prog = basic_loader(screen)
+    if 0x5CCB + len(prog) + 0x20 > LOADER_RUN:               # PROG, VARS, E_LINE...
+        sys.exit("the BASIC line reaches the loader")
     tap = header(0, "ZX-PLC", len(prog), 10, len(prog)) + block(0xFF, prog)
     if screen:
         tap += header(3, "screen", 6912, 0x4000, 32768) + block(0xFF, screen)
