@@ -19,12 +19,17 @@ The tape holds:
      paged bank that holds code or data (the banks are cleared first and get
      the IM2 vector table + "JP isr" at 0xFDFD), then the fixed part from
      0x5E00 (the rest up to 0xBFFF is cleared).
-With a loading screen the loader then fills the pixels of "STOP" in the picture
-(row 11, columns 2-4, plus the empty blue cells 1 and 5) with noise for 2 s, with AY noise on channel A, then
-copies the pixels of the hidden "RUN" label (white on white, character row 0,
-columns 29-31) there and clears cells 1 and 5 again (the attributes stay), so the PLC in the picture switches
-to RUN, and waits for a key. Then it jumps to START. A failed block
-(or BREAK) turns the border red.
+With a loading screen the fixed block also carries the effect code right after
+the program (that memory is zero in the snapshot); the loader calls it, then
+clears it again. The effect fills the pixels of "STOP" in the picture (row 11,
+columns 2-4, plus the empty blue cells 1 and 5) with noise for 2 s, with AY
+noise on channel A, then copies the pixels of the hidden "RUN" label (white on
+white, character row 0, columns 29-31) there and clears cells 1 and 5 again
+(the attributes stay), so the PLC in the picture switches to RUN. While it
+waits for a key, the BRIGHT bit of the green LED cells (row 9, columns 18-23
+and 26-31) toggles at random times (100-720 ms, each cell on its own). When
+the key is pressed and released again, the loader jumps to START.
+A failed block (or BREAK) turns the border red.
 """
 import os
 import re
@@ -40,6 +45,7 @@ RUN_SRC = 0x4000 + 29                   # "RUN" label: row 0, columns 29-31
 RUN_DST = 0x4800 + (11 - 8) * 32 + 2    # over "STOP": row 11, columns 2-4
 RUN_W = 3
 NOISE_FRAMES = 100                      # 2 s of noise before RUN appears
+LED_ATTR = 0x5800 + 9 * 32 + 18         # green LEDs: row 9, columns 18-23 and 26-31
 
 
 def read_sna(path):
@@ -167,11 +173,35 @@ fixed:  ld a,0x10|{sbank}
         ld (hl),0
         ldir
         ld ix,{fixed}
-        ld de,{flen}
+        ld de,effect_end-{fixed}
         ld a,0xFF
         scf
         call 0x0556
         jp nc,fail
+        IF {screen}
+        call effect             ; picture effect, waits for a key
+        di
+        ld hl,effect            ; its code cleared again (the memory after
+        ld de,effect+1          ; the program is all zero in the snapshot)
+        ld bc,effect_end-effect-1
+        ld (hl),0
+        ldir
+        ENDIF
+        jp {start}
+fail:   ld a,2
+        out (0xFE),a
+        jr fail
+table:
+{table}
+        db 0xFF
+end:
+        ENT
+
+; The effect after the load is appended to the fixed block: it is loaded
+; right after the program, run once, then cleared.
+        OUTPUT "{eout}"
+        ORG {fixed}+{flen}
+effect:
         IF {screen}
         ld de,0x08 * 256 + 15   ; AY: noise on channel A, full volume
         call ay
@@ -229,47 +259,85 @@ pix:    push hl
         inc d
         dec a
         jr nz,pix
-release:xor a                   ; wait until no key is held ...
+release:xor a                   ; wait until no key is held
         in a,(0xFE)
         cpl
         and 0x1F
         jr nz,release
-press:  xor a                   ; ... then for a key press
+blink:  ei                      ; the LEDs blink until a key is pressed
+        halt
+        ld hl,cnt               ; one frame countdown per LED cell
+        ld de,{led}
+        ld b,12
+led:    dec (hl)
+        jr nz,lnext
+        ld a,(de)               ; BRIGHT toggled
+        xor 0x40
+        ld (de),a
+        ld a,(seed)             ; next count: 5-36 frames (LCG xor R)
+        ld c,a
+        add a,a
+        add a,a
+        add a,c
+        inc a
+        ld (seed),a
+        ld c,a
+        ld a,r
+        xor c
+        rrca
+        rrca
+        and 0x1F
+        add a,5
+        ld (hl),a
+lnext:  inc hl
+        inc e
+        ld a,b
+        cp 7                    ; 6 IN cells, a gap of 2, 6 OUT cells
+        jr nz,lgap
+        inc e
+        inc e
+lgap:   djnz led
+        xor a
         in a,(0xFE)
         cpl
         and 0x1F
-        jr z,press
-        jp {start}
+        jr z,blink
+up:     ei                      ; the key released first, so that the
+        halt                    ; program does not see it (ENTER would open
+        xor a                   ; a POU)
+        in a,(0xFE)
+        cpl
+        and 0x1F
+        jr nz,up
+        ret
+cnt:    db 3, 17, 9, 25, 6, 13, 21, 4, 11, 28, 7, 15
+seed:   db 0x5A
 ay:     ld bc,0xFFFD            ; AY register D = E
         out (c),d
         ld b,0xBF
         out (c),e
         ret
         ENDIF
-        jp {start}
-fail:   ld a,2
-        out (0xFE),a
-        jr fail
-table:
-{table}
-        db 0xFF
-end:
-        ENT
+effect_end:
 """.format(org=LOADER_ORG, run=LOADER_RUN, screen=1 if screen else 0,
-           rsrc=RUN_SRC, rdst=RUN_DST, rw=RUN_W, nframes=NOISE_FRAMES, fixed=FIXED, isr=isr, sbank=start_bank, flen=fixed_len,
+           rsrc=RUN_SRC, rdst=RUN_DST, rw=RUN_W, nframes=NOISE_FRAMES, led=LED_ATTR, fixed=FIXED, isr=isr, sbank=start_bank, flen=fixed_len,
            start=start, table="\n".join("        db %d\n        dw %d" % t for t in table),
-           out="{out}")
+           out="{out}", eout="{eout}")
     with tempfile.TemporaryDirectory() as tmp:
         out = os.path.join(tmp, "loader.bin")
+        eout = os.path.join(tmp, "effect.bin")
         asm = os.path.join(tmp, "loader.asm")
-        open(asm, "w").write(src.replace("{out}", out))
+        open(asm, "w").write(src.replace("{out}", out).replace("{eout}", eout))
         r = subprocess.run(["sjasmplus", "--nologo", asm], capture_output=True, text=True)
         if r.returncode:
             sys.exit(r.stdout + r.stderr)
         code = open(out, "rb").read()
+        effect = open(eout, "rb").read() if os.path.exists(eout) else b""
     if LOADER_RUN + len(code) - 15 > FIXED - 0x20:         # 15: the copy stub
         sys.exit("loader too long for the area below its stack (%d bytes)" % len(code))
-    return code
+    if FIXED + fixed_len + len(effect) > 0xC000:
+        sys.exit("no room for the effect code after the program")
+    return code, effect
 
 
 def main():
@@ -289,7 +357,8 @@ def main():
         table.append((b, n))
         if n:
             data.append(banks[b][:n])
-    loader = mc_loader(table, flen, start, isr, paged, screen is not None)
+    loader, effect = mc_loader(table, flen, start, isr, paged, screen is not None)
+    fixed_data += effect
     prog = basic_loader(screen)
     tap = header(0, "ZX-PLC", len(prog), 10, len(prog)) + block(0xFF, prog)
     if screen:
