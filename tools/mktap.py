@@ -25,7 +25,8 @@ clears it again. The effect fills the pixels of "STOP" in the picture (row 11,
 columns 2-4, plus the empty blue cells 1 and 5) with noise for 2 s, with AY
 noise on channel A, then copies the pixels of the hidden "RUN" label (white on
 white, character row 0, columns 29-31) there and clears cells 1 and 5 again
-(the attributes stay), so the PLC in the picture switches to RUN. While it
+(the attributes stay), so the PLC in the picture switches to RUN, and writes
+MESSAGE bottom left in the app font (tools/font6.txt). While it
 waits for a key, the BRIGHT bit of the green LED cells (row 9, columns 18-23
 and 26-31) toggles at random times (100-720 ms, each cell on its own). When
 the key is pressed and released again, the loader jumps to START.
@@ -46,6 +47,8 @@ RUN_DST = 0x4800 + (11 - 8) * 32 + 2    # over "STOP": row 11, columns 2-4
 RUN_W = 3
 NOISE_FRAMES = 100                      # 2 s of noise before RUN appears
 LED_ATTR = 0x5800 + 9 * 32 + 18         # green LEDs: row 9, columns 18-23 and 26-31
+MESSAGE = [(22, 2, "Press any key to start"),   # (row, x px, text) in the app font,
+           (23, 2, "ZX PLC Editor")]           # in the free area left of the wires
 
 
 def read_sna(path):
@@ -108,6 +111,47 @@ def basic_loader(screen):
     line += (b"\xef" + q + q + b"\xaf:\xf9\xc0\xb0"                    # LOAD ""CODE : RANDOMIZE USR
              + q + str(LOADER_ORG).encode() + q + b"\r")
     return (10).to_bytes(2, "big") + len(line).to_bytes(2, "little") + line
+
+
+def font6():
+    """the glyphs of tools/font6.txt (the app font): char -> rows of '#'/'.'"""
+    glyphs, cur = {}, None
+    for line in open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "font6.txt")):
+        line = line.rstrip("\n")
+        if not line or line.startswith("#") and not set(line) <= set("#."):
+            continue
+        if line.startswith(": "):
+            cur = {"SP": " "}.get(line[2:], line[2:])
+            glyphs[cur] = []
+        else:
+            glyphs[cur].append(line)
+    return glyphs
+
+
+def message_data():
+    """MESSAGE rendered for the loader: per text line [screen address][cells]
+    and 8 pixel lines of that many bytes, then a 0 word"""
+    glyphs = font6()
+    out = []
+    for row, x, text in MESSAGE:
+        px = [[0] * 256 for _ in range(8)]
+        for ch in text:
+            g = glyphs[ch]
+            for y, r in enumerate(g):               # glyph line 0 is blank
+                for i, c in enumerate(r):
+                    if c == "#":
+                        px[y + 1][x + i] = 1
+            x += len(g[0]) + 1
+        cells = (x + 7) // 8
+        if cells > 32:
+            sys.exit("message line too long: " + text)
+        addr = 0x4000 | ((row & 0x18) << 8) | ((row & 7) << 5)
+        out += ["        dw 0x%04X" % addr, "        db %d" % cells]
+        for line in px:
+            out.append("        db " + ",".join(
+                str(int("".join(map(str, line[c * 8:c * 8 + 8])), 2)) for c in range(cells)))
+    out.append("        dw 0")
+    return "\n".join(out)
 
 
 def mc_loader(table, fixed_len, start, isr, start_bank, screen):
@@ -259,6 +303,27 @@ pix:    push hl
         inc d
         dec a
         jr nz,pix
+        ld hl,message           ; "Press any key..." bottom left
+mline:  ld e,(hl)
+        inc hl
+        ld d,(hl)
+        inc hl
+        ld a,d
+        or a
+        jr z,release
+        ld c,(hl)               ; cells per pixel line
+        inc hl
+        ld a,8
+mpix:   push de
+        push bc
+        ld b,0
+        ldir
+        pop bc
+        pop de
+        inc d
+        dec a
+        jr nz,mpix
+        jr mline
 release:xor a                   ; wait until no key is held
         in a,(0xFE)
         cpl
@@ -311,6 +376,8 @@ up:     ei                      ; the key released first, so that the
         jr nz,up
         ret
 cnt:    db 3, 17, 9, 25, 6, 13, 21, 4, 11, 28, 7, 15
+message:
+{message}
 seed:   db 0x5A
 ay:     ld bc,0xFFFD            ; AY register D = E
         out (c),d
@@ -320,7 +387,7 @@ ay:     ld bc,0xFFFD            ; AY register D = E
         ENDIF
 effect_end:
 """.format(org=LOADER_ORG, run=LOADER_RUN, screen=1 if screen else 0,
-           rsrc=RUN_SRC, rdst=RUN_DST, rw=RUN_W, nframes=NOISE_FRAMES, led=LED_ATTR, fixed=FIXED, isr=isr, sbank=start_bank, flen=fixed_len,
+           rsrc=RUN_SRC, rdst=RUN_DST, rw=RUN_W, nframes=NOISE_FRAMES, led=LED_ATTR, message=message_data(), fixed=FIXED, isr=isr, sbank=start_bank, flen=fixed_len,
            start=start, table="\n".join("        db %d\n        dw %d" % t for t in table),
            out="{out}", eout="{eout}")
     with tempfile.TemporaryDirectory() as tmp:
