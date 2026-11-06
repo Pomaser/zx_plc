@@ -20,9 +20,9 @@ The tape holds:
      the IM2 vector table + "JP isr" at 0xFDFD), then the fixed part from
      0x5E00 (the rest up to 0xBFFF is cleared).
 With a loading screen the loader then fills the pixels of "STOP" in the picture
-(row 11, columns 2-4) with noise for 2 s, with AY noise on channel A, then
+(row 11, columns 2-4, plus the empty blue cells 1 and 5) with noise for 2 s, with AY noise on channel A, then
 copies the pixels of the hidden "RUN" label (white on white, character row 0,
-columns 29-31) there (the attributes stay), so the PLC in the picture switches
+columns 29-31) there and clears cells 1 and 5 again (the attributes stay), so the PLC in the picture switches
 to RUN, and waits for a key. Then it jumps to START. A failed block
 (or BREAK) turns the border red.
 """
@@ -186,10 +186,10 @@ noise:  ei                      ; (the ROM interrupt counts the frames)
         ld e,a
         ld d,6
         call ay
-        ld de,{rdst}
+        ld de,{rdst}-1          ; one more cell on both sides
         ld c,8
 nline:  push de
-        ld b,{rw}
+        ld b,{rw}+2
 ncell:  res 7,h                 ; random bytes: ROM contents xor R
         res 6,h
         ld a,r
@@ -214,8 +214,15 @@ ncell:  res 7,h                 ; random bytes: ROM contents xor R
         ld a,8
 pix:    push hl
         push de
+        ex de,hl                ; the empty cells on both sides cleared
+        dec l
+        ld (hl),0
+        inc l
+        ex de,hl
         ld bc,{rw}
         ldir
+        ex de,hl
+        ld (hl),b
         pop de
         pop hl
         inc h
