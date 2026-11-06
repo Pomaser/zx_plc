@@ -9,18 +9,21 @@ The tape holds:
      (without a loading screen the SCREEN$ and POKE parts are left out; the POKE
      stops the ROM from printing "Bytes: loader" over the picture)
   2. the loading screen (SCREEN$, 6912 bytes), if given
-  3. a machine code loader (CODE at 24064 = 0x5E00, above RAMTOP). It copies itself
-     to 0x5D20, below its stack and above the BASIC line, out of the way of the screen
-     and of the data it loads, and runs there. (Not the printer buffer: LD-BYTES ends
-     with EI and the 128K ROM 1 interrupt uses 0x5B88+ for the keypad.)
+  3. a machine code loader (CODE at 24064 = 0x5E00, above RAMTOP). With interrupts
+     off it copies itself over the BASIC line (PROG = 0x5CCB, BASIC is not needed
+     any more), below its stack at 0x5DFE, out of the way of the screen and of the
+     data it loads, and runs there. The system variables below stay intact for
+     LD-BYTES and the ROM interrupt. (Not the printer buffer: LD-BYTES ends with EI
+     and the 128K ROM 1 interrupt uses 0x5B88+ for the keypad.)
   4. headerless data blocks, loaded by the ROM routine LD-BYTES: one for every
      paged bank that holds code or data (the banks are cleared first and get
      the IM2 vector table + "JP isr" at 0xFDFD), then the fixed part from
      0x5E00 (the rest up to 0xBFFF is cleared).
-With a loading screen the loader then copies the pixels of the hidden "RUN"
-label (white on white, character row 0, columns 29-31) over "STOP" in the
-picture (row 11, columns 2-4; the attributes stay), so the PLC in the picture
-switches to RUN, and waits for a key. Then it jumps to START. A failed block
+With a loading screen the loader then fills the pixels of "STOP" in the picture
+(row 11, columns 2-4) with noise for 2 s, with AY noise on channel A, then
+copies the pixels of the hidden "RUN" label (white on white, character row 0,
+columns 29-31) there (the attributes stay), so the PLC in the picture switches
+to RUN, and waits for a key. Then it jumps to START. A failed block
 (or BREAK) turns the border red.
 """
 import os
@@ -30,12 +33,13 @@ import sys
 import tempfile
 
 LOADER_ORG = 0x5E00                     # where LOAD ""CODE puts the loader
-LOADER_RUN = 0x5D20                     # where it runs (top of the BASIC area)
+LOADER_RUN = 0x5CCB                     # where it runs (PROG, over the BASIC line)
 FIXED = 0x5E00
 IM2_AREA = 0x3DFD                       # bank offset of the IM2 stub (0xFDFD)
 RUN_SRC = 0x4000 + 29                   # "RUN" label: row 0, columns 29-31
 RUN_DST = 0x4800 + (11 - 8) * 32 + 2    # over "STOP": row 11, columns 2-4
 RUN_W = 3
+NOISE_FRAMES = 100                      # 2 s of noise before RUN appears
 
 
 def read_sna(path):
@@ -89,7 +93,7 @@ def header(typ, name, length, p1, p2):
 
 
 def basic_loader(screen):
-    """the BASIC line (at PROG = 0x5CCB, it must end well below LOADER_RUN)"""
+    """the BASIC line (at PROG = 0x5CCB; the loader later runs over it)"""
     q = b'"'
     line = b"\xfd\xb0" + q + b"24063" + q + b":"                      # CLEAR VAL "24063":
     if screen:
@@ -118,7 +122,7 @@ loader:
         ld hl,table
 next:   ld a,(hl)
         cp 0xFF
-        jr z,fixed
+        jp z,fixed
         inc hl
         or 0x10                 ; (48K ROM for LD-BYTES)
         ld bc,0x7FFD
@@ -142,7 +146,7 @@ next:   ld a,(hl)
         ld a,0xFF
         scf
         call 0x0556
-        jr nc,fail
+        jp nc,fail
 im2:    ld hl,0xFE00            ; IM2 vector table + JP isr
         ld de,0xFE01
         ld bc,256
@@ -167,9 +171,44 @@ fixed:  ld a,0x10|{sbank}
         ld a,0xFF
         scf
         call 0x0556
-        jr nc,fail
+        jp nc,fail
         IF {screen}
+        ld de,0x08 * 256 + 15   ; AY: noise on channel A, full volume
+        call ay
+        ld de,0x07 * 256 + 0xF7
+        call ay
+        ld b,{nframes}          ; noise in the pixels of the STOP cells
+noise:  ei                      ; (the ROM interrupt counts the frames)
+        halt
+        push bc
+        ld a,r                  ; a new noise period every frame
+        and 0x1F
+        ld e,a
+        ld d,6
+        call ay
+        ld de,{rdst}
+        ld c,8
+nline:  push de
+        ld b,{rw}
+ncell:  res 7,h                 ; random bytes: ROM contents xor R
+        res 6,h
+        ld a,r
+        xor (hl)
+        inc hl
+        ld (de),a
+        inc e
+        djnz ncell
+        pop de
+        inc d
+        dec c
+        jr nz,nline
+        pop bc
+        djnz noise
         di
+        ld de,0x08 * 256 + 0    ; AY silent
+        call ay
+        ld de,0x07 * 256 + 0xFF
+        call ay
         ld hl,{rsrc}            ; "RUN" over "STOP", pixels only
         ld de,{rdst}
         ld a,8
@@ -193,6 +232,12 @@ press:  xor a                   ; ... then for a key press
         cpl
         and 0x1F
         jr z,press
+        jp {start}
+ay:     ld bc,0xFFFD            ; AY register D = E
+        out (c),d
+        ld b,0xBF
+        out (c),e
+        ret
         ENDIF
         jp {start}
 fail:   ld a,2
@@ -204,7 +249,7 @@ table:
 end:
         ENT
 """.format(org=LOADER_ORG, run=LOADER_RUN, screen=1 if screen else 0,
-           rsrc=RUN_SRC, rdst=RUN_DST, rw=RUN_W, fixed=FIXED, isr=isr, sbank=start_bank, flen=fixed_len,
+           rsrc=RUN_SRC, rdst=RUN_DST, rw=RUN_W, nframes=NOISE_FRAMES, fixed=FIXED, isr=isr, sbank=start_bank, flen=fixed_len,
            start=start, table="\n".join("        db %d\n        dw %d" % t for t in table),
            out="{out}")
     with tempfile.TemporaryDirectory() as tmp:
@@ -239,8 +284,6 @@ def main():
             data.append(banks[b][:n])
     loader = mc_loader(table, flen, start, isr, paged, screen is not None)
     prog = basic_loader(screen)
-    if 0x5CCB + len(prog) + 0x20 > LOADER_RUN:               # PROG, VARS, E_LINE...
-        sys.exit("the BASIC line reaches the loader")
     tap = header(0, "ZX-PLC", len(prog), 10, len(prog)) + block(0xFF, prog)
     if screen:
         tap += header(3, "screen", 6912, 0x4000, 32768) + block(0xFF, screen)
