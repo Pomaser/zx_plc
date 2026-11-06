@@ -19,8 +19,9 @@ on tape. See README.md for the user-facing description of every editor and key.
   - It prints `TESTS OK`. Failing cases are printed on the emulated screen; take a screenshot to see them.
   - Tests live in `src/tests.asm` and are split by `IF TPART==1/2` because of space in the EDIT bank.
 - `make run`: runs the build in Fuse.
-- `make tap`: `zxplc.tap` (tools/mktap.py: BASIC + machine code loader at 0x5000 that loads every used
-  bank and the fixed part from the snapshot, rebuilds the IM2 stubs, then jumps to START).
+- `make tap`: `zxplc.tap` (tools/mktap.py: BASIC, the loading screen `img/zxplc_load.scr` (its source
+  `img/zxplc_load.json` is for the SEIE editor), then a machine code loader that copies itself to 0x5D40,
+  loads every used bank and the fixed part from the snapshot, rebuilds the IM2 stubs, then jumps to START).
 - `make docs`: regenerates the screenshots of `docs/MANUAL.md` (`tools/docshots.py`: one zxrun key script
   per image, `--noborder`). Update the manual and the scripts when the UI changes.
 - `python3 tools/fixjr.py main.asm`: builds and converts every out-of-range `jr` to `jp` in the source,

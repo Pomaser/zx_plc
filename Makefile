@@ -31,8 +31,8 @@ run: zxplc.sna
 	fuse zxplc.sna &
 
 # tape image for a real ZX Spectrum 128K (BASIC + machine code loader)
-zxplc.tap: zxplc.sna
-	python3 tools/mktap.py zxplc.sna zxplc.sym $@
+zxplc.tap: zxplc.sna tools/mktap.py img/zxplc_load.scr
+	python3 tools/mktap.py zxplc.sna zxplc.sym $@ img/zxplc_load.scr
 
 tap: zxplc.tap
 

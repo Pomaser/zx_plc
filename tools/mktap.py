@@ -1,12 +1,19 @@
 #!/usr/bin/env python3
 """zxplc.sna -> zxplc.tap for a real ZX Spectrum 128K (or any emulator).
 
-    python3 tools/mktap.py zxplc.sna zxplc.sym zxplc.tap
+    python3 tools/mktap.py zxplc.sna zxplc.sym zxplc.tap [screen.scr]
 
 The tape holds:
-  1. a BASIC loader:  10 CLEAR VAL "24063": LOAD ""CODE : RANDOMIZE USR VAL "20480"
-  2. a machine code loader (CODE at 20480, in the screen memory)
-  3. headerless data blocks, loaded by the ROM routine LD-BYTES: one for every
+  1. a BASIC loader:  10 CLEAR VAL "24063": LOAD ""SCREEN$ : POKE VAL "23739",VAL "111":
+                         LOAD ""CODE : RANDOMIZE USR VAL "24064"
+     (without a loading screen the SCREEN$ and POKE parts are left out; the POKE
+     stops the ROM from printing "Bytes: loader" over the picture)
+  2. the loading screen (SCREEN$, 6912 bytes), if given
+  3. a machine code loader (CODE at 24064 = 0x5E00, above RAMTOP). It copies itself
+     to 0x5D40, below its stack and above the BASIC line, out of the way of the screen
+     and of the data it loads, and runs there. (Not the printer buffer: LD-BYTES ends
+     with EI and the 128K ROM 1 interrupt uses 0x5B88+ for the keypad.)
+  4. headerless data blocks, loaded by the ROM routine LD-BYTES: one for every
      paged bank that holds code or data (the banks are cleared first and get
      the IM2 vector table + "JP isr" at 0xFDFD), then the fixed part from
      0x5E00 (the rest up to 0xBFFF is cleared).
@@ -19,7 +26,8 @@ import subprocess
 import sys
 import tempfile
 
-LOADER_ORG = 0x5000
+LOADER_ORG = 0x5E00                     # where LOAD ""CODE puts the loader
+LOADER_RUN = 0x5D40                     # where it runs (top of the BASIC area)
 FIXED = 0x5E00
 IM2_AREA = 0x3DFD                       # bank offset of the IM2 stub (0xFDFD)
 
@@ -74,10 +82,15 @@ def header(typ, name, length, p1, p2):
     return block(0, h)
 
 
-def basic_loader():
+def basic_loader(screen):
+    """the BASIC line (at PROG = 0x5CCB, it must end well below LOADER_RUN)"""
     q = b'"'
-    line = (b"\xfd\xb0" + q + b"24063" + q + b":\xef" + q + q + b"\xaf:\xf9\xc0\xb0"
-            + q + str(LOADER_ORG).encode() + q + b"\r")
+    line = b"\xfd\xb0" + q + b"24063" + q + b":"                      # CLEAR VAL "24063":
+    if screen:
+        line += (b"\xef" + q + q + b"\xaa:"                            # LOAD ""SCREEN$ :
+                 + b"\xf4\xb0" + q + b"23739" + q + b",\xb0" + q + b"111" + q + b":")
+    line += (b"\xef" + q + q + b"\xaf:\xf9\xc0\xb0"                    # LOAD ""CODE : RANDOMIZE USR
+             + q + str(LOADER_ORG).encode() + q + b"\r")
     return (10).to_bytes(2, "big") + len(line).to_bytes(2, "little") + line
 
 
@@ -86,7 +99,15 @@ def mc_loader(table, fixed_len, start, isr, start_bank):
         DEVICE NONE
         ORG {org}
         OUTPUT "{out}"
-loader: di
+        di                      ; copy the rest to {run} and run it there
+        ld hl,body
+        ld de,{run}
+        ld bc,end-loader
+        ldir
+        jp loader
+body:
+        DISP {run}
+loader:
         ld sp,{fixed}-2         ; stack below the program
         ld hl,table
 next:   ld a,(hl)
@@ -148,7 +169,9 @@ fail:   ld a,2
 table:
 {table}
         db 0xFF
-""".format(org=LOADER_ORG, fixed=FIXED, isr=isr, sbank=start_bank, flen=fixed_len,
+end:
+        ENT
+""".format(org=LOADER_ORG, run=LOADER_RUN, fixed=FIXED, isr=isr, sbank=start_bank, flen=fixed_len,
            start=start, table="\n".join("        db %d\n        dw %d" % t for t in table),
            out="{out}")
     with tempfile.TemporaryDirectory() as tmp:
@@ -158,11 +181,17 @@ table:
         r = subprocess.run(["sjasmplus", "--nologo", asm], capture_output=True, text=True)
         if r.returncode:
             sys.exit(r.stdout + r.stderr)
-        return open(out, "rb").read()
+        code = open(out, "rb").read()
+    if LOADER_RUN + len(code) - 15 > FIXED - 0x20:         # 15: the copy stub
+        sys.exit("loader too long for the area below its stack")
+    return code
 
 
 def main():
     sna, sym, out = sys.argv[1:4]
+    screen = open(sys.argv[4], "rb").read() if len(sys.argv) > 4 else None
+    if screen is not None and len(screen) != 6912:
+        sys.exit("the loading screen must have 6912 bytes")
     banks, paged = read_sna(sna)
     sy = symbols(sym)
     start, isr = sy["START"], sy["isr"]
@@ -176,8 +205,10 @@ def main():
         if n:
             data.append(banks[b][:n])
     loader = mc_loader(table, flen, start, isr, paged)
-    prog = basic_loader()
+    prog = basic_loader(screen)
     tap = header(0, "ZX-PLC", len(prog), 10, len(prog)) + block(0xFF, prog)
+    if screen:
+        tap += header(3, "screen", 6912, 0x4000, 32768) + block(0xFF, screen)
     tap += header(3, "loader", len(loader), LOADER_ORG, 32768) + block(0xFF, loader)
     for d in data:
         tap += block(0xFF, d)
