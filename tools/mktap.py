@@ -4,21 +4,21 @@
     python3 tools/mktap.py zxplc.sna zxplc.sym zxplc.tap [screen.scr]
 
 The tape holds:
-  1. a BASIC loader:  10 CLEAR VAL "24063": LOAD ""SCREEN$ : POKE VAL "23739",VAL "111":
-                         LOAD ""CODE : RANDOMIZE USR VAL "24064"
-     (without a loading screen the SCREEN$ and POKE parts are left out; the POKE
-     stops the ROM from printing "Bytes: loader" over the picture)
-  2. the loading screen (SCREEN$, 6912 bytes), if given
-  3. a machine code loader (CODE at 24064 = 0x5E00, above RAMTOP). With interrupts
+  1. a BASIC loader:  10 CLEAR VAL "24063": LOAD ""CODE : RANDOMIZE USR VAL "24064"
+  2. a machine code loader (CODE at 24064 = 0x5E00, above RAMTOP). With interrupts
      off it copies itself over the BASIC line (PROG = 0x5CCB, BASIC is not needed
      any more), below its stack at 0x5DFE, out of the way of the screen and of the
      data it loads, and runs there. The system variables below stay intact for
      LD-BYTES and the ROM interrupt. (Not the printer buffer: LD-BYTES ends with EI
      and the 128K ROM 1 interrupt uses 0x5B88+ for the keypad.)
-  4. headerless data blocks, loaded by the ROM routine LD-BYTES: one for every
-     paged bank that holds code or data (the banks are cleared first and get
-     the IM2 vector table + "JP isr" at 0xFDFD), then the fixed part from
-     0x5E00 (the rest up to 0xBFFF is cleared).
+  3. headerless data blocks, all packed with ZX0 (tools/zx0): the loading screen
+     (if given), one block for every paged bank that holds code or data (the
+     banks are cleared first and get the IM2 vector table + "JP isr" at 0xFDFD),
+     then the fixed part from 0x5E00 (the rest up to 0xBFFF is cleared).
+     LD-BYTES loads each block at the top of the fixed memory (0xC000 - packed
+     length), then dzx0_standard unpacks it to its place; the fixed block's
+     buffer is cleared afterwards. Unpacking runs into the next block's pilot
+     tone, which is long enough for that.
 With a loading screen the fixed block also carries the effect code right after
 the program (that memory is zero in the snapshot); the loader calls it, then
 clears it again. The effect fills the pixels of "STOP" in the picture (row 11,
@@ -42,6 +42,8 @@ LOADER_ORG = 0x5E00                     # where LOAD ""CODE puts the loader
 LOADER_RUN = 0x5CCB                     # where it runs (PROG, over the BASIC line)
 FIXED = 0x5E00
 IM2_AREA = 0x3DFD                       # bank offset of the IM2 stub (0xFDFD)
+BUF_END = 0xC000                        # packed blocks are loaded just below this
+HERE = os.path.dirname(os.path.abspath(__file__))
 RUN_SRC = 0x4000 + 29                   # "RUN" label: row 0, columns 29-31
 RUN_DST = 0x4800 + (11 - 8) * 32 + 2    # over "STOP": row 11, columns 2-4
 RUN_W = 3
@@ -101,22 +103,31 @@ def header(typ, name, length, p1, p2):
     return block(0, h)
 
 
-def basic_loader(screen):
+def basic_loader():
     """the BASIC line (at PROG = 0x5CCB; the loader later runs over it)"""
     q = b'"'
     line = b"\xfd\xb0" + q + b"24063" + q + b":"                      # CLEAR VAL "24063":
-    if screen:
-        line += (b"\xef" + q + q + b"\xaa:"                            # LOAD ""SCREEN$ :
-                 + b"\xf4\xb0" + q + b"23739" + q + b",\xb0" + q + b"111" + q + b":")
     line += (b"\xef" + q + q + b"\xaf:\xf9\xc0\xb0"                    # LOAD ""CODE : RANDOMIZE USR
              + q + str(LOADER_ORG).encode() + q + b"\r")
     return (10).to_bytes(2, "big") + len(line).to_bytes(2, "little") + line
 
 
+def zx0(data):
+    """data packed by tools/zx0/zx0 (ZX0 forward format, for dzx0_standard)"""
+    with tempfile.TemporaryDirectory() as tmp:
+        src, dst = os.path.join(tmp, "in.bin"), os.path.join(tmp, "out.zx0")
+        open(src, "wb").write(data)
+        r = subprocess.run([os.path.join(HERE, "zx0", "zx0"), "-f", src, dst],
+                           capture_output=True, text=True)
+        if r.returncode:
+            sys.exit("zx0: " + r.stdout + r.stderr)
+        return open(dst, "rb").read()
+
+
 def font6():
     """the glyphs of tools/font6.txt (the app font): char -> rows of '#'/'.'"""
     glyphs, cur = {}, None
-    for line in open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "font6.txt")):
+    for line in open(os.path.join(HERE, "font6.txt")):
         line = line.rstrip("\n")
         if not line or line.startswith("#") and not set(line) <= set("#."):
             continue
@@ -154,7 +165,9 @@ def message_data():
     return "\n".join(out)
 
 
-def mc_loader(table, fixed_len, start, isr, start_bank, screen):
+def mc_loader(table, fixed_len, fixed_plen, screen_plen, start, isr, start_bank, screen):
+    """the loader and the effect code; the lengths are the packed ones (the
+    fixed block's packed length is only known after a first pass with 0)"""
     src = """
         DEVICE NONE
         ORG {org}
@@ -169,6 +182,11 @@ body:
         DISP {run}
 loader:
         ld sp,{fixed}-2         ; stack below the program
+        IF {screen}
+        ld hl,0x4000            ; the loading screen
+        ld de,{splen}
+        call ldpack
+        ENDIF
         ld hl,table
 next:   ld a,(hl)
         cp 0xFF
@@ -191,12 +209,8 @@ next:   ld a,(hl)
         pop de
         ld a,d
         or e
-        jr z,im2
-        ld ix,0xC000
-        ld a,0xFF
-        scf
-        call 0x0556
-        jp nc,fail
+        ld hl,0xC000
+        call nz,ldpack
 im2:    ld hl,0xFE00            ; IM2 vector table + JP isr
         ld de,0xFE01
         ld bc,256
@@ -216,12 +230,14 @@ fixed:  ld a,0x10|{sbank}
         ld bc,0xBFFF-{fixed}
         ld (hl),0
         ldir
-        ld ix,{fixed}
-        ld de,effect_end-{fixed}
-        ld a,0xFF
-        scf
-        call 0x0556
-        jp nc,fail
+        ld hl,{fixed}
+        ld de,{fplen}
+        call ldpack
+        ld hl,{bufend}-{fplen}  ; its buffer cleared again
+        ld de,{bufend}-{fplen}+1
+        ld bc,{fplen}-1
+        ld (hl),0
+        ldir
         IF {screen}
         call effect             ; picture effect, waits for a key
         di
@@ -235,6 +251,21 @@ fixed:  ld a,0x10|{sbank}
 fail:   ld a,2
         out (0xFE),a
         jr fail
+; LD-BYTES loads DE packed bytes just below {bufend}, then they are unpacked to HL
+ldpack: push hl
+        ld hl,{bufend}
+        or a
+        sbc hl,de
+        push hl
+        push hl
+        pop ix
+        ld a,0xFF
+        scf
+        call 0x0556
+        jp nc,fail
+        pop hl
+        pop de
+        INCLUDE "{dzx0}"        ; (ends with ret)
 table:
 {table}
         db 0xFF
@@ -387,7 +418,8 @@ ay:     ld bc,0xFFFD            ; AY register D = E
         ENDIF
 effect_end:
 """.format(org=LOADER_ORG, run=LOADER_RUN, screen=1 if screen else 0,
-           rsrc=RUN_SRC, rdst=RUN_DST, rw=RUN_W, nframes=NOISE_FRAMES, led=LED_ATTR, message=message_data(), fixed=FIXED, isr=isr, sbank=start_bank, flen=fixed_len,
+           rsrc=RUN_SRC, rdst=RUN_DST, rw=RUN_W, nframes=NOISE_FRAMES, led=LED_ATTR, message=message_data(), fplen=fixed_plen, splen=screen_plen, bufend=BUF_END,
+           dzx0=os.path.join(HERE, "zx0", "dzx0_standard.asm"), fixed=FIXED, isr=isr, sbank=start_bank, flen=fixed_len,
            start=start, table="\n".join("        db %d\n        dw %d" % t for t in table),
            out="{out}", eout="{eout}")
     with tempfile.TemporaryDirectory() as tmp:
@@ -419,25 +451,32 @@ def main():
     flen = used(fixed_mem, 0x8000) - (FIXED - 0x4000)
     fixed_data = fixed_mem[FIXED - 0x4000:FIXED - 0x4000 + flen]
     table, data = [], []
+    if screen:
+        data.append(zx0(screen))
     for b in (0, 1, 3, 4, 6, 7):
         n = used(banks[b], IM2_AREA)
-        table.append((b, n))
         if n:
-            data.append(banks[b][:n])
-    loader, effect = mc_loader(table, flen, start, isr, paged, screen is not None)
+            data.append(zx0(banks[b][:n]))
+        table.append((b, len(data[-1]) if n else 0))
+    splen = len(data[0]) if screen else 0
+    args = (start, isr, paged, screen is not None)
+    _, effect = mc_loader(table, flen, 0, splen, *args)     # pass 1: the effect code
     fixed_data += effect
-    prog = basic_loader(screen)
+    fixed_packed = zx0(fixed_data)
+    loader, effect2 = mc_loader(table, flen, len(fixed_packed), splen, *args)
+    assert effect2 == effect
+    if FIXED + len(fixed_data) > BUF_END - len(fixed_packed):
+        sys.exit("the unpacked fixed block would overrun its packed data")
+    prog = basic_loader()
     tap = header(0, "ZX-PLC", len(prog), 10, len(prog)) + block(0xFF, prog)
-    if screen:
-        tap += header(3, "screen", 6912, 0x4000, 32768) + block(0xFF, screen)
     tap += header(3, "loader", len(loader), LOADER_ORG, 32768) + block(0xFF, loader)
     for d in data:
         tap += block(0xFF, d)
-    tap += block(0xFF, fixed_data)
+    tap += block(0xFF, fixed_packed)
     open(out, "wb").write(tap)
-    total = sum(len(d) for d in data) + flen
-    print("%s: %d bytes (banks %s, fixed %d bytes)" % (out, len(tap),
-          ", ".join("%d:%d" % t for t in table), flen))
+    print("%s: %d bytes, loader %d; packed: %sbanks %s, fixed %d -> %d" % (
+        out, len(tap), len(loader), "screen 6912 -> %d, " % splen if screen else "",
+        ", ".join("%d:%d" % t for t in table if t[1]), len(fixed_data), len(fixed_packed)))
 
 
 if __name__ == "__main__":

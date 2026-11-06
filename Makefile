@@ -30,9 +30,17 @@ test: zxplc_test1.sna zxplc_test2.sna
 run: zxplc.sna
 	fuse zxplc.sna &
 
-# tape image for a real ZX Spectrum 128K (BASIC + machine code loader)
-zxplc.tap: zxplc.sna tools/mktap.py img/zxplc_load.scr
+# tape image for a real ZX Spectrum 128K (BASIC + machine code loader,
+# blocks packed with ZX0)
+ZX0 := tools/zx0/zx0
+zxplc.tap: zxplc.sna tools/mktap.py img/zxplc_load.scr $(ZX0) tools/zx0/dzx0_standard.asm
 	python3 tools/mktap.py zxplc.sna zxplc.sym $@ img/zxplc_load.scr
+
+$(ZX0): tools/zx0/zx0.c tools/zx0/compress.c tools/zx0/optimize.c tools/zx0/memory.c tools/zx0/zx0.h
+	cc -O2 -w -o $@ tools/zx0/zx0.c tools/zx0/compress.c tools/zx0/optimize.c tools/zx0/memory.c
+
+tools/zx0/dzx0: tools/zx0/dzx0.c
+	cc -O2 -w -o $@ $<
 
 tap: zxplc.tap
 
@@ -44,6 +52,6 @@ run-test: zxplc_test1.sna
 	fuse zxplc_test1.sna &
 
 clean:
-	rm -f *.sna *.sym *.lst *.tap .test.out
+	rm -f *.sna *.sym *.lst *.tap .test.out $(ZX0) tools/zx0/dzx0
 
 .PHONY: all test docs tap run run-test clean

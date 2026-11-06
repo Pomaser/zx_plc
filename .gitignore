@@ -6,3 +6,5 @@ __pycache__/
 .scratch/
 .claude/worktrees/
 *.tap
+tools/zx0/zx0
+tools/zx0/dzx0
