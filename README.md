@@ -1,5 +1,7 @@
 # ZX-PLC
 
+<img src="img/zxplc_load.png" width="512" alt="ZX-PLC loading screen">
+
 A PLC program editor and simulator following IEC 61131-3 (IL, LD, FBD) for the **ZX Spectrum 128K** (also +2 / +2A / +3),
 written in Z80 assembler. Programs are not downloaded to any real PLC; they run in a built-in simulation.
 Projects can be saved to tape.
