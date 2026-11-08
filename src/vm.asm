@@ -44,8 +44,9 @@ st_last   EQU st_buf+60         ; 24  status bar: last right text
 st_llast  EQU st_last+24        ; 60  status bar: last left text
 RT_FRC    EQU st_llast+60       ; WT_MAX x 5 forced values of the watch list
 WD_EXT    EQU RT_FRC+WT_MAX*5   ; 9  compare / arithmetic: operands from wexpr.asm
+WD_LINK   EQU WD_EXT+9          ; 1  1: wx_edit does not ask A (FBD chaining)
 WD_TEXT   EQU il_out            ;     (its expression text)
-RT_END    EQU WD_EXT+9
+RT_END    EQU WD_EXT+10
         ASSERT RT_END <= PROJ
 
 VM_MB     EQU 1

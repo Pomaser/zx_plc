@@ -105,7 +105,7 @@ on tape. See README.md for the user-facing description of every editor and key.
   - An FBD block with h inputs covers h rows. Timers have 2 rows (IN, PT).
   - Word compare / compute (`LT_CMP` / `LT_MATH` = `FT_CMP` / `FT_MATH`, defs.asm): 10 / 12 B records with
     the operands `[A area lo hi][op][B area lo hi][D area idx]`. `ld_get` copies them to `ld_gext`,
-    `ld_put` writes them back. The expression input / text is `src/wexpr.asm` (DEMO bank). In LD a compare
+    `ld_put` writes them back. The operator list, value prompts and expression text are `src/wexpr.asm` (DEMO bank). In LD a compare
     is a contact and compute a coil; in FBD a compare is a 2-row block (A, B on the left of its rows)
     and compute a 2-row block (A, B; the result D drawn in the cell on its right, kept free); their value
     rows are handled like preset cells by `fb_prow`. A block right behind a compute result takes D as its

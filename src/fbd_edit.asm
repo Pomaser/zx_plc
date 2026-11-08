@@ -344,12 +344,12 @@ fb_editor:
         cp (hl)
         jr nz,.pw
         inc b                   ; the same kind: edit its expression
-.pw:    ld a,(fb_newt)
-        BCALL wx_edit
-        jp c,.redraw
-        ld a,(ld_pos)           ; right of a compute block's output: A = its D
+.pw:    push bc                 ; right of a compute block's output: A is
+        xor a                   ; its D (not asked)
+        ld (fb_lnk),a
+        ld a,(ld_pos)
         cp 2
-        jr c,.pl0
+        jr c,.pw1
         sub 2
         ld e,a
         ld a,(ld_row)
@@ -357,10 +357,25 @@ fb_editor:
         call ld_get
         and FT_MASK
         cp FT_MATH
-        jr nz,.pl0
+        jr nz,.pw1
         ld a,(ld_gext+7)
-        ld (WD_EXT),a
+        ld (fb_lnkd),a
         ld a,(ld_gext+8)
+        ld (fb_lnkd+1),a
+        ld a,1
+        ld (fb_lnk),a
+        ld (WD_LINK),a
+.pw1:   call fb_cur_get         ; (ld_gext: the old element again)
+        pop bc
+        ld a,(fb_newt)
+        BCALL wx_edit
+        jp c,.redraw
+        ld a,(fb_lnk)
+        or a
+        jr z,.pl0
+        ld a,(fb_lnkd)
+        ld (WD_EXT),a
+        ld a,(fb_lnkd+1)
         ld (WD_EXT+1),a
         xor a
         ld (WD_EXT+2),a
@@ -3715,7 +3730,9 @@ fd_cov:   ds LD_CPOS+1          ; rows of a block still to draw (per position)
 fd_rr:    db 0
 fd_i:     db 0
 fd_r:     db 0
-fd_k:     db 0              ; fd_cmpcell: rows of the block left
+fd_k:     db 0
+fb_lnk:   db 0              ; .place: A comes from a compute block (1)
+fb_lnkd:  dw 0              ;   its D              ; fd_cmpcell: rows of the block left
 fb_oldx:  ds 9              ; .place: operands of the old element (undo)
 fd_p:     db 0
 fd_x:     db 0

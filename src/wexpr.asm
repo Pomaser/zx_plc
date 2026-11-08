@@ -44,27 +44,77 @@ wx_opstr:
         djnz .s
         jr .l
 
-; ---- wx_edit: A = type, B = 1: start with the expression in ld_gext
-;      -> NC: WD_EXT = the new operands; C: cancelled
+; ---- wx_edit: A = type, B = 1: start from the element in ld_gext
+;      -> NC: WD_EXT = the operator and operands; C: cancelled.
+;      The operator is chosen from a list, then the values are asked one by
+;      one (A, B, and the result D of a compute element). WD_LINK = 1: A is
+;      given by the editor (FBD chaining) and not asked.
 wx_edit:
         ld (wx_t),a
         ld a,b
+        ld (wx_old),a
+        ld hl,ld_gext           ; the old values (or nothing)
+        ld de,WD_EXT
+        ld bc,9
         or a
-        jr z,.empty
-        ld a,(wx_t)
-        call wx_fmt
-        jr .ask
-.empty: xor a
-        ld (WD_TEXT),a
-.ask:   ld hl,txt_wx_cq
-        ld a,(wx_t)
+        jr z,.clr
+        ldir
+        jr .op
+.clr:   ld hl,WD_EXT            ; a new element: no values yet
+        ld de,WD_EXT+1
+        ld bc,8
+        ld (hl),0
+        ldir
+.op:    call wx_choose          ; the operator
+        jr c,.end
+        ld (WD_EXT+3),a
+        ld a,(WD_LINK)          ; A
+        or a
+        jr nz,.b
+        ld hl,txt_wx_qa
+        ld de,WD_EXT
+        call wx_ask
+        jr c,.end
+.b:     ld a,(WD_EXT+3)         ; B (not for MOVE)
+        cp OP_LD
+        jr z,.d
+        ld hl,txt_wx_qb
+        ld de,WD_EXT+4
+        call wx_ask
+        jr c,.end
+.d:     ld a,(wx_t)             ; the result D (compute)
         and LT_MASK
         cp LT_MATH
-        jr nz,.q
-        ld hl,txt_wx_mq
-.q:     call popup_open
+        jr nz,.ok
+        ld hl,txt_wx_qd
+        ld de,WD_EXT+7
+        call wx_ask
+        jr c,.end
+.ok:    or a
+.end:   push af
+        xor a
+        ld (WD_LINK),a
+        pop af
+        ret
+
+; ---- wx_ask: HL = prompt, DE = slot in WD_EXT -> NC: the slot holds the
+;      typed value (D slot: an MW only); C: cancelled
+wx_ask: ld (wx_q),hl
+        ld (wx_slot),de
+        ld hl,(wx_slot)         ; start text: the value in the slot
+        ld de,WD_TEXT
+        xor a
+        ld (de),a
+        ld a,(hl)
+        or a
+        jr z,.ask
+        BCALL il_fmt_short
+        xor a
+        ld (de),a
+.ask:   ld hl,(wx_q)
+        call popup_open
         ld a,(win_r)
-        add a,3
+        add a,2
         ld b,a
         ld a,(win_bx)
         add a,8
@@ -76,152 +126,150 @@ wx_edit:
         call win_close
         pop af
         ret c
-        call wx_parse
-        ret nc
-        call ui_error           ; HL = message
-        jr .ask
-
-; ---- wx_parse: WD_TEXT -> NC: WD_EXT; C: HL = error message
-;      (a copy in WX_PBUF is cut into pieces; WD_TEXT stays for a retry)
-wx_parse:
         ld hl,WD_TEXT
         ld de,WX_PBUF
-        ld bc,64
+        ld bc,24
         ldir
         ld hl,WX_PBUF
-        ld a,(wx_t)
-        and LT_MASK
-        cp LT_MATH
-        jr nz,.expr
-        ld b,0                  ; D := ...
-.fd:    ld a,(hl)
-        or a
-        jr z,.syn
-        cp ':'
-        jr nz,.fn
-        inc hl
-        ld a,(hl)
-        dec hl
-        cp '='
-        jr z,.fdd
-.fn:    inc hl
-        jr .fd
-.fdd:   ld (hl),0
-        push hl
-        ld hl,WX_PBUF
-        call op_parse
-        jr c,.bdp
+        ld de,(wx_slot)
+        ld a,e
+        cp (WD_EXT+7)&0xFF
+        jr z,.dst
+        call wx_operand
+        jr nc,.ret
+.bad:   call ui_error           ; HL = message
+        jr .ask
+.dst:   call op_parse           ; D: a word variable (MW)
+        jr c,.bd
         ld b,a
         ld a,(hl)
         or a
-        jr nz,.bdp
+        jr nz,.bd
         ld a,b
-        cp AR_MW                ; the target: a word variable
-        jr nz,.bdp
+        cp AR_MW
+        jr nz,.bd
         ld (WD_EXT+7),a
         ld a,c
         ld (WD_EXT+8),a
-        pop hl
-        inc hl
-        inc hl
-.expr:  ld (wx_a),hl            ; A op B: the operator after the first char
-        ld a,(hl)
-        or a
-        jr z,.syn
-        inc hl
-.fo:    ld a,(hl)
-        or a
-        jr z,.noop
-        call wx_isop
-        jr z,.op
-        inc hl
-        jr .fo
-.noop:  ld a,(wx_t)             ; no operator: MOVE (arithmetic only)
+.ret:   or a
+        ret
+.bd:    ld hl,txt_wx_bdst
+        jr .bad
+
+; ---- wx_choose: the operator list of wx_t (the current one selected when
+;      editing) -> NC: A = op; C: cancelled
+wx_choose:
+        ld hl,wx_cl_cmp
+        ld a,(wx_t)
         and LT_MASK
         cp LT_MATH
-        jr nz,.syn
-        ld a,OP_LD
-        ld (WD_EXT+3),a
-        ld hl,(wx_a)
-        ld de,WD_EXT
-        jp wx_operand
-.op:    ld (WD_EXT+3),a         ; A = op, B = its length
-        ld (hl),0
-        ld e,b
-        ld d,0
-        add hl,de
-        ld (wx_b),hl
-        ld hl,(wx_a)
-        ld de,WD_EXT
-        call wx_operand
-        ret c
-        ld hl,(wx_b)
-        ld de,WD_EXT+4
-        jp wx_operand
-.bdp:   pop hl
-        ld hl,txt_wx_bad
+        jr nz,.l
+        ld hl,wx_cl_math
+.l:     ld (wx_list),hl
+        ld de,popup_buf         ; popup text: the labels, one per line
+        ld c,0                  ; C = items
+.t:     ld a,(hl)
+        cp 0xFF
+        jr z,.te
+        inc hl
+        inc c
+        call put_str
+        inc hl
+        xor a
+        ld (de),a
+        inc de
+        jr .t
+.te:    xor a
+        ld (de),a
+        ld a,c
+        ld (wx_n),a
+        xor a                   ; selection: the current operator
+        ld (wx_sel),a
+        ld a,(wx_old)
+        or a
+        jr z,.open
+        ld hl,(wx_list)
+        ld b,0
+.f:     ld a,(hl)
+        cp 0xFF
+        jr z,.open
+        ld c,a
+        ld a,(WD_EXT+3)
+        cp c
+        jr z,.fs
+        inc b
+        inc hl
+.fz:    ld a,(hl)
+        inc hl
+        or a
+        jr nz,.fz
+        jr .f
+.fs:    ld a,b
+        ld (wx_sel),a
+.open:  ld hl,popup_buf
+        call popup_open
+.bar:   call .inv
+.k:     call kb_wait
+        cp K_UP
+        jr z,.up
+        cp K_DOWN
+        jr z,.dn
+        cp K_ENTER
+        jr z,.ok
+        cp K_BREAK
+        jr z,.can
+        cp K_EDIT
+        jr z,.can
+        jr .k
+.up:    ld a,(wx_sel)
+        or a
+        jr z,.k
+        call .inv
+        ld hl,wx_sel
+        dec (hl)
+        jr .bar
+.dn:    ld a,(wx_n)
+        dec a
+        ld hl,wx_sel
+        cp (hl)
+        jr z,.k
+        call .inv
+        ld hl,wx_sel
+        inc (hl)
+        jr .bar
+.can:   call win_close
         scf
         ret
-.syn:   ld hl,txt_wx_csyn
-        ld a,(wx_t)
-        and LT_MASK
-        cp LT_MATH
-        jr nz,.se
-        ld hl,txt_wx_msyn
-.se:    scf
+.ok:    call win_close
+        ld hl,(wx_list)         ; the operator of item wx_sel
+        ld a,(wx_sel)
+        ld b,a
+        inc b
+.o:     dec b
+        jr z,.oe
+        inc hl
+.oz:    ld a,(hl)
+        inc hl
+        or a
+        jr nz,.oz
+        jr .o
+.oe:    ld a,(hl)
+        or a
         ret
-
-; ---- wx_isop: HL = text -> Z: an operator of wx_t, A = op, B = length
-wx_isop:
-        ld b,1
-        ld a,(wx_t)
-        and LT_MASK
-        cp LT_MATH
-        ld a,(hl)
-        jr nz,.cmp
-        ld c,OP_ADD
-        cp '+'
-        jr z,.c
-        inc c
-        cp '-'
-        jr z,.c
-        inc c
-        cp '*'
-        jr z,.c
-        inc c
-        cp '/'
-        jr z,.c
-        ret
-.cmp:   ld c,OP_EQ
-        cp '='
-        jr z,.c
-        cp '>'
-        jr z,.gt
-        cp '<'
-        ret nz
-        inc hl                  ; < <= <>
-        ld a,(hl)
-        dec hl
-        ld c,OP_LE
-        cp '='
-        jr z,.c2
-        ld c,OP_NE
-        cp '>'
-        jr z,.c2
-        ld c,OP_LT
-        jr .c
-.gt:    inc hl                  ; > >=
-        ld a,(hl)
-        dec hl
-        ld c,OP_GE
-        cp '='
-        jr z,.c2
-        ld c,OP_GT
-.c:     ld a,c
-        cp a                    ; Z
-        ret
-.c2:    inc b
-        jr .c
+.inv:   ld a,(win_r)            ; the selection bar (XOR)
+        inc a
+        ld hl,wx_sel
+        add a,(hl)
+        ld b,a
+        ld a,(win_bx)
+        add a,4
+        ld c,a
+        ld a,(win_bw)
+        sub 8
+        ld d,a
+        ld hl,0x0008
+        ld e,PX_XOR
+        jp px_span
 
 ; ---- wx_operand: HL = text, DE = slot -> [area][lo][hi]; C: HL = error
 wx_operand:
@@ -258,6 +306,29 @@ wx_operand:
 
 WX_PBUF EQU rd_c                ; (64 bytes, free in the editors)
 wx_t:   db 0
+wx_old: db 0
+wx_q:   dw 0
+wx_slot: dw 0
+wx_list: dw 0
+wx_n:   db 0
+wx_sel: db 0
+
+; operator lists: op, label (with a tab to the formula), 0; 0xFF ends
+wx_cl_cmp:
+        db OP_GT,"GT",PT_TAB,"A > B",0
+        db OP_GE,"GE",PT_TAB,"A >= B",0
+        db OP_EQ,"EQ",PT_TAB,"A = B",0
+        db OP_NE,"NE",PT_TAB,"A <> B",0
+        db OP_LE,"LE",PT_TAB,"A <= B",0
+        db OP_LT,"LT",PT_TAB,"A < B",0
+        db 0xFF
+wx_cl_math:
+        db OP_ADD,"ADD",PT_TAB,"D := A + B",0
+        db OP_SUB,"SUB",PT_TAB,"D := A - B",0
+        db OP_MUL,"MUL",PT_TAB,"D := A * B",0
+        db OP_DIV,"DIV",PT_TAB,"D := A / B",0
+        db OP_LD,"MOVE",PT_TAB,"D := A",0
+        db 0xFF
 wx_a:   dw 0
 wx_b:   dw 0
 
@@ -265,10 +336,8 @@ wx_ops: db OP_ADD,"+",0, OP_SUB,"-",0, OP_MUL,"*",0, OP_DIV,"/",0
         db OP_GT,">",0, OP_GE,">=",0, OP_EQ,"=",0, OP_NE,"<>",0
         db OP_LE,"<=",0, OP_LT,"<",0
 txt_wx_asg:  db ":=",0
-txt_wx_cq:   db "Compare A with B (e.g. MW1>=5):",0
-             db "operators  > >= = <> <= <",0," ",0," ",0,0
-txt_wx_mq:   db "Compute D:=A op B (e.g. MW2:=MW1+5):",0
-             db "operators  + - * /   D:=A copies",0," ",0," ",0,0
-txt_wx_csyn: db "Write it as A>B (> >= = <> <= <)",0
-txt_wx_msyn: db "Write it as D:=A+B (+ - * /)",0
+txt_wx_qa:   db "Value A (MW / number / T#.. / ET / CV):",0," ",0," ",0,0
+txt_wx_qb:   db "Value B (MW / number / T#.. / ET / CV):",0," ",0," ",0,0
+txt_wx_qd:   db "Result D (MW):",0," ",0," ",0,0
+txt_wx_bdst: db "MW expected (e.g. MW3)",0
 txt_wx_bad:  db "Word operand expected (MW / value / ET)",0

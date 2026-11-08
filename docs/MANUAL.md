@@ -266,13 +266,13 @@ comment of the element (for boxes: the instance and its PT / PV).
 | `M` | | compute coil `MW2:=MW1+5` |
 
 * **Compare and compute** work with words (`MW`, numbers, `T#` times, `ET` / `CV` / `PT` / `PV` of FB
-  instances). The expression is typed on one line:
-  * compare: `A op B` with `>` `>=` `=` `<>` `<=` `<`, e.g. `CTU0.CV>=3`. The contact passes the power
-    when it is true; in the simulation it is green while true.
-  * compute: `D:=A op B` with `+` `-` `*` `/`, or `D:=A` (copy), e.g. `MW2:=MW2+1`. D must be an `MW`.
-    It runs in every scan in which the coil gets power.
-  * The expression is the label, the operator is shown in the symbol (`-[>]-`, `-[+]-`), the status bar
-    shows it in full. ENTER and the same key edit it.
+  instances). After `G` / `M` a list offers the operator, then the values are asked one by one:
+  * compare: GT, GE, EQ, NE, LE, LT (`A > B` ... `A < B`), then A and B. The contact passes the power when
+    it is true; in the simulation it is green while true.
+  * compute: ADD, SUB, MUL, DIV (`D := A + B` ...) or MOVE (`D := A`), then A, B and the result D (an
+    `MW`). It runs in every scan in which the coil gets power.
+  * The expression (`CTU0.CV>=3`, `MW2:=MW2+1`) is the label, the operator is shown in the symbol (`-[>]-`,
+    `-[+]-`), the status bar shows it in full. ENTER and the same key edit it, starting from its values.
 * **Placing elements:**
   * After a new element the cursor moves on.
   * Empty positions on the left are filled with wires.
@@ -325,15 +325,14 @@ ENTER opens the picker. On a block input, outputs are not offered:
   ![Editing the PV of a counter](img/fbd_pv.png)
 
 * **Compare:** the block compares two words, written on the left of its rows (`MW3--` and `50--`), and its
-  output is TRUE when the comparison holds (green in the simulation). It is typed as one expression like
-  in LD (`MW3<50`), and the block is named after the operator (`LT`). ENTER on the block or on a value edits
-  it.
+  output is TRUE when the comparison holds (green in the simulation). As in LD, the operator is chosen
+  from a list (the block is named after it, `LT`) and then A and B are asked. ENTER on the block or on a
+  value edits it.
 * **Compute:** the block runs `D:=A op B` (`+` `-` `*` `/`, or `D:=A` for MOVE) in every scan. A and B
-  are written on the left of its rows, the result D on the right of it (`MW3--ADD--MW3`). It is typed as
-  one expression like in LD (`MW3:=MW3+1`); ENTER on the block or on a value edits it. The cell of D
-  stays free.
+  are written on the left of its rows, the result D on the right of it (`MW3--ADD--MW3`). The operator,
+  A, B and D are asked as in LD; ENTER on the block or on a value edits it. The cell of D stays free.
 * **Chaining:** a compare or compute block placed right behind the result of a compute block takes that
-  result as its A (`MW3--ADD--MW3--GE`), whatever A was typed.
+  result as its A (`MW3--ADD--MW3--GE`); A is then not asked.
 * **The cursor** stands only on block inputs, blocks and outputs. It skips the cells inside a block.
 * **Outputs and wires** need a signal from the left. Inputs placed left of a block input are wired to
   it automatically.
