@@ -22,6 +22,8 @@ fb_compile:
         ld (lc_pou),a
         ld a,(cp_slot)
         ld (cur_pou),a
+        xor a
+        ld (fc_ld),a
         call .go
         call c,lc_errpos
         push af
@@ -120,7 +122,14 @@ fb_compile:
 .out:   call lc_get
         ld b,a
         and FT_MASK
-        cp FT_OUT
+        cp FT_MATH              ; arithmetic in the output column
+        jr nz,.o0
+        ld a,OP_LD
+        call fc_emit_row
+        call nc,lc_wmath
+        ret c
+        jr .on
+.o0:    cp FT_OUT
         jr nz,.on
         ld a,OP_LD
         call fc_emit_row
@@ -240,6 +249,10 @@ fc_elem:
         jr z,.in
         cp FT_OUT
         jr z,.out
+        cp FT_CMP
+        jr z,.cmp
+        cp FT_MATH
+        jr z,.math
         ; empty: no signal
         call lc_is_dead
         ret nz
@@ -261,6 +274,19 @@ fc_elem:
         jr nc,.o1
         ld a,OP_ST|VM_N
 .o1:    jp lc_emit_op
+.cmp:   call lc_wexpr           ; compare input: the signal = A op B
+        ret c
+        call fc_mon
+        ret c
+        ld a,OP_ST
+        call lc_emit_s
+        ret c
+        xor a
+        jp lc_set_dead
+.math:  ld a,OP_LD              ; arithmetic output: enabled by the signal,
+        call fc_emit_row        ; which goes on unchanged
+        ret c
+        jp lc_wmath
 .in:    ld a,(fc_t)
         rlca
         ld a,OP_LD
@@ -496,9 +522,17 @@ fc_mon: ld a,(cp_slot)
 .no:    or a
         ret
 
-; fc_is_lg: A = type -> Z if AND / OR / XOR / NOT
+; fc_is_lg: A = type -> Z if it has a monitor bit: FBD AND / OR / XOR / NOT
+;   and compares, LD only compares (fc_ld = 1); keeps BC
 fc_is_lg:
         and FT_MASK
+        cp FT_CMP
+        ret z
+        push hl
+        ld hl,fc_ld
+        bit 0,(hl)
+        pop hl
+        ret nz
         cp FT_AND
         ret z
         cp FT_OR
@@ -535,3 +569,4 @@ fc_i0:   db 0
 fc_k:    db 0
 fc_nin:  db 0
 fc_bend: dw 0
+fc_ld:    db 0              ; 1: compiling LD (fc_is_lg: compares only)

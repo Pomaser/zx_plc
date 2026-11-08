@@ -324,7 +324,14 @@ ld_iscnt:
 
 ; ---- ld_tlen: A = type -> A = record length (keeps BC, DE, HL)
 ld_tlen:
-        call ld_isbox
+        and LT_MASK
+        cp LT_CMP
+        jr c,.n
+        ld a,10                 ; compare
+        ret z
+        ld a,12                 ; arithmetic
+        ret
+.n:     call ld_isbox
         ld a,7
         ret z
         ld a,5
@@ -407,6 +414,22 @@ ld_get: push de
         ld c,(hl)
         inc hl
         push af
+        and LT_MASK             ; compare / arithmetic: the operands to ld_gext
+        cp LT_CMP
+        jr c,.nw
+        push de
+        push bc
+        dec hl
+        dec hl
+        ld de,ld_gext
+        ld bc,9
+        ldir
+        pop bc
+        pop de
+        pop af
+        ret
+.nw:    pop af
+        push af
         call ld_isbox
         jr nz,.nb
         push de
@@ -430,6 +453,8 @@ lf_end:   dw 0
 
 ; ---- from ld_edit.asm
 ld_gpt:   dw 0              ; PT of the last ld_get box
+ld_gext:  ds 9              ; compare / arithmetic: record bytes 3-11 of the
+                            ;   last ld_get, written back by ld_put
 
 ; ---- from ld_comp.asm
 err_lc_rows:  db "Rung longer than 16 rows",0

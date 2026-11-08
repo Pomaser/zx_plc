@@ -898,6 +898,15 @@ il_fmt_opnd:
         inc de
         ret
 
+; il_fmt_short: il_fmt_one in the short form (LD labels; wexpr.asm via BCALL)
+il_fmt_short:
+        ld a,1
+        ld (fo_style),a
+        call il_fmt_one
+        xor a
+        ld (fo_style),a
+        ret
+
 ; il_fmt_one: HL = [area][index] or [area][value] -> text at DE, HL advanced
 il_fmt_one:
         ld a,(hl)

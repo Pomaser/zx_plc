@@ -20,6 +20,8 @@ ld_compile:
         ld (lc_pou),a
         ld a,(cp_slot)
         ld (cur_pou),a          ; the ld_* helpers work on cur_pou
+        ld a,1
+        ld (fc_ld),a
         call .go
         call c,lc_errpos
         push af
@@ -228,7 +230,9 @@ lc_elem:
         ret c
         ld a,1
         jp lc_set_dead
-.cont:  ld (lc_t),a
+.cont:  cp LT_CMP
+        jp z,lc_cmp
+        ld (lc_t),a
         call ld_isbox
         jr z,.box
         ld a,(lc_t)
@@ -415,6 +419,8 @@ lc_links:
 
 ; ---- lc_coil: A = coil type (lc_area = operand)
 lc_coil:
+        cp LT_MATH
+        jp z,lc_math
         ld (lc_t),a
         call lc_is_dead
         jr z,.pw
@@ -437,6 +443,75 @@ lc_coil:
         ld a,(hl)
         jp lc_emit_op
 .ops:   db OP_ST, OP_ST|VM_N, OP_S, OP_R
+
+; ---- word compare / arithmetic (operands in ld_gext, filled by lc_get)
+; lc_cmp: LD compare contact: S = S AND (A op B)
+lc_cmp: call lc_is_dead
+        ret nz
+        call lc_wexpr
+        ret c
+        call fc_mon             ; (the simulation colours it by the result)
+        ret c
+        ld a,OP_AND
+        call lc_emit_s
+        ret c
+        ld a,OP_ST
+        jp lc_emit_s
+
+; lc_math: LD arithmetic coil: D := A op B when the row is powered
+lc_math:
+        call lc_is_dead
+        ret nz                  ; never powered: nothing
+        ld a,OP_LD
+        call lc_emit_s
+        ret c
+        ; fall through
+
+; lc_wmath: accumulator = enable -> JMPCN over "LD A / op B / ST D"
+lc_wmath:
+        ld a,(ld_gext+3)
+        cp OP_LD
+        ld e,3*5
+        jr nz,.n
+        ld e,2*5                ; MOVE: LD A / ST D
+.n:     ld hl,(cp_pc)
+        ld d,0
+        add hl,de
+        ld de,5
+        add hl,de
+        ld (cp_arg),hl
+        xor a
+        ld (cp_mode),a
+        ld (cp_arg3),a
+        ld a,OP_JMPCN
+        call cp_emit
+        ret c
+        call lc_wexpr
+        ret c
+        ld hl,ld_gext+7
+        call cp_operand_rec
+        ret c
+        ld a,OP_ST
+        jp cp_emit
+
+; lc_wexpr: accumulator = A op B (MOVE: A)
+lc_wexpr:
+        ld hl,ld_gext
+        call cp_operand_rec
+        ret c
+        ld a,OP_LD
+        call cp_emit
+        ret c
+        ld a,(ld_gext+3)
+        cp OP_LD
+        ret z                   ; (NC)
+        push af
+        ld hl,ld_gext+4
+        call cp_operand_rec
+        pop bc
+        ret c
+        ld a,b
+        jp cp_emit
 
 ; ---- emit helpers
 ; lc_emit_mem: A = op, B = member of the FB instance lc_idx

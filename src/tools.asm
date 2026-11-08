@@ -227,7 +227,7 @@ xr_match:
 xr_add_il:
         ld de,(xr_line)
         xor a
-        jr xr_add
+        jp xr_add
 
 ; xr_grid: HL = first record of an LD / FBD body
 xr_grid:
@@ -250,6 +250,9 @@ xr_grid_rec:
         ld a,(hl)               ; type
         inc hl                  ; HL = [area][index]
         ld c,a
+        and LT_MASK             ; compare / arithmetic (LD and FBD)
+        cp LT_CMP
+        jr nc,.wd
         ld a,(xr_lang)
         cp LANG_LD
         ld a,c
@@ -294,7 +297,26 @@ xr_grid_rec:
         ret nz
 .m:     call xr_match
         ret nz
-        ld a,(xr_r)
+        jr .add
+.wd:    ld a,c                  ; D written (first), A and B read
+        and LT_MASK
+        cp LT_MATH
+        jr nz,.wr
+        push hl
+        ld de,7
+        add hl,de
+        ld b,'W'
+        call xr_match
+        pop hl
+        jr z,.add
+.wr:    ld b,'R'
+        call xr_match
+        jr z,.add
+        ld de,4
+        add hl,de
+        call xr_match
+        ret nz
+.add:   ld a,(xr_r)
         ld e,a
         ld d,0
         ld a,(xr_p)

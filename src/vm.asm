@@ -43,7 +43,9 @@ st_buf    EQU popup_buf+80      ; 60  status bar text
 st_last   EQU st_buf+60         ; 24  status bar: last right text
 st_llast  EQU st_last+24        ; 60  status bar: last left text
 RT_FRC    EQU st_llast+60       ; WT_MAX x 5 forced values of the watch list
-RT_END    EQU RT_FRC+WT_MAX*5
+WD_EXT    EQU RT_FRC+WT_MAX*5   ; 9  compare / arithmetic: operands from wexpr.asm
+WD_TEXT   EQU il_out            ;     (its expression text)
+RT_END    EQU WD_EXT+9
         ASSERT RT_END <= PROJ
 
 VM_MB     EQU 1

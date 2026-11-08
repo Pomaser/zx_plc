@@ -176,6 +176,7 @@ FBD_END:
         MMU 3, BANK_DEMO, BANKED
         INCLUDE "src/tools.asm"     ; cross references
         INCLUDE "src/clip.asm"      ; mark / copy / cut / paste
+        INCLUDE "src/wexpr.asm"     ; word compare / arithmetic (LD, FBD)
 demo_img:
     IFNDEF MKDEMO
         INCBIN "src/demo_proj.bin"

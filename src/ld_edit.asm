@@ -52,7 +52,15 @@ ld_put: call undo_save
         ld (lp_rec),a
         ld a,e
         ld (lp_rec+1),a
-        call ld_hdr
+        ld a,(lp_rec+2)         ; compare / arithmetic: operands from ld_gext
+        and LT_MASK
+        cp LT_CMP
+        jr c,.nw
+        ld hl,ld_gext
+        ld de,lp_rec+3
+        ld bc,9
+        ldir
+.nw:    call ld_hdr
         jp c,.mem
         ld a,(lp_rec)
         ld d,a
@@ -231,6 +239,8 @@ G_BXC   EQU 19              ; -[ + first column of C (counters)
 G_CT    EQU 20
 G_BRU   EQU 21
 G_BRD   EQU 22
+G_MOV   EQU 23              ; compare / arithmetic operators (the order of
+                            ;   wx_glyph: MOVE, + - * / MOD, > >= = <> <= <)
 ld_gfx:
         db 0x00,0x00,0x00,0x00,0xFF,0x00,0x00,0x00      ; wire
         db 0x00,0x02,0x02,0x02,0xFE,0x02,0x02,0x02      ; --|
@@ -255,6 +265,18 @@ ld_gfx:
         db 0x00,0x00,0xDD,0x09,0x09,0x09,0xC9,0x00      ; CT
         db 0x00,0x0C,0x44,0x44,0x47,0x44,0xC4,0x0C      ; U]-
         db 0x00,0x0C,0x84,0x44,0x47,0x44,0x84,0x0C      ; D]-
+        db 0x00,0x00,0x00,0x5E,0x00,0x5E,0x00,0x00      ; :=
+        db 0x00,0x00,0x10,0x10,0x7C,0x10,0x10,0x00      ; +
+        db 0x00,0x00,0x00,0x00,0x7C,0x00,0x00,0x00      ; -
+        db 0x00,0x00,0x44,0x28,0x10,0x28,0x44,0x00      ; x
+        db 0x00,0x00,0x10,0x00,0x7C,0x00,0x10,0x00      ; :-
+        db 0x00,0x00,0x64,0x68,0x10,0x2C,0x4C,0x00      ; %
+        db 0x00,0x00,0x20,0x10,0x08,0x10,0x20,0x00      ; >
+        db 0x00,0x20,0x10,0x08,0x10,0x20,0x3C,0x00      ; >=
+        db 0x00,0x00,0x00,0x3C,0x00,0x3C,0x00,0x00      ; =
+        db 0x00,0x04,0x08,0x3C,0x10,0x3C,0x20,0x00      ; <>
+        db 0x00,0x08,0x10,0x20,0x10,0x08,0x3C,0x00      ; <=
+        db 0x00,0x00,0x08,0x10,0x20,0x10,0x08,0x00      ; <
 ; glyphs (left, middle, right) per element type 0-13
 ld_types:
         db G_BL,G_BL,G_BL, G_WIRE,G_WIRE,G_WIRE, G_CL,G_BL,G_CR, G_CL,G_SL,G_CR
@@ -264,6 +286,12 @@ ld_types:
         db G_BL,G_BL,G_VL                       ; picker: vertical link
         db G_BL,G_BL,G_BL, G_BL,G_BL,G_BL       ; (comment, unused)
         db G_BXC,G_CT,G_BRU, G_BXC,G_CT,G_BRD   ; CTU, CTD
+        db G_BXL,G_MOV+6,G_BR, G_BXL,G_MOV+1,G_BR       ; picker: CMP, MATH
+LD_GOPS EQU 20              ; 20+: compare / arithmetic by operator
+        db G_BXL,G_MOV,G_BR,    G_BXL,G_MOV+1,G_BR,  G_BXL,G_MOV+2,G_BR
+        db G_BXL,G_MOV+3,G_BR,  G_BXL,G_MOV+4,G_BR,  G_BXL,G_MOV+5,G_BR
+        db G_BXL,G_MOV+6,G_BR,  G_BXL,G_MOV+7,G_BR,  G_BXL,G_MOV+8,G_BR
+        db G_BXL,G_MOV+9,G_BR,  G_BXL,G_MOV+10,G_BR, G_BXL,G_MOV+11,G_BR
 
 ; ---- ld_draw_view: rows ld_top.. on screen rows ld_vbase.. (ld_vn rows)
 ld_draw_view:
@@ -483,7 +511,27 @@ ld_row_load:
 
 ; ---- ld_draw_elem: ld_t / ld_ar at (ld_r, ld_p): symbol + label
 ld_draw_elem:
+        ld hl,ld_lbl
+        ld (ld_lptr),hl
+        ld a,(ld_t)
+        ld (ld_gt),a
+        and LT_MASK
+        cp LT_CMP
+        jr c,.std
+        ld a,(ld_r)             ; compare / arithmetic: the expression as the
+        ld d,a                  ; label, the operator in the symbol
         ld a,(ld_p)
+        ld e,a
+        call ld_get
+        BCALL wx_fmt
+        ld (ld_lptr),hl
+        ld a,(ld_gext+3)
+        sub 7                   ; OP_LD -> 0, OP_ADD.. -> 1..
+        jr nc,.g
+        xor a
+.g:     add a,LD_GOPS
+        ld (ld_gt),a
+.std:   ld a,(ld_p)
         ld c,a
         add a,a
         add a,c
@@ -491,13 +539,15 @@ ld_draw_elem:
         ld c,a
         ld a,(ld_srow)
         ld b,a
-        ld a,(ld_t)
+        ld a,(ld_gt)
         call ld_put_glyphs
         ; label
         ld a,(ld_t)
         and LT_MASK
         cp LT_NO
         ret c                   ; empty / wire
+        cp LT_CMP
+        jr nc,.lbl
         ld de,ld_lbl
         ld a,1
         ld (fo_style),a
@@ -506,7 +556,7 @@ ld_draw_elem:
         xor a
         ld (fo_style),a
         ld (de),a
-        ld a,(ld_p)             ; element x = (1+3p)*8
+.lbl:   ld a,(ld_p)             ; element x = (1+3p)*8
         ld c,a
         add a,a
         add a,c
@@ -517,7 +567,7 @@ ld_draw_elem:
         ld c,a
         add a,23
         ld (pt_xmax),a
-        ld hl,ld_lbl
+        ld hl,(ld_lptr)
         call pt_width
         cp 23
         jr c,.w
@@ -538,7 +588,24 @@ ld_draw_elem:
         add a,23
         sub b
         jr .x
-.cl:    ld a,22
+.cl:    ld a,(ld_p)             ; or into the cell on the right when it has
+        cp LD_CPOS-1            ; no labelled element (left aligned)
+        jr nc,.cl2
+        inc a
+        ld e,a
+        ld d,0
+        ld hl,lw_t
+        add hl,de
+        ld a,(hl)
+        and LT_MASK
+        cp LT_NO
+        jr nc,.cl2
+        ld a,c
+        add a,47
+        ld (pt_xmax),a
+        ld a,c
+        jr .x
+.cl2:   ld a,22
 .w:     neg
         add a,24
         srl a
@@ -546,7 +613,7 @@ ld_draw_elem:
 .x:     ld (pt_x),a
         ld a,(ld_lrow)
         ld (pt_row),a
-        ld hl,ld_lbl
+        ld hl,(ld_lptr)
         call pt_puts
         ld a,255
         ld (pt_xmax),a
@@ -556,7 +623,7 @@ ld_draw_elem:
 ;      draws the 3 cells of the element symbol
 ld_put_glyphs:
         and LT_MASK
-        cp LT_CTD+1
+        cp LD_GOPS+12
         ret nc
         ld (lg_row),bc          ; C = cell, B = row
         ld c,a
@@ -569,13 +636,12 @@ ld_put_glyphs:
         ld b,3
 .g:     push bc
         push hl
-        ld a,(hl)               ; glyph -> 8 bytes
-        add a,a
-        add a,a
-        add a,a
-        ld e,a
-        ld d,0
-        ld hl,ld_gfx
+        ld l,(hl)               ; glyph -> 8 bytes (16 bit: more than 32)
+        ld h,0
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        ld de,ld_gfx
         add hl,de
         ex de,hl
         ld bc,(lg_row)
@@ -776,12 +842,14 @@ ld_pick_c:
         db LT_TP,   'U',"TP pulse",0
         db LT_CTU,  'K',"CTU counter",0
         db LT_CTD,  'D',"CTD counter",0
+        db LT_CMP,  'G',"Compare",0
         db 0xFF
 ld_pick_q:
         db LT_COIL, 'C',"Coil",0
         db LT_NCOIL,'/',"Negated coil",0
         db LT_SET,  'S',"Set coil",0
         db LT_RES,  'R',"Reset coil",0
+        db LT_MATH, 'M',"Compute",0
         db 0xFF
 
 ; ---- ld_cmt_text: row ld_r -> NC: ld_cbuf = its comment text; C: no comment
@@ -939,8 +1007,23 @@ ld_fix_top:
 ; ---- ld_set_state: middle cells coloured by the state (simulation);
 ;      walks the records once, only attribute writes
 ld_set_state:
+        xor a                   ; compares: monitor bit RT_LGC[k], k counts
+        ld (ls_k),a             ; them in record order (as fc_mon)
         call ld_rec_loop
 .l:     ret nc
+        push hl
+        inc hl
+        inc hl
+        ld a,(hl)
+        pop hl
+        and LT_MASK
+        cp LT_CMP
+        jr nz,.l0
+        ld a,(ls_k)
+        ld (ls_kc),a
+        inc a
+        ld (ls_k),a
+.l0:
         ld a,(ld_top)           ; visible row?
         ld b,a
         ld a,(hl)
@@ -950,7 +1033,7 @@ ld_set_state:
         ld a,(ld_vn)
         dec a
         cp c
-        jr c,.n
+        jp c,.n
         ld a,c
         add a,a
         ld b,a
@@ -968,7 +1051,7 @@ ld_set_state:
         jr nz,.nc
         dec hl
         dec hl
-        jr .n
+        jp .n
 .nc:    ld (ld_t),a
         inc hl
         ld b,(hl)
@@ -978,6 +1061,8 @@ ld_set_state:
         dec hl
         dec hl
         dec hl
+        cp LT_CMP
+        jr z,.cmp
         cp LT_NO
         jr c,.n
         push hl
@@ -1006,6 +1091,32 @@ ld_set_state:
         jr .set
 .f:     cp LT_NC                ; operand FALSE: only NC is active
         jr nz,.set
+        ld e,ATTR_LD_ON
+        jr .set
+.cmp:   push hl                 ; compare: its monitor bit
+        ld e,ATTR_NORMAL
+        ld a,(ls_kc)
+        cp 64
+        jr nc,.set
+        ld c,a
+        rrca
+        rrca
+        rrca
+        and 7
+        ld hl,RT_LGC
+        add a,l
+        ld l,a
+        jr nc,.c1
+        inc h
+.c1:    ld a,c
+        and 7
+        ld b,a
+        ld a,1
+        jr z,.c3
+.c2:    add a,a
+        djnz .c2
+.c3:    and (hl)
+        jr z,.set
         ld e,ATTR_LD_ON
 .set:   ld a,(ld_p)
         ld c,a
@@ -1324,7 +1435,7 @@ ld_editor:
         ; ---- place an element (A = type)
 .place: ld (ld_newt),a
         cp LT_NO
-        jr c,.pl2               ; wire: no operand
+        jp c,.pl2               ; wire: no operand
         ld a,(ld_row)
         ld d,a
         ld a,(ld_pos)
@@ -1355,7 +1466,25 @@ ld_editor:
         xor a
         ld (ld_ar),a
 .kept:
-        ld a,(ld_newt)
+        ld a,(ld_newt)          ; compare / arithmetic: the expression
+        cp LT_CMP
+        jr c,.kp1
+        ld a,(ld_row)
+        ld d,a
+        ld a,(ld_pos)
+        ld e,a
+        call ld_get             ; (the old one in ld_gext)
+        and LT_MASK
+        ld hl,ld_newt
+        ld b,0
+        cp (hl)
+        jr nz,.kp0
+        inc b                   ; the same kind: edit its expression
+.kp0:   ld a,(ld_newt)
+        BCALL wx_edit
+        jp c,.redraw
+        jr .pl3
+.kp1:   ld a,(ld_newt)
         call ld_ask_operand
         jp c,.redraw
         call ld_set_ar
@@ -1402,6 +1531,7 @@ ld_editor:
         ld a,(ld_pos)
         ld e,a
         pop af
+        call ld_wext
         call ld_put
         jp c,.redraw
         call ld_autowire
@@ -2130,6 +2260,24 @@ ld_ask_pt:                      ; A = box type: PT (timers) / PV (counters)
         call ui_error
         jr .ask
 
+; ---- ld_wext: A = type -> compare / arithmetic: WD_EXT (from wx_edit) to
+;      ld_gext for ld_put (keeps AF, BC, DE)
+ld_wext:
+        push af
+        and LT_MASK
+        cp LT_CMP
+        jr c,.n
+        push bc
+        push de
+        ld hl,WD_EXT
+        ld de,ld_gext
+        ld bc,9
+        ldir
+        pop de
+        pop bc
+.n:     pop af
+        ret
+
 ; ---- ld_info: status bar: symbol name and comment of the current element
 ld_info:
         ld hl,0
@@ -2139,6 +2287,15 @@ ld_info:
         ld a,(ld_pos)
         ld e,a
         call ld_get
+        push af                 ; compare / arithmetic: the expression
+        and LT_MASK
+        cp LT_CMP
+        jr c,.nw
+        pop af
+        BCALL wx_fmt
+        ld (st_left),hl
+        jp status_left
+.nw:    pop af
         ld de,ld_infob
         ld (ld_infop),de
         push af
@@ -2255,7 +2412,7 @@ ld_aw:    db 0
 ld_lrow:  db 0
 ld_srow:  db 0
 lr_row:   db 0
-lp_rec:   ds 7
+lp_rec:   ds 12
 ld_infop: dw 0
 ld_first: db 0              ; first key of an operand typed after '/'
 lc_len:   db 0
@@ -2268,6 +2425,10 @@ li_rr:    db 0
 li_q:     db 0
 li_t:     db 0
 ld_lbl:   ds 16
+ld_lptr:  dw 0              ; the label being drawn (ld_lbl or WD_TEXT)
+ls_k:     db 0              ; ld_set_state: compares so far
+ls_kc:    db 0              ;   the index of the current one
+ld_gt:    db 0              ; the type for the symbol glyphs
 lg_row:   dw 0              ; ld_put_glyphs: cell, row
 lk_cur:   db 0
 lk_list:  dw 0

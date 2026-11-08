@@ -89,6 +89,13 @@ FT_NEG      EQU 0x80        ; negated input / output
 FT_MASK     EQU 0x1F
 FT_CTU      EQU 16          ; counters: AR_FBI instance + PV, 3 rows (CU, R / CD, LD, PV)
 FT_CTD      EQU 17
+; word compare / arithmetic (LD and FBD, the same codes; see ld_tlen):
+;   [row][pos][type][A area lo hi][op][B area lo hi] (+ MATH: [D area idx])
+;   op = VM opcode: CMP OP_GT..OP_LT, MATH OP_ADD..OP_DIV or OP_LD (MOVE)
+LT_CMP      EQU 18          ; LD contact / FBD input: A op B (BOOL)
+LT_MATH     EQU 19          ; LD coil / FBD output: D := A op B when powered
+FT_CMP      EQU LT_CMP
+FT_MATH     EQU LT_MATH
 FT_MAXIN    EQU 4           ; inputs of a logic box
 
 ; ---- application screens ------------------------------------
