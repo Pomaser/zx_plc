@@ -119,8 +119,10 @@ fb_editor:
 .tkey:  call fb_pt_cell         ; (on its PT input: the timer)
         call nc,fb_to_timer
         call fb_cur_get
-        and FT_MASK             ; a compare block: its expression
+        and FT_MASK             ; a compare / compute block: its expression
         cp FT_CMP
+        jp z,.place
+        cp FT_MATH
         jp z,.place
         ld a,(fb_t)
         call ld_isbox
@@ -417,23 +419,26 @@ fb_editor:
 .rows:  ld a,(fb_hh)
         call fb_make_rows       ; free rows below (rows inserted if needed)
         jr c,.noroom
-        ld a,(fb_newt)          ; compare: both cells on its left free
-        and FT_MASK
+        ld a,(fb_newt)          ; compare / compute: the cells of its two
+        and FT_MASK             ; values on its left must be free
+        ld b,0                  ; (compare: rows 0-1, compute: rows 1-2)
         cp FT_CMP
+        jr z,.vc
+        inc b
+        cp FT_MATH
         jr nz,.nc2
-        ld a,(ld_pos)
+.vc:    ld a,(ld_pos)
         or a
         jr z,.noroom
         dec a
         ld e,a
         ld a,(ld_row)
+        add a,b
         ld d,a
         call ld_get
         and FT_MASK
         jr nz,.noroom
-        ld a,(ld_row)
-        inc a
-        ld d,a
+        inc d
         call ld_get
         and FT_MASK
         jr z,.put
@@ -725,8 +730,22 @@ fb_prow:
         inc d
         and FT_MASK
         cp FT_CMP
+        jr z,.d1
+        cp FT_MATH              ; compute: its A row
+        jr z,.d1
+        ld a,d
+        cp 2
+        jr c,.p0
+        dec d
+        dec d
+        call ld_get
+        inc d
+        inc d
+        and FT_MASK
+        cp FT_MATH              ; compute: its B row
         jr nz,.p0
         dec d
+.d1:    dec d
 .cmp:   or a
         ret
 .p0:    ld a,d
@@ -900,12 +919,8 @@ fb_cur_get:
         ld (fb_t),a
         ret
 
-; ---- fb_cls: A = type -> A = its class (type without FT_NEG; a compute
-;      element is an output)
+; ---- fb_cls: A = type -> A = its class (the type without FT_NEG)
 fb_cls: and FT_MASK
-        cp FT_MATH
-        ret nz
-        ld a,FT_OUT
         ret
 
 ; ---- fb_kind: A = type -> A = operand kind for ld_ask_operand, Z = none
@@ -977,6 +992,8 @@ fb_height_t:
         cp FT_CTU               ; counters: CU, R, PV rows
         jr z,.three
         cp FT_CTD
+        jr z,.three
+        cp FT_MATH              ; compute: EN, A, B rows
         jr z,.three
         cp FT_CMP               ; compare: A row + B row
         jr z,.two
@@ -2234,11 +2251,7 @@ fb_draw_elem:
         ld c,a
         ld d,24
         jp fd_hline
-.nw:    cp FT_MATH              ; compute: "-MW2:=MW1+5" like an output
-        jr nz,.nwm
-        call fd_wfmt
-        jr .ol
-.nwm:   cp FT_IN                ; input: "name--" on the signal row
+.nw:    cp FT_IN                ; input: "name--" on the signal row
         jr nz,.nin
         call fd_fmt
         ld a,(fd_t)             ; negated: "o" at the end of the line, or at
@@ -2339,7 +2352,7 @@ fb_draw_elem:
         ld a,(fd_t)
         and FT_MASK
         cp FT_CMP
-        call z,fd_cmpname       ; (compare: GT GE EQ NE LE LT)
+        call nc,fd_cmpname      ; (GT GE EQ NE LE LT, ADD SUB MUL DIV MOVE)
         add a,a
         ld e,a
         ld d,0
@@ -2354,11 +2367,37 @@ fb_draw_elem:
         ld a,(fd_x)
         ld c,a
         call pt_tiny_c
+        ld a,(fd_t)             ; compute: "MW3:=" above the block
+        and FT_MASK
+        cp FT_MATH
+        jr z,.dst
         ld a,(fd_t)             ; FB blocks: instance label above the block
         call fb_kind
         ret z
         call fd_fmt
-        ; fall through
+        jp fd_label
+.dst:   ld hl,ld_gext+7         ; (ld_gext: from fd_cmpname)
+        ld de,FMT_BUF
+        BCALL il_fmt_short
+        ld a,':'
+        ld (de),a
+        inc de
+        ld a,'='
+        ld (de),a
+        inc de
+        xor a
+        ld (de),a
+        ld a,(fd_x)             ; left aligned above the block, it may reach
+        ld (pt_x),a             ; over the cell on the right
+        add a,44
+        ld (pt_xmax),a
+        ld a,(fd_lrow)
+        ld (pt_row),a
+        ld hl,FMT_BUF
+        call pt_puts
+        ld a,255
+        ld (pt_xmax),a
+        ret
 
 ; fd_label: FMT_BUF centred in the label row above the element (24 px)
 fd_label:
@@ -2498,7 +2537,8 @@ fd_setcb:
         pop de
         ret
 
-; fd_cmpname: the compare block at (fd_r, fd_p) -> A = its fd_names index
+; fd_cmpname: the compare / compute block at (fd_r, fd_p) -> A = its
+;      fd_names index (by the operator)
 fd_cmpname:
         ld a,(fd_r)
         ld d,a
@@ -2506,36 +2546,71 @@ fd_cmpname:
         ld e,a
         call ld_get
         ld a,(ld_gext+3)
-        add a,FD_NCMP
+        cp OP_LD
+        jr z,.mov
+        cp OP_GT
+        jr nc,.c
+        add a,FD_NMATH          ; ADD..DIV
+        ret
+.mov:   ld a,FD_NMOVE
+        ret
+.c:     add a,FD_NCMP
         ret
 
-; fd_cmpcell: the cell left of a compare block: its operand A (first row)
-;      or B (second row) as "MW3--" -> NZ if drawn
+; fd_cmpcell: the cell left of a value row of a compare block (A, B on its
+;      two rows) or a compute block (A, B below its EN row) -> NZ if drawn
 fd_cmpcell:
         ld a,(fd_p)
         cp LD_CPOS-1
-        jr nc,.no
+        jp nc,.no
         inc a
         ld e,a
         ld d,0
-        ld hl,fw_t              ; the block starts on this row: A
+        ld hl,fw_t              ; a compare block starts on this row: A
         add hl,de
         ld a,(hl)
         and FT_MASK
         cp FT_CMP
+        jr nz,.cov
         ld hl,ld_gext
         ld a,(fd_r)
-        jr z,.get
-        ld hl,fd_cov            ; its second row: B
+        jr .get
+.cov:   ld hl,fd_cov            ; the lower rows of a block on the right
         add hl,de
         ld a,(hl)
-        cp 1
-        jr nz,.no
+        or a
+        jr z,.no
+        ld (fd_k),a             ; (rows of it below this one + 1)
         ld hl,fd_cbt
         add hl,de
         ld a,(hl)
         and FT_MASK
         cp FT_CMP
+        jr z,.c2
+        cp FT_MATH
+        jr nz,.no
+        ld a,(fd_k)
+        cp 2
+        jr z,.ma
+        dec a
+        jr nz,.no
+        ld hl,ld_gext+4         ; compute, last row: B (not for MOVE)
+        ld a,(fd_r)
+        sub 2
+        push hl
+        ld d,a
+        call ld_get
+        pop hl
+        ld a,(ld_gext+3)
+        cp OP_LD
+        jr z,.no
+        jr .fmt
+.ma:    ld hl,ld_gext           ; compute, middle row: A
+        ld a,(fd_r)
+        dec a
+        jr .get
+.c2:    ld a,(fd_k)             ; compare, second row: B
+        dec a
         jr nz,.no
         ld hl,ld_gext+4
         ld a,(fd_r)
@@ -2544,7 +2619,7 @@ fd_cmpcell:
         ld d,a
         call ld_get             ; (keeps E = the block position)
         pop hl
-        ld de,FMT_BUF
+.fmt:   ld de,FMT_BUF
         BCALL il_fmt_short
         xor a
         ld (de),a
@@ -2773,19 +2848,6 @@ fd_circle:
 fd_fmt: BCALL ld_fmt_ar
         ret
 
-; fd_wfmt: the expression of the compare / compute element at (fd_r, fd_p)
-;      -> FMT_BUF
-fd_wfmt:
-        ld a,(fd_r)
-        ld d,a
-        ld a,(fd_p)
-        ld e,a
-        call ld_get
-        BCALL wx_fmt
-        ld de,FMT_BUF
-        ld bc,40
-        ldir
-        ret
 
 ; fd_in_txt: FMT_BUF right-aligned to x+B on the signal row (it may reach
 ;      into the empty cells on the left), then the line up to x+C-1
@@ -2895,7 +2957,15 @@ fd_names:
         dw fdn_xor, fdn_not, fdn_sr, fdn_rs, fdn_tp, fdn_rt, 0, fdn_ft
         dw fdn_ctu, fdn_ctd, 0, 0
         dw fdn_gt, fdn_ge, fdn_eq, fdn_ne, fdn_le, fdn_lt      ; FD_NCMP + op
-FD_NCMP EQU 20-OP_GT
+        dw fdn_add, fdn_sub, fdn_mul, fdn_div, fdn_move         ; FD_NMATH + op
+FD_NCMP  EQU 20-OP_GT
+FD_NMATH EQU 26-OP_ADD
+FD_NMOVE EQU 30
+fdn_add: db "ADD",0
+fdn_sub: db "SUB",0
+fdn_mul: db "MUL",0
+fdn_div: db "DIV",0
+fdn_move: db "MOVE",0
 fdn_gt:  db "GT",0
 fdn_ge:  db "GE",0
 fdn_eq:  db "EQ",0
@@ -3508,6 +3578,7 @@ fb_pick_i:
         db FT_CTU,       'K',"CTU counter",0
         db FT_CTD,       'D',"CTD counter",0
         db FT_CMP,       'G',"Compare",0
+        db FT_MATH,      'M',"Compute",0
         db 0xFF
 fb_pick_l:
         db FT_IN,        'I',"Input",0
@@ -3527,14 +3598,13 @@ fb_pick_l:
         db FT_CTU,       'K',"CTU counter",0
         db FT_CTD,       'D',"CTD counter",0
         db FT_CMP,       'G',"Compare",0
+        db FT_MATH,      'M',"Compute",0
         db FT_OUT,       'Q',"Output",0
         db FT_OUT|FT_NEG,'W',"Negated output",0
-        db FT_MATH,      'M',"Compute",0
         db 0xFF
 fb_pick_o:
         db FT_OUT,       'Q',"Output",0
         db FT_OUT|FT_NEG,'N',"Negated output",0
-        db FT_MATH,      'M',"Compute",0
         db 0xFF
 
 txt_fb_inq:  db "Number of inputs (2-4)?",0,0
@@ -3598,6 +3668,7 @@ fd_cov:   ds LD_CPOS+1          ; rows of a block still to draw (per position)
 fd_rr:    db 0
 fd_i:     db 0
 fd_r:     db 0
+fd_k:     db 0              ; fd_cmpcell: rows of the block left
 fb_oldx:  ds 9              ; .place: operands of the old element (undo)
 fd_p:     db 0
 fd_x:     db 0

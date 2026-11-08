@@ -106,8 +106,8 @@ on tape. See README.md for the user-facing description of every editor and key.
   - Word compare / compute (`LT_CMP` / `LT_MATH` = `FT_CMP` / `FT_MATH`, defs.asm): 10 / 12 B records with
     the operands `[A area lo hi][op][B area lo hi][D area idx]`. `ld_get` copies them to `ld_gext`,
     `ld_put` writes them back. The expression input / text is `src/wexpr.asm` (DEMO bank). In LD a compare
-    is a contact and compute a coil; in FBD a compare is a 2-row block (A, B on the left of its rows,
-    handled like preset cells by `fb_prow`) and compute an output.
+    is a contact and compute a coil; in FBD a compare is a 2-row block (A, B on the left of its rows)
+    and compute a 3-row block (EN, then A, B); their value rows are handled like preset cells by `fb_prow`.
 - **Compile and run:**
   - `il_compile` (RUN) compiles every POU to 5-byte bytecode `[op][mode][arg lo][arg hi][arg3]`:
     IL in two passes, LD and FBD column by column with scratch bits S[row] (src/ld_comp.asm,

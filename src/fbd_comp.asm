@@ -122,14 +122,7 @@ fb_compile:
 .out:   call lc_get
         ld b,a
         and FT_MASK
-        cp FT_MATH              ; arithmetic in the output column
-        jr nz,.o0
-        ld a,OP_LD
-        call fc_emit_row
-        call nc,lc_wmath
-        ret c
-        jr .on
-.o0:    cp FT_OUT
+        cp FT_OUT
         jr nz,.on
         ld a,OP_LD
         call fc_emit_row
@@ -217,6 +210,8 @@ fc_height:
         jr z,.three
         cp FT_CMP               ; compare: A, B
         jr z,.two
+        cp FT_MATH              ; compute: EN, A, B
+        jr z,.three
         cp FT_CTD
         jr z,.three
         call ld_isbox           ; timers: IN row + PT row
@@ -251,8 +246,6 @@ fc_elem:
         jr z,.in
         cp FT_OUT
         jr z,.out
-        cp FT_MATH
-        jr z,.math
         ; empty: no signal
         call lc_is_dead
         ret nz
@@ -274,10 +267,6 @@ fc_elem:
         jr nc,.o1
         ld a,OP_ST|VM_N
 .o1:    jp lc_emit_op
-.math:  ld a,OP_LD              ; arithmetic output: enabled by the signal,
-        call fc_emit_row        ; which goes on unchanged
-        ret c
-        jp lc_wmath
 .in:    ld a,(fc_t)
         rlca
         ld a,OP_LD
@@ -297,6 +286,8 @@ fc_elem:
         and FT_MASK
         cp FT_CMP
         jr z,.cmp
+        cp FT_MATH
+        jr z,.math
         cp FT_NOT
         jr z,.not
         cp FT_AND
@@ -306,6 +297,24 @@ fc_elem:
         cp FT_XOR
         jr z,.lg
         jp fc_fb
+.math:  ld a,OP_LD              ; compute block: D := A op B while EN (the
+        call fc_emit_row        ; first row) is TRUE; the output is EN
+        ret c
+        call lc_wmath
+        ret c
+        ld hl,lc_i              ; the operand rows get no signal
+        inc (hl)
+        ld a,1
+        call lc_set_dead
+        ld hl,lc_i
+        inc (hl)
+        ld a,1
+        call lc_set_dead
+        ld hl,lc_i
+        dec (hl)
+        dec (hl)
+        or a
+        ret
 .cmp:   call lc_wexpr           ; compare block: Q = A op B (the operands
         ret c                   ; are in the block, its rows get no signal)
         call fc_mon
