@@ -49,6 +49,8 @@ main_loop:
 cmd_target:
         cp CMD_REOPEN           ; undo: the same screen opens again
         ret z
+        cp CMD_POU_DUP
+        jr z,.pou
         cp CMD_WATCH            ; Run > Watch: the RUN screen
         jr z,.run
         cp CMD_POU_MANAGE
@@ -158,6 +160,8 @@ RUN_END:
 ; ---- DATA bank ----------------------------------------------
         MMU 3, BANK_DATA, BANKED
 win_save: ds 9*WIN_MAXC     ; cells saved under a popup window
+clip_buf:                   ; the clipboard (clip.asm), up to the IM2 stub
+        ASSERT IM2_JP-clip_buf >= PROJ_END-PROJ
         IM2STUB
 
 ; ---- FBD bank -----------------------------------------------
@@ -171,6 +175,7 @@ FBD_END:
 ; ---- DEMO bank: the demo project image (made by tools/mkdemo.py)
         MMU 3, BANK_DEMO, BANKED
         INCLUDE "src/tools.asm"     ; cross references
+        INCLUDE "src/clip.asm"      ; mark / copy / cut / paste
 demo_img:
     IFNDEF MKDEMO
         INCBIN "src/demo_proj.bin"

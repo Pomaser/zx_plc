@@ -127,6 +127,11 @@ CMD_REOPEN      EQU 25          ; the same screen opens again (after undo, cross
 CMD_XREF        EQU 26
 CMD_WADD        EQU 27          ; add the operand at the cursor to the watch list
 CMD_WATCH       EQU 28          ; Run > Watch: the simulation with the watch page
+CMD_MARK        EQU 29          ; Edit > Mark (SS+A) - CMD_CUT: handled by clip.asm,
+CMD_COPY        EQU 30          ;   in the order of K_MARK..K_PASTE
+CMD_PASTE       EQU 31
+CMD_CUT         EQU 32
+CMD_POU_DUP     EQU 33          ; POU > Duplicate... (executed by the POU screen)
 
 ; ---- status bar text markers (st_left): symbol name shown inverted
 ST_SYM      EQU 1           ; start of the symbol name
@@ -143,6 +148,9 @@ K_INS       EQU 6           ; SS + I: LD insert in front of the element
 K_UNDO      EQU 14          ; SS + U: undo the last change
 K_XREF      EQU 15          ; SS + X: cross references
 K_WATCH     EQU 16          ; SS + W: add to the watch list
+K_MARK      EQU 17          ; SS + A: mark the start of a block
+K_COPY      EQU 18          ; SS + D: copy the block
+K_PASTE     EQU 19          ; SS + F: paste
 K_EDIT      EQU 7
 K_LEFT      EQU 8
 K_RIGHT     EQU 9

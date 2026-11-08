@@ -104,6 +104,7 @@ run_tests:
         call sym_tests
         call ld_tests
         call fbd_tests
+        call clip_tests
     ENDIF
         ; ---- result
         ld bc,0x0000
@@ -530,6 +531,60 @@ t_word: ld a,(hl)
 
 
     IF TPART==2
+; ---- clipboard: copy IL lines 1-2, paste them at line 0, cut them again
+clip_tests:
+        ld hl,t_clip
+        xor a
+        ld (cur_pou),a
+        call il_load_text
+        xor a
+        call pou_body
+        ld (t_val),bc
+        ld de,rec_buf           ; the original body
+        ldir
+        ld hl,1                 ; mark line 1, cursor line 2: copy
+        ld (mk_a),hl
+        ld de,2
+        ld a,CMD_COPY
+        BCALL cl_cmd
+        ld a,(clip_n)
+        cp 2
+        call t_check
+        ld de,0                 ; paste in front of line 0
+        ld a,CMD_PASTE
+        BCALL cl_cmd
+        xor a
+        call pou_body
+        ld hl,(t_val)
+        ld de,(clip_len)
+        add hl,de
+        or a
+        sbc hl,bc
+        call t_check            ; longer by the clipboard
+        ld hl,0                 ; cut lines 0-1
+        ld (mk_a),hl
+        ld de,1
+        ld a,CMD_CUT
+        BCALL cl_cmd
+        xor a
+        call pou_body
+        ld de,rec_buf
+.c:     ld a,(de)
+        cp (hl)
+        jr nz,.ne
+        inc hl
+        inc de
+        dec bc
+        ld a,b
+        or c
+        jr nz,.c
+.ne:    call t_check            ; the original body again
+        ret
+t_clip: db "LD",9,"%IX0.0",0
+        db "ST",9,"%QX0.0",0
+        db "ST",9,"%QX0.1",0
+        db 0xFF
+
 t_prog1:
         db "LD",9,"%IX0.0",0
         db "OR",9,"%QX0.0",0

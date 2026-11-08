@@ -452,4 +452,12 @@ xr_jf:    db 0              ; cross reference jump: the editor opens at
 xr_jl:    dw 0              ;   line / row xr_jl, position xr_jp
 xr_jp:    db 0
 xr_err:   db 0              ; 1: the editor shows il_err once (compile error)
+mk_a:     dw 0xFFFF         ; start line / row of the marked block, 0xFFFF = none
+clip_lang: db 0             ; clipboard: 0 empty, 1 IL, 2 LD, 3 FBD
+clip_len: dw 0              ;   bytes in clip_buf (BANK_DATA)
+clip_n:   dw 0              ;   lines / rows
+clip_r0:  db 0              ;   LD / FBD: first row it was copied from
+cl_a:     db 0              ; FBD: rows to copy (whole networks), set by the
+cl_b:     db 0              ;   editor before CMD_COPY / CMD_CUT
+cl_p:     db 0              ; FBD: paste row (start of the network)
 tl_cmd:   db 0              ; tl_run: CMD_XREF or CMD_WADD

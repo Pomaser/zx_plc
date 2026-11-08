@@ -218,7 +218,7 @@ kt_caps:
         db K_BREAK,0,'M','N','B'
 kt_sym:
         db 0,':',K_XREF,'?','/'
-        db 0,0,0,0,0
+        db K_MARK,0,K_COPY,K_PASTE,0
         db 0,K_WATCH,0,'<','>'
         db '!','@','#','$','%'
         db '_',')','(',0x27,'&'

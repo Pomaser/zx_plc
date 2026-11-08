@@ -77,6 +77,11 @@ Edit > Undo or SYMBOL SHIFT + `U` (in the POU list and all editors) undoes the l
 View > Cross references or SYMBOL SHIFT + `X` lists every use of the operand under the cursor (IL line,
 LD / FBD element, symbol; in the POU list: the calls of the POU) with POU, line or row / position and
 Read / Write / Call; ENTER opens that place.
+SYMBOL SHIFT + `A` marks the start of a block (the cursor is the other end, a bar at the left edge shows it),
+SYMBOL SHIFT + `D` copies it (without a mark: the current IL line, LD rung or FBD network), Edit > Cut copies
+and deletes it, and SYMBOL SHIFT + `F` pastes the clipboard in front of the cursor line / rung / network,
+also in another POU of the same language. LD / FBD blocks take whole rungs / networks with the comment rows
+above them; FB instances are kept. POU > Duplicate... (`U` in the POU list) copies a whole POU.
 Keys are read in the interrupt into an 8-key queue, so typing ahead is not lost.
 
 | Key | Function |
@@ -88,13 +93,13 @@ Keys are read in the interrupt into an 8-key queue, so typing ahead is not lost.
 | SS + UP / DOWN (CS+SS+7 / 6) | one screen up / down in the editors, first / last POU in the POU list |
 | SS + ENTER | IL editor: new empty line below (also with the cursor at the start of a line), LD editor: start of the next row |
 | ENTER | execute the item / open the selected POU in the editor |
-| letters | first letter of a title or item (hotkey); N / R / D / L in the POU list |
+| letters | first letter of a title or item (hotkey); N / R / D / L / U in the POU list |
 
 | Menu | Items |
 |---|---|
 | File | New project, Open demo, Load..., Save... |
-| POU | Manage, New..., Rename/Comment..., Language..., Delete |
-| Edit | Edit POU, Undo, Add to watch, Symbols, Insert line, Delete line |
+| POU | Manage, New..., Rename/Comment..., Language..., Duplicate..., Delete |
+| Edit | Edit POU, Undo, Add to watch, Symbols, Insert line, Delete line, Mark block, Copy, Cut, Paste |
 | View | Symbols, Addresses (how operands are shown in the IL editor and the simulation), Cross references, Sound (on/off) |
 | Run | Run, Stop, Step, Reset, Watch |
 | Help | Controls, About |

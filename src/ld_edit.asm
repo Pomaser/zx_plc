@@ -1026,6 +1026,8 @@ ld_set_state:
 ; ============================================================
 ld_editor:
         call screen_begin
+        ld hl,0xFFFF            ; no marked block
+        ld (mk_a),hl
         ld a,(xr_jf)            ; opened from the cross references
         or a
         jr z,.nj
@@ -1057,7 +1059,8 @@ ld_editor:
 .cur:   call ld_cursor
         call ld_info
         call xr_errmsg          ; (after a jump to a compile error)
-.loop:  call kb_wait
+.loop:  call .mkd
+        call kb_wait
         push af
         call ld_cursor          ; cursor off
         pop af
@@ -1108,6 +1111,14 @@ ld_editor:
         jp z,.xrk
         cp K_UNDO
         jp z,.undk
+        cp K_MARK               ; SS+A / SS+D / SS+F: mark, copy, paste
+        jr c,.kc
+        cp K_PASTE+1
+        jr nc,.kc
+        add a,CMD_MARK-K_MARK
+        ld (mk_cmd),a
+        jp .menu
+.kc:
         cp K_INS
         jp z,.insk
         cp K_BREAK
@@ -1499,10 +1510,37 @@ ld_editor:
         jr z,.mins
         cp CMD_IL_DEL
         jr z,.mdel
-        push af
+        cp CMD_MARK             ; mark / copy / paste / cut (clip.asm)
+        jr c,.n2
+        cp CMD_CUT+1
+        jr c,.clip
+.n2:    push af
         ld hl,0
         ld (st_left),hl
         pop af
+        ret
+.clip:  push af
+        ld a,(ld_row)
+        ld e,a
+        ld d,0
+        pop af
+        BCALL cl_cmd
+        jp z,.cur
+        ld a,e
+        ld (ld_row),a
+        jp .same
+.mkd:   ld a,(ld_top)           ; marker bars of the marked block
+        ld l,a
+        ld h,0
+        ld a,(ld_row)
+        ld e,a
+        ld d,h
+        ld a,(ld_vn)
+        ld b,a
+        ld a,(ld_vbase)
+        ld c,a
+        ld a,1
+        BCALL mk_draw
         ret
 .mins:  ld a,(ld_row)
         ld d,a

@@ -46,6 +46,8 @@ scr_pou:
         jp z,.lang
         cp 'C'
         jp z,.cmt
+        cp 'U'
+        jp z,.dup
         jr .key
 .first: xor a                   ; MAIN (NC)
         jr .move
@@ -96,7 +98,73 @@ scr_pou:
         jp z,.delete
         cp CMD_POU_LANG
         jp z,.lang
+        cp CMD_POU_DUP
+        jp z,.dup
         ret
+
+.dup:   ld a,(PROJ+P_NPOU)      ; duplicate: a copy of the selected POU
+        cp MAX_POU              ; (body, language, comment) under a new name
+        jr c,.du1
+        ld hl,err_pou_full
+        call ui_error
+        jp .key
+.du1:   ld a,(cur_pou)
+        ld (pl_dsrc),a
+        xor a
+        ld (name_buf),a
+        ld a,0xFF
+        call input_pou_name
+        jp c,.key
+        ld a,(pl_dsrc)
+        call pou_lang
+        ld hl,name8
+        call pou_add
+        jp c,.key
+        ld (pl_ddst),a
+        ld a,(pl_dsrc)
+        call pou_body
+        ld a,b
+        or c
+        jr z,.dcm
+        ld a,(pl_ddst)
+        ld de,0
+        push bc
+        call pou_insert
+        pop bc
+        jr nc,.du2
+        ld a,(pl_ddst)          ; no room: the new POU goes again
+        call pou_remove
+        ld hl,err_il_mem
+        call ui_error
+        jp .redraw
+.du2:   push hl                 ; (the source may have moved)
+        ld a,(pl_dsrc)
+        call pou_body
+        pop de
+        ldir
+.dcm:   ld a,(pl_dsrc)          ; flags and comment
+        call pou_entry
+        ld de,PE_FLAGS
+        add hl,de
+        push hl
+        ld a,(pl_ddst)
+        call pou_entry
+        ld de,PE_FLAGS
+        add hl,de
+        ex de,hl
+        pop hl
+        ld a,(hl)
+        ld (de),a
+        ld bc,PE_CMT-PE_FLAGS
+        add hl,bc
+        ex de,hl
+        add hl,bc
+        ex de,hl
+        ld bc,POU_ESIZE-PE_CMT
+        ldir
+        ld a,(pl_ddst)
+        ld (cur_pou),a
+        jp .redraw
 
 .new:   ld a,(PROJ+P_NPOU)
         cp MAX_POU
@@ -422,6 +490,8 @@ input_pou_cmt:
         jp pou_set_cmt
 
 pl_slot: db 0
+pl_dsrc: db 0               ; duplicate: source and new slot
+pl_ddst: db 0
 pl_cbuf: ds POU_CMAX+1
 pl_buf: ds 10
 

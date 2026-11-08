@@ -32,6 +32,8 @@ K_NONE    EQU 0xFF          ; row below the last line
 ; ---- il_editor: screen handler for an IL POU, returns a command in A
 il_editor:
         call screen_begin
+        ld hl,0xFFFF            ; no marked block
+        ld (mk_a),hl
         ld a,(xr_jf)            ; opened from the cross references
         or a
         jr z,.nj
@@ -70,7 +72,8 @@ il_editor:
         call il_fix_top
 .full:  call il_redraw_all
         call xr_errmsg          ; (after a jump to a compile error)
-.loop:  call il_key
+.loop:  call .mkd
+        call il_key
         cp K_ENTER
         jp z,.enter
         cp K_UP
@@ -103,6 +106,14 @@ il_editor:
         jp z,.pgdn
         cp K_SSENTER
         jp z,.ssent
+        cp K_MARK               ; SS+A / SS+D / SS+F: mark, copy, paste
+        jr c,.kc
+        cp K_PASTE+1
+        jr nc,.kc
+        add a,CMD_MARK-K_MARK
+        ld (mk_cmd),a
+        jp .menu
+.kc:
         cp 32
         jr c,.loop
         cp 128
@@ -456,8 +467,23 @@ il_editor:
         jr z,.mins
         cp CMD_IL_DEL
         jr z,.mdel
-        ld hl,0
+        cp CMD_MARK             ; mark / copy / paste / cut (clip.asm)
+        jr c,.m3
+        cp CMD_CUT+1
+        jr nc,.m3
+        ld de,(il_cur)
+        BCALL cl_cmd
+        jp z,.loop
+        ld (il_cur),de
+        jp .same
+.m3:    ld hl,0
         ld (st_left),hl
+        ret
+.mkd:   ld hl,(il_top)          ; marker bars of the marked block
+        ld de,(il_cur)
+        ld bc,IL_ROWS*256+IL_ROW0
+        ld a,2
+        BCALL mk_draw
         ret
 .mins:  ld de,(il_cur)
         call il_ins_empty

@@ -20,7 +20,7 @@ The screenshots in this manual come from the program itself; `make docs` regener
 9. [Symbol editor](#9-symbol-editor)
 10. [Simulation](#10-simulation)
 11. [Watch and force table](#11-watch-and-force-table)
-12. [Tools: undo, cross references, add to watch](#12-tools-undo-cross-references-add-to-watch)
+12. [Tools: undo, copy and paste, cross references, add to watch](#12-tools-undo-copy-and-paste-cross-references-add-to-watch)
 13. [The demo project](#13-the-demo-project)
 14. [Reference](#14-reference)
 
@@ -66,6 +66,9 @@ The cursor keys are CAPS SHIFT + 5 / 6 / 7 / 8, DELETE is CAPS SHIFT + 0. Combin
 | SS + X | cross references of the operand at the cursor |
 | SS + W | add the operand at the cursor to the watch list |
 | SS + I | LD: insert an element in front of the cursor |
+| SS + A | mark the start of a block (again: remove the mark) |
+| SS + D | copy the block (or the current line / rung / network) |
+| SS + F | paste in front of the cursor |
 
 **Help > Controls** shows a short list of the keys:
 
@@ -99,6 +102,7 @@ Each menu title opens a drop-down list. The first letter of a title or item is i
 | New... | new POU: name, language, comment |
 | Rename/Comment... | rename the selected POU (not MAIN) and edit its comment |
 | Language... | change the language of an empty POU |
+| Duplicate... | a copy of the selected POU under a new name (also `U` in the POU list) |
 | Delete | delete the selected POU (not MAIN) |
 
 ### Edit
@@ -113,6 +117,10 @@ Each menu title opens a drop-down list. The first letter of a title or item is i
 | Symbols | the symbol editor |
 | Insert line | insert an empty line / row |
 | Delete line | delete the current line / row |
+| Mark block | mark the start of a block (also SS+A) |
+| Copy | copy the block (also SS+D) |
+| Cut | copy the block and delete it |
+| Paste | paste in front of the cursor (also SS+F) |
 
 ### View
 
@@ -379,12 +387,30 @@ with their symbols and live values and is saved with the project.
   is left.
 * Time values (ET) and counter values (CV) can be watched, but not forced.
 
-## 12. Tools: undo, cross references, add to watch
+## 12. Tools: undo, copy and paste, cross references, add to watch
 
 **Undo (SS+U, Edit > Undo)** returns the project to its state before the last key that changed it, for
 example a deleted line, element or POU. It keeps one step.
 
 ![Nothing to undo](img/undo_none.png)
+
+**Copy and paste.** SS+A (Edit > Mark block) marks the start of a block at the cursor line / row; moving
+the cursor selects the block, shown by a bar at the left screen edge. SS+A again removes the mark.
+SS+D (Edit > Copy) copies the block to the clipboard, Edit > Cut copies it and deletes it. Without a mark
+the current IL line, LD rung or FBD network is taken. SS+F (Edit > Paste) inserts the clipboard in front
+of the cursor line (IL) or in front of the rung / network of the cursor (LD / FBD), also in another POU of
+the same language. The status bar shows what was copied or pasted.
+
+![A marked block (lines 3-5)](img/clip_mark.png)
+
+* LD blocks always take whole rungs (rows joined by vertical links), FBD blocks whole networks, so that
+  no element is cut; the comment rows just above a rung / network go with it.
+* FB instances stay the same: a pasted `TON0` box uses the same timer. Choose another instance if the
+  copy needs its own.
+* Paste is one step for Undo.
+
+**Duplicate a POU (POU > Duplicate..., `U` in the POU list)** makes a copy of the selected POU with its
+language and comment under a new name.
 
 **Cross references (SS+X, View > Cross references)** list every use of the operand at the cursor. It
 works on an IL line, an LD / FBD element or a symbol; in the POU list it finds the calls of the POU. Each

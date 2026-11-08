@@ -28,7 +28,7 @@ on tape. See README.md for the user-facing description of every editor and key.
   per image, `--noborder`). Update the manual and the scripts when the UI changes.
 - `python3 tools/fixjr.py main.asm`: builds and converts every out-of-range `jr` to `jp` in the source,
   then prints the remaining errors. Run it after edits that make code longer.
-- `python3 tools/xref.py --check "pou:R,app:E,il_edit:E,sym_edit:E,ld_edit:E,sim:E,demo:E,il_comp:R,vm:R,ld_comp:R,fbd_comp:R,tape:R,tests:E,fbd_edit:F,tools:D"`:
+- `python3 tools/xref.py --check "pou:R,app:E,il_edit:E,sym_edit:E,ld_edit:E,sim:E,demo:E,il_comp:R,vm:R,ld_comp:R,fbd_comp:R,tape:R,tests:E,fbd_edit:F,tools:D,clip:D"`:
   reports labels referenced across paged banks without `BCALL`. Unlisted modules are core. The
   `run_tests` / `demo_build` hits in main.asm are expected. Extend the map when a module moves.
 - Headless emulator: `.scratch/venv/bin/python tools/zxrun.py zxplc.sna -f 30 -s "<script>"`
@@ -55,8 +55,9 @@ on tape. See README.md for the user-facing description of every editor and key.
 - **Paged banks at 0xC000.** `main.asm` decides which module goes where:
   - EDIT 0: IL, LD and symbol editors, simulation screen, tests.
   - RUN 4: compilers, VM, bytecode at 0xF000, POU list, tape. It is uncontended, which tape timing needs.
-  - DATA 1: the popup save buffer.
-  - DEMO 3: `src/tools.asm` (cross references, watch / force page of the simulation) and the demo image.
+  - DATA 1: the popup save buffer and the clipboard (`clip_buf`, filled by `src/clip.asm`).
+  - DEMO 3: `src/tools.asm` (cross references, watch / force page of the simulation), `src/clip.asm`
+    (mark / copy / cut / paste, called by the editors with `BCALL cl_cmd` / `mk_draw`) and the demo image.
   - FBD 6: the FBD editor.
   - SPARE 7: the project copy while loading from tape.
 

@@ -1356,5 +1356,6 @@ txt_keys:
         db "SS+U",PT_TAB,"undo",0
         db "SS+X",PT_TAB,"cross references",0
         db "SS+W",PT_TAB,"add to watch",0
+        db "SS+A D F",PT_TAB,"mark  copy  paste",0
         db "SS+I",PT_TAB,"LD: insert element",0
         db 0

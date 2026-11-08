@@ -15,6 +15,8 @@ ATTR_FBON EQU ATTR_ON        ; TRUE (as in LD / IL)
 ; ---- fb_editor: edits the FBD POU cur_pou, returns a menu command
 fb_editor:
         call screen_begin
+        ld hl,0xFFFF            ; no marked block
+        ld (mk_a),hl
         ld a,(xr_jf)            ; opened from the cross references
         or a
         jr z,.nj
@@ -46,7 +48,8 @@ fb_editor:
 .cur:   call fb_cursor
         call fb_info
         call xr_errmsg          ; (after a jump to a compile error)
-.loop:  call kb_wait
+.loop:  call .mkd
+        call kb_wait
         push af
         call fb_cursor          ; cursor off
         pop af
@@ -96,6 +99,14 @@ fb_editor:
         jp z,.xrk
         cp K_UNDO
         jp z,.undk
+        cp K_MARK               ; SS+A / SS+D / SS+F: mark, copy, paste
+        jr c,.kc
+        cp K_PASTE+1
+        jr nc,.kc
+        add a,CMD_MARK-K_MARK
+        ld (mk_cmd),a
+        jp .menu
+.kc:
         cp K_BREAK
         jp z,.menu
         cp K_EDIT
@@ -533,11 +544,66 @@ fb_editor:
 .nx:    cp CMD_IL_INS
         jr z,.mins
         cp CMD_IL_DEL
-        jr z,.mdel
-        push af
+        jp z,.mdel
+        cp CMD_MARK             ; mark / copy / paste / cut (clip.asm)
+        jr c,.n2
+        cp CMD_CUT+1
+        jr c,.clip
+.n2:    push af
         ld hl,0
         ld (st_left),hl
         pop af
+        ret
+.clip:  push af                 ; whole networks: cl_a..cl_b, paste row cl_p
+        ld a,(ld_row)
+        call fb_net_of
+        ld a,b
+        ld (cl_p),a
+        ld a,(ld_row)           ; B = first, C = last row of the block
+        ld b,a
+        ld c,a
+        ld hl,(mk_a)
+        ld a,h
+        and l
+        inc a
+        jr z,.c1                ; no mark
+        ld a,l
+        cp b
+        jr nc,.c0
+        ld b,a
+        jr .c1
+.c0:    ld c,a
+.c1:    push bc
+        ld a,b
+        call fb_net_of
+        ld a,b
+        ld (cl_a),a
+        pop bc
+        ld a,c
+        call fb_net_of
+        ld a,c
+        ld (cl_b),a
+        ld a,(ld_row)
+        ld e,a
+        ld d,0
+        pop af
+        BCALL cl_cmd
+        jp z,.cur
+        ld a,e
+        ld (ld_row),a
+        jp .same
+.mkd:   ld a,(ld_top)           ; marker bars of the marked block
+        ld l,a
+        ld h,0
+        ld a,(ld_row)
+        ld e,a
+        ld d,h
+        ld a,(ld_vn)
+        ld b,a
+        ld a,(ld_vbase)
+        ld c,a
+        ld a,1
+        BCALL mk_draw
         ret
 .mins:  ld a,(ld_row)
         ld d,a
@@ -1041,6 +1107,27 @@ fb_net_shift:
         jr fb_net_shift.chk
 
 ; fb_net_rows: fm_r0 .. fm_r1 = the rows of the network of ld_row
+; ---- fb_net_of: A = row -> B = first, C = last row of its network (the
+;      row itself when it is not part of one)
+fb_net_of:
+        push af
+        call fb_net_row
+        pop bc                  ; B = row
+        ld c,b
+        ret nc
+        ld a,(ld_row)
+        push af
+        ld a,b
+        ld (ld_row),a
+        call fb_net_rows
+        pop af
+        ld (ld_row),a
+        ld a,(fm_r0)
+        ld b,a
+        ld a,(fm_r1)
+        ld c,a
+        ret
+
 fb_net_rows:
         ld a,(ld_row)           ; first row of the network
 .up:    ld (fm_r0),a

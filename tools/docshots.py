@@ -44,6 +44,7 @@ SHOTS = [
     ("sim_fbd", FBD + RUN + "k:B w5 k:0 w5 k:2 w60"),
     ("sim_watch", FBD + RUN + "k:B w5 k:0 w5 k:2 w30 k:W w40 " + D + D + "k:F w40"),
     ("xref", IL + D + "k:SS+X w60"),
+    ("clip_mark", IL + D * 2 + "k:SS+A w10 " + D * 2 + "w10"),
     ("add_watch", LD + D + "k:SS+W w40"),
     ("undo_none", "w30 k:SS+U w30"),
     ("file_save", MENU + "k:F w5 k:S w20"),

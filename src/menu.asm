@@ -40,6 +40,7 @@ mi_pou:
         db CMD_POU_NEW,   'N',"New...",0
         db CMD_POU_RENAME,'R',"Rename/Comment...",0
         db CMD_POU_LANG,  'L',"Language...",0
+        db CMD_POU_DUP,   'U',"Duplicate...",0
         db CMD_POU_DELETE,'D',"Delete",0
         db 0
 mi_edit:
@@ -49,6 +50,10 @@ mi_edit:
         db CMD_SYMBOLS,'S',"Symbols",0
         db CMD_IL_INS,'I',"Insert line",0
         db CMD_IL_DEL,'D',"Delete line",0
+        db CMD_MARK,  'M',"Mark block",0
+        db CMD_COPY,  'C',"Copy",0
+        db CMD_CUT,   'X',"Cut",0
+        db CMD_PASTE, 'P',"Paste",0
         db 0
 mi_view:
         db CMD_VIEW_SYM, 'S',"Symbols",0
