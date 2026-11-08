@@ -331,7 +331,8 @@ dark blue), the address (black) and a comment (up to 30 characters, dark green).
 
 ## 10. Simulation
 
-**Run > Run** compiles all POUs and runs MAIN once per frame. Compile errors show the POU and line.
+**Run > Run** compiles all POUs and runs MAIN once per frame. A compile error opens the editor of that POU at
+the faulty line or element; the message is shown in the status bar.
 
 * The upper part monitors the current POU (or MAIN):
   * IL lines show the value of their operand on the right. `TRUE` is black on green. A `CAL` of a timer

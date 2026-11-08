@@ -21,6 +21,7 @@ ld_compile:
         ld a,(cp_slot)
         ld (cur_pou),a          ; the ld_* helpers work on cur_pou
         call .go
+        call c,lc_errpos
         push af
         ld a,(lc_pou)
         ld (cur_pou),a
@@ -50,7 +51,10 @@ ld_compile:
         ld hl,lc_r1
         inc (hl)
         jr .ext
-.endf:  ld a,(lc_r0)
+.endf:  xor a                   ; (error position: the rung start)
+        ld (lc_i),a
+        ld (lc_p),a
+        ld a,(lc_r0)
         inc a
         ld l,a
         ld h,0
@@ -505,6 +509,27 @@ lc_emit_av:
         ld a,b
         jp cp_emit
 
+; ---- lc_errpos: after a compile error (LD / FBD): cp_line = the row of the
+;      current element (1-based, inside the rung), cp_epos = its position; C
+lc_errpos:
+        ld a,(lc_r0)
+        ld b,a
+        ld a,(lc_i)
+        add a,b
+        ld c,a
+        ld a,(lc_r1)
+        cp c
+        jr nc,.in
+        ld c,b                  ; (outside the rung: its first row)
+.in:    ld a,c
+        inc a
+        ld l,a
+        ld h,0
+        ld (cp_line),hl
+        ld a,(lc_p)
+        ld (cp_epos),a
+        scf
+        ret
 
 lc_pou:   db 0
 lc_nrows: db 0

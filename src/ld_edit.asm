@@ -1056,6 +1056,7 @@ ld_editor:
 .full:  call ld_draw_view
 .cur:   call ld_cursor
         call ld_info
+        call xr_errmsg          ; (after a jump to a compile error)
 .loop:  call kb_wait
         push af
         call ld_cursor          ; cursor off

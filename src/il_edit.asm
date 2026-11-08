@@ -69,6 +69,7 @@ il_editor:
 .okc:   call il_load
         call il_fix_top
 .full:  call il_redraw_all
+        call xr_errmsg          ; (after a jump to a compile error)
 .loop:  call il_key
         cp K_ENTER
         jp z,.enter

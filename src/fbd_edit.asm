@@ -45,6 +45,7 @@ fb_editor:
 .full:  call fb_draw_view
 .cur:   call fb_cursor
         call fb_info
+        call xr_errmsg          ; (after a jump to a compile error)
 .loop:  call kb_wait
         push af
         call fb_cursor          ; cursor off

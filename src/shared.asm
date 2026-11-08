@@ -34,6 +34,18 @@ cp_fail:
         scf
         ret
 
+; ---- xr_errmsg: after a jump to a compile error the editor shows the
+;      message (il_err) in the status bar once
+xr_errmsg:
+        ld hl,xr_err
+        ld a,(hl)
+        or a
+        ret z
+        ld (hl),0
+        ld hl,(il_err)
+        ld (st_left),hl
+        jp status_left
+
 ; ---- cp_operand: HL = operand text -> NC: cp_mode/cp_arg/cp_arg3, HL past it
 cp_operand:
         call op_parse
@@ -191,6 +203,7 @@ cp_slot:  db 0
 cp_pass:  db 0
 cp_nlbl:  db 0
 cp_line:  dw 0
+cp_epos:  db 0              ; LD / FBD: position of the faulty element
 cp_rec:   dw 0
 cp_end:   dw 0
 cp_kind:  db 0
@@ -438,4 +451,5 @@ ld_cbuf:  ds 40
 xr_jf:    db 0              ; cross reference jump: the editor opens at
 xr_jl:    dw 0              ;   line / row xr_jl, position xr_jp
 xr_jp:    db 0
+xr_err:   db 0              ; 1: the editor shows il_err once (compile error)
 tl_cmd:   db 0              ; tl_run: CMD_XREF or CMD_WADD

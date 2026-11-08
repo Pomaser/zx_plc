@@ -61,16 +61,12 @@ scr_run:
         ld (sm_run),a
         call sim_state
         BCALL il_compile
-        ld a,0
-        jr c,.cerr
-        inc a
-.cerr:  ld (sm_ok),a
+        jp c,.cjump
+        ld a,1
+        ld (sm_ok),a
         call sim_draw_panel
         call sim_draw_list
-        ld a,(sm_ok)
-        or a
-        call z,sim_cerr
-        call nz,sim_chk_called
+        call sim_chk_called
         ; command requested from another screen
         ld hl,sim_pending
         ld a,(hl)
@@ -221,6 +217,24 @@ scr_run:
         jp .loop
 .mc:    call sim_cmd
         jp .loop
+.cjump: xor a                   ; compile error: the editor opens at the
+        ld (sm_ok),a            ; faulty line / element, the message is in
+        ld (sim_pending),a      ; the status bar
+        call beep
+        ld a,(cp_slot)
+        ld (cur_pou),a
+        ld hl,(cp_line)         ; (1-based)
+        ld a,h
+        or l
+        jr z,.cj0
+        dec hl
+.cj0:   ld (xr_jl),hl
+        ld a,(cp_epos)
+        ld (xr_jp),a
+        ld a,1
+        ld (xr_jf),a
+        ld (xr_err),a
+        ld a,CMD_EDIT
 .exit:  push af
         xor a
         ld (sm_run),a           ; the simulation stops when leaving the screen
@@ -386,29 +400,6 @@ sim_dim:
         cp 16
         jr c,.l
         ret
-
-; ---- sim_cerr: compile error popup "Error in NAME, line 012" + message
-sim_cerr:
-        ld de,sm_msg
-        ld hl,txt_sm_err
-        call put_str
-        ld a,(cp_slot)
-        call pou_entry
-        call name_unpad
-        ld hl,txt_sm_line
-        call put_str
-        ld hl,(cp_line)
-        call dec3
-        inc de
-        ld hl,(il_err)
-        call put_str
-        xor a
-        ld (de),a
-        inc de
-        ld (de),a
-        ld hl,sm_msg
-        call beep
-        jp msg_box
 
 ; ---- sim_chk_called: the monitored POU is not MAIN and nothing calls it
 ;      -> popup (only MAIN runs in the simulation)
@@ -827,8 +818,6 @@ txt_sm_true:  db "TRUE",0
 txt_wt_hint:  db "ENTER Edit  F Force  DEL Delete  W Program",0
 txt_sm_hint:  db "0-7 Force  SS+n Write  B Byte  R Run  S Step  E Res",0
 txt_sm_nomon: db "No IL or LD POU to monitor.",0
-txt_sm_err:   db "Error in ",0
-txt_sm_line:  db ", line ",0
 
 sim_tog:    dw 0              ; toggled inputs I0, I1
 sm_page:    db 0              ; 0 program listing, 1 watch / force table

@@ -23,6 +23,7 @@ fb_compile:
         ld a,(cp_slot)
         ld (cur_pou),a
         call .go
+        call c,lc_errpos
         push af
         ld a,(lc_pou)
         ld (cur_pou),a
@@ -69,7 +70,10 @@ fb_compile:
         jr c,.ext
         ld (hl),a
         jr .ext
-.endn:  ld a,(lc_r0)
+.endn:  xor a                   ; (error position: the network start)
+        ld (lc_i),a
+        ld (lc_p),a
+        ld a,(lc_r0)
         inc a
         ld l,a
         ld h,0

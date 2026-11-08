@@ -222,7 +222,7 @@ and must not clash with addresses, keywords, FB instances, IL instructions or PO
 ## Simulation (Run)
 
 Run > Run (or R on the Run screen) compiles all POUs to bytecode and runs MAIN once per frame (20 ms).
-Compile errors are reported with the POU name and line number.
+A compile error opens the editor at the faulty line or element, with the message in the status bar.
 
 * Upper part: listing of the monitored IL or LD POU (the current POU, or MAIN) with the live value of each
   operand on the right (`TRUE` black on bright green, `FALSE`, numbers; PT/ET of timers as
