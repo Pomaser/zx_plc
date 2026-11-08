@@ -210,8 +210,8 @@ fc_height:
         jr z,.three
         cp FT_CMP               ; compare: A, B
         jr z,.two
-        cp FT_MATH              ; compute: EN, A, B
-        jr z,.three
+        cp FT_MATH              ; compute: A, B
+        jr z,.two
         cp FT_CTD
         jr z,.three
         call ld_isbox           ; timers: IN row + PT row
@@ -297,13 +297,15 @@ fc_elem:
         cp FT_XOR
         jr z,.lg
         jp fc_fb
-.math:  ld a,OP_LD              ; compute block: D := A op B while EN (the
-        call fc_emit_row        ; first row) is TRUE; the output is EN
+.math:  call fc_link
+        call lc_wexpr           ; compute block: D := A op B in every scan
+        ret c                   ; (its output is the word D: no signal on
+        ld hl,ld_gext+7         ; its rows)
+        call cp_operand_rec
         ret c
-        call lc_wmath
+        ld a,OP_ST
+        call cp_emit
         ret c
-        ld hl,lc_i              ; the operand rows get no signal
-        inc (hl)
         ld a,1
         call lc_set_dead
         ld hl,lc_i
@@ -311,11 +313,11 @@ fc_elem:
         ld a,1
         call lc_set_dead
         ld hl,lc_i
-        dec (hl)
         dec (hl)
         or a
         ret
-.cmp:   call lc_wexpr           ; compare block: Q = A op B (the operands
+.cmp:   call fc_link
+        call lc_wexpr           ; compare block: Q = A op B (the operands
         ret c                   ; are in the block, its rows get no signal)
         call fc_mon
         ret c
@@ -539,6 +541,48 @@ fc_mon: ld a,(cp_slot)
 .no:    or a
         ret
 
+; fc_link: a compare / compute block whose A cell is the output cell of a
+;   compute block (two positions to the left): A = the D of that block
+fc_link:
+        ld a,(lc_p)
+        cp 2
+        ret c
+        ld hl,ld_gext           ; (ld_get below overwrites ld_gext)
+        ld de,fc_ext
+        ld bc,9
+        ldir
+        ld a,(lc_r0)
+        ld b,a
+        ld a,(lc_i)
+        add a,b
+        ld d,a
+        ld a,(lc_p)
+        sub 2
+        ld e,a
+        call ld_get
+        and FT_MASK
+        cp FT_MATH
+        ld a,(ld_gext+7)
+        ld b,a
+        ld a,(ld_gext+8)
+        ld c,a
+        push af
+        ld hl,fc_ext
+        ld de,ld_gext
+        push bc
+        ld bc,9
+        ldir
+        pop bc
+        pop af
+        ret nz
+        ld a,b
+        ld (ld_gext),a
+        ld a,c
+        ld (ld_gext+1),a
+        xor a
+        ld (ld_gext+2),a
+        ret
+
 ; fc_is_lg: A = type -> Z if it has a monitor bit: FBD AND / OR / XOR / NOT
 ;   and compares, LD only compares (fc_ld = 1); keeps BC
 fc_is_lg:
@@ -587,3 +631,4 @@ fc_k:    db 0
 fc_nin:  db 0
 fc_bend: dw 0
 fc_ld:    db 0              ; 1: compiling LD (fc_is_lg: compares only)
+fc_ext:   ds 9              ; fc_link: the operands of the block

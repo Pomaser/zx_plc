@@ -316,7 +316,7 @@ ENTER opens the picker. On a block input, outputs are not offered:
 | `T` / `F` / `U` | TON / TOF / TP timer (2 rows: IN, PT) |
 | `K` / `D` | CTU / CTD counter (3 rows: CU, R or CD, LD, then PV) |
 | `G` | compare block GT / GE / EQ / NE / LE / LT (2 rows: the value, the value to compare with) |
-| `M` | compute block ADD / SUB / MUL / DIV / MOVE (3 rows: EN, the value A, the value B) |
+| `M` | compute block ADD / SUB / MUL / DIV / MOVE (2 rows: the values A and B, the result D on the right) |
 
 * **Presets:** a timer has its preset PT on its second row and a counter its PV on its third row. The
   value is written on the left of the row (`T#2s--PT`, `3--PV`). `T` on the block or on that cell edits
@@ -328,10 +328,12 @@ ENTER opens the picker. On a block input, outputs are not offered:
   output is TRUE when the comparison holds (green in the simulation). It is typed as one expression like
   in LD (`MW3<50`), and the block is named after the operator (`LT`). ENTER on the block or on a value edits
   it.
-* **Compute:** the block runs `D:=A op B` (`+` `-` `*` `/`, or `D:=A` for MOVE) in every scan in which
-  its first input EN is TRUE. A and B are written on the left of its second and third row, the target
-  above the block (`MW3:=`). Its output passes EN on. It is typed as one expression like in LD
-  (`MW3:=MW3+1`); ENTER on the block or on a value edits it.
+* **Compute:** the block runs `D:=A op B` (`+` `-` `*` `/`, or `D:=A` for MOVE) in every scan. A and B
+  are written on the left of its rows, the result D on the right of it (`MW3--ADD--MW3`). It is typed as
+  one expression like in LD (`MW3:=MW3+1`); ENTER on the block or on a value edits it. The cell of D
+  stays free.
+* **Chaining:** a compare or compute block placed right behind the result of a compute block takes that
+  result as its A (`MW3--ADD--MW3--GE`), whatever A was typed.
 * **The cursor** stands only on block inputs, blocks and outputs. It skips the cells inside a block.
 * **Outputs and wires** need a signal from the left. Inputs placed left of a block input are wired to
   it automatically.

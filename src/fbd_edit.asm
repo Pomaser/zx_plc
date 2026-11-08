@@ -314,7 +314,20 @@ fb_editor:
         call ui_error
         jp .redraw
 .srcok:
-        jr .srco2
+        ld a,(ld_pos)           ; the output cell of a compute block: free
+        or a
+        jr z,.srco2
+        dec a
+        ld e,a
+        ld a,(ld_row)
+        ld d,a
+        call ld_get
+        and FT_MASK
+        cp FT_MATH
+        jr nz,.srco2
+        ld hl,err_fb_mout
+        call ui_error
+        jp .redraw
 .ptl:   ld hl,err_fb_ptl
         call ui_error
         jp .redraw
@@ -334,6 +347,24 @@ fb_editor:
 .pw:    ld a,(fb_newt)
         BCALL wx_edit
         jp c,.redraw
+        ld a,(ld_pos)           ; right of a compute block's output: A = its D
+        cp 2
+        jr c,.pl0
+        sub 2
+        ld e,a
+        ld a,(ld_row)
+        ld d,a
+        call ld_get
+        and FT_MASK
+        cp FT_MATH
+        jr nz,.pl0
+        ld a,(ld_gext+7)
+        ld (WD_EXT),a
+        ld a,(ld_gext+8)
+        ld (WD_EXT+1),a
+        xor a
+        ld (WD_EXT+2),a
+.pl0:
         xor a
         ld (ld_ar),a
         ld (ld_ar+1),a
@@ -404,9 +435,11 @@ fb_editor:
         ld (fb_hh),a
         xor a
         ld (fb_ins),a
-        ld a,(fb_newt)          ; (a compare block: no signal inputs)
+        ld a,(fb_newt)          ; (compare / compute: no signal inputs)
         and FT_MASK
         cp FT_CMP
+        jr z,.rows
+        cp FT_MATH
         jr z,.rows
         call fb_cur_get         ; block on an input: the input feeds its
         call fb_cls             ; first input (the network moves right)
@@ -421,12 +454,22 @@ fb_editor:
         jr c,.noroom
         ld a,(fb_newt)          ; compare / compute: the cells of its two
         and FT_MASK             ; values on its left must be free
-        ld b,0                  ; (compare: rows 0-1, compute: rows 1-2)
+        ld b,0                  ; (rows 0 and 1)
         cp FT_CMP
         jr z,.vc
-        inc b
         cp FT_MATH
         jr nz,.nc2
+        ld a,(ld_pos)           ; compute: the cell of its output (D) free
+        cp LD_CPOS
+        jr nc,.noroom
+        inc a
+        ld e,a
+        ld a,(ld_row)
+        ld d,a
+        call ld_get
+        and FT_MASK
+        jr nz,.noroom
+        ld b,0
 .vc:    ld a,(ld_pos)
         or a
         jr z,.noroom
@@ -731,20 +774,8 @@ fb_prow:
         and FT_MASK
         cp FT_CMP
         jr z,.d1
-        cp FT_MATH              ; compute: its A row
-        jr z,.d1
-        ld a,d
-        cp 2
-        jr c,.p0
-        dec d
-        dec d
-        call ld_get
-        inc d
-        inc d
-        and FT_MASK
-        cp FT_MATH              ; compute: its B row
+        cp FT_MATH
         jr nz,.p0
-        dec d
 .d1:    dec d
 .cmp:   or a
         ret
@@ -993,8 +1024,8 @@ fb_height_t:
         jr z,.three
         cp FT_CTD
         jr z,.three
-        cp FT_MATH              ; compute: EN, A, B rows
-        jr z,.three
+        cp FT_MATH              ; compute: A row + B row
+        jr z,.two
         cp FT_CMP               ; compare: A row + B row
         jr z,.two
         call ld_isbox           ; timers: IN row + PT row
@@ -1805,6 +1836,8 @@ fb_autowire:
         ret z
         cp FT_CMP               ; (its operands are on the left)
         ret z
+        cp FT_MATH
+        ret z
         cp FT_WIRE
         ret z
         ld a,(ld_pos)
@@ -2367,7 +2400,7 @@ fb_draw_elem:
         ld a,(fd_x)
         ld c,a
         call pt_tiny_c
-        ld a,(fd_t)             ; compute: "MW3:=" above the block
+        ld a,(fd_t)             ; compute: its output D on the right
         and FT_MASK
         cp FT_MATH
         jr z,.dst
@@ -2376,22 +2409,24 @@ fb_draw_elem:
         ret z
         call fd_fmt
         jp fd_label
-.dst:   ld hl,ld_gext+7         ; (ld_gext: from fd_cmpname)
-        ld de,FMT_BUF
+.dst:   ld hl,ld_gext+7         ; its output D: "-MW3" in the cell on the
+        ld de,FMT_BUF           ; right (ld_gext: from fd_cmpname)
         BCALL il_fmt_short
-        ld a,':'
-        ld (de),a
-        inc de
-        ld a,'='
-        ld (de),a
-        inc de
         xor a
         ld (de),a
-        ld a,(fd_x)             ; left aligned above the block, it may reach
-        ld (pt_x),a             ; over the cell on the right
-        add a,44
-        ld (pt_xmax),a
-        ld a,(fd_lrow)
+        ld a,(fd_x)
+        add a,24
+        ld c,a
+        ld d,3
+        call fd_hline
+        ld a,(fd_x)
+        add a,28
+        ld (pt_x),a
+        add a,22
+        jr nc,.dx
+        ld a,255
+.dx:    ld (pt_xmax),a
+        ld a,(fd_srow)
         ld (pt_row),a
         ld hl,FMT_BUF
         call pt_puts
@@ -2558,7 +2593,7 @@ fd_cmpname:
         ret
 
 ; fd_cmpcell: the cell left of a value row of a compare block (A, B on its
-;      two rows) or a compute block (A, B below its EN row) -> NZ if drawn
+;      two rows) or a compute block (the same; no B for MOVE) -> NZ if drawn
 fd_cmpcell:
         ld a,(fd_p)
         cp LD_CPOS-1
@@ -2566,12 +2601,29 @@ fd_cmpcell:
         inc a
         ld e,a
         ld d,0
-        ld hl,fw_t              ; a compare block starts on this row: A
-        add hl,de
+        ld hl,fw_t              ; a compare / compute block starts on this
+        add hl,de               ; row: A
         ld a,(hl)
         and FT_MASK
         cp FT_CMP
+        jr z,.a
+        cp FT_MATH
         jr nz,.cov
+.a:     ld a,(fd_p)             ; its A comes from the compute block on the
+        or a                    ; left (its output is drawn there)
+        jr z,.a2
+        dec a
+        ld c,a
+        ld b,0
+        ld hl,fw_t
+        add hl,bc
+        ld a,(hl)
+        and FT_MASK
+        cp FT_MATH
+        jr nz,.a2
+        or 1
+        ret
+.a2:
         ld hl,ld_gext
         ld a,(fd_r)
         jr .get
@@ -2590,13 +2642,11 @@ fd_cmpcell:
         cp FT_MATH
         jr nz,.no
         ld a,(fd_k)
-        cp 2
-        jr z,.ma
         dec a
         jr nz,.no
-        ld hl,ld_gext+4         ; compute, last row: B (not for MOVE)
+        ld hl,ld_gext+4         ; compute, second row: B (not for MOVE)
         ld a,(fd_r)
-        sub 2
+        dec a
         push hl
         ld d,a
         call ld_get
@@ -2605,10 +2655,6 @@ fd_cmpcell:
         cp OP_LD
         jr z,.no
         jr .fmt
-.ma:    ld hl,ld_gext           ; compute, middle row: A
-        ld a,(fd_r)
-        dec a
-        jr .get
 .c2:    ld a,(fd_k)             ; compare, second row: B
         dec a
         jr nz,.no
@@ -3616,6 +3662,7 @@ txt_fb_pvl:  db "PV",0
 txt_fb_rl:   db "R",0
 txt_fb_ldl:  db "LD",0
 err_fb_room: db "No room for the block",0
+err_fb_mout: db "Here is the output of the block",0
 err_fb_src:  db "No signal here (nothing on the left)",0
 err_fb_ptl:  db "Right of it is the PT of a timer",0
 
