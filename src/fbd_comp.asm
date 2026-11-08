@@ -215,6 +215,8 @@ fc_height:
         jr z,.one
         cp FT_CTU               ; counters: CU, R / CD, LD, PV
         jr z,.three
+        cp FT_CMP               ; compare: A, B
+        jr z,.two
         cp FT_CTD
         jr z,.three
         call ld_isbox           ; timers: IN row + PT row
@@ -249,8 +251,6 @@ fc_elem:
         jr z,.in
         cp FT_OUT
         jr z,.out
-        cp FT_CMP
-        jr z,.cmp
         cp FT_MATH
         jr z,.math
         ; empty: no signal
@@ -274,15 +274,6 @@ fc_elem:
         jr nc,.o1
         ld a,OP_ST|VM_N
 .o1:    jp lc_emit_op
-.cmp:   call lc_wexpr           ; compare input: the signal = A op B
-        ret c
-        call fc_mon
-        ret c
-        ld a,OP_ST
-        call lc_emit_s
-        ret c
-        xor a
-        jp lc_set_dead
 .math:  ld a,OP_LD              ; arithmetic output: enabled by the signal,
         call fc_emit_row        ; which goes on unchanged
         ret c
@@ -304,6 +295,8 @@ fc_elem:
         ld (fc_skip),a          ; the covered rows are handled here
         ld a,(fc_t)
         and FT_MASK
+        cp FT_CMP
+        jr z,.cmp
         cp FT_NOT
         jr z,.not
         cp FT_AND
@@ -313,6 +306,21 @@ fc_elem:
         cp FT_XOR
         jr z,.lg
         jp fc_fb
+.cmp:   call lc_wexpr           ; compare block: Q = A op B (the operands
+        ret c                   ; are in the block, its rows get no signal)
+        call fc_mon
+        ret c
+        ld a,OP_ST
+        call lc_emit_s
+        ret c
+        ld hl,lc_i
+        inc (hl)
+        ld a,1
+        call lc_set_dead
+        ld hl,lc_i
+        dec (hl)
+        xor a
+        jp lc_set_dead
 .not:   call lc_is_dead         ; NOT: dead row -> TRUE
         jr z,.nl
         ld a,OP_LD

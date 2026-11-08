@@ -154,6 +154,8 @@ The letter keys below work as shortcuts both in the editor and in the picker.
 | `-` (SS+J) | wire | |
 | `T` / `F` / `U` | TON / TOF / TP timer box (`T` on an existing timer box: edit only its PT) | |
 | `K` / `D` | CTU / CTD counter box (`T` on it: edit only its PV) | |
+| `G` | compare contact `-[>]-` (`MW1>5`: `>` `>=` `=` `<>` `<=` `<`) | |
+| `M` | | compute coil `-[+]-` (`MW2:=MW1+5`: `+` `-` `*` `/`, or `MW2:=MW1`) |
 
 Timer boxes `[TON]`, `[TOF]`, `[TP]` sit on a contact position: the power from the left is the input IN, the
 output Q powers the rest of the row. The box asks for the instance (`TON1` or its symbol) and the preset time
@@ -193,6 +195,8 @@ ENTER opens the picker (shortcut keys in brackets):
 | output (Q), negated output (W) - e.g. right behind a block | |
 | TON (T), TOF (F), TP (U) - two rows: IN and the PT input (`T#4s--PT` on the left of the second row); ENTER or `T` on the PT input or `T` on the timer edits PT | |
 | CTU (K), CTD (D) - three rows: CU and R (CTD: CD and LD) and the PV input (`10--PV`), edited like PT | |
+| compare (G) - a block GT / GE / EQ / NE / LE / LT with the two values on the left of its rows, typed as `MW3<50` | compute (M) |
+| compute (M) - `MW2:=MW1+5` when the signal is TRUE | |
 
 A block with h inputs covers h rows: input k comes from the left on the k-th row, the output leaves on the
 top row to the right, so blocks can be chained (e.g. an OR one row lower feeding the second input of an

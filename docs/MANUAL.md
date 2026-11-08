@@ -262,7 +262,17 @@ comment of the element (for boxes: the instance and its PT / PV).
 | `V` | vertical link at the right edge (parallel branch) | |
 | `T` / `F` / `U` | TON / TOF / TP timer box | |
 | `K` / `D` | CTU / CTD counter box | |
+| `G` | compare contact `MW1>5` | |
+| `M` | | compute coil `MW2:=MW1+5` |
 
+* **Compare and compute** work with words (`MW`, numbers, `T#` times, `ET` / `CV` / `PT` / `PV` of FB
+  instances). The expression is typed on one line:
+  * compare: `A op B` with `>` `>=` `=` `<>` `<=` `<`, e.g. `CTU0.CV>=3`. The contact passes the power
+    when it is true; in the simulation it is green while true.
+  * compute: `D:=A op B` with `+` `-` `*` `/`, or `D:=A` (copy), e.g. `MW2:=MW2+1`. D must be an `MW`.
+    It runs in every scan in which the coil gets power.
+  * The expression is the label, the operator is shown in the symbol (`-[>]-`, `-[+]-`), the status bar
+    shows it in full. ENTER and the same key edit it.
 * **Placing elements:**
   * After a new element the cursor moves on.
   * Empty positions on the left are filled with wires.
@@ -305,6 +315,8 @@ ENTER opens the picker. On a block input, outputs are not offered:
 | `P` / `E` | RT rising edge / RF falling edge |
 | `T` / `F` / `U` | TON / TOF / TP timer (2 rows: IN, PT) |
 | `K` / `D` | CTU / CTD counter (3 rows: CU, R or CD, LD, then PV) |
+| `G` | compare block GT / GE / EQ / NE / LE / LT (2 rows: the value, the value to compare with) |
+| `M` | compute output `-MW2:=MW1+5` (right behind a block, or in the output column) |
 
 * **Presets:** a timer has its preset PT on its second row and a counter its PV on its third row. The
   value is written on the left of the row (`T#2s--PT`, `3--PV`). `T` on the block or on that cell edits
@@ -312,6 +324,12 @@ ENTER opens the picker. On a block input, outputs are not offered:
 
   ![Editing the PV of a counter](img/fbd_pv.png)
 
+* **Compare:** the block compares two words, written on the left of its rows (`MW3--` and `50--`), and its
+  output is TRUE when the comparison holds (green in the simulation). It is typed as one expression like
+  in LD (`MW3<50`), and the block is named after the operator (`LT`). ENTER on the block or on a value edits
+  it.
+* **Compute:** an output that runs `D:=A op B` (`+` `-` `*` `/`, or `D:=A`) in every scan in which its
+  signal is TRUE. Its text may be cut on the screen; the status bar shows it in full.
 * **The cursor** stands only on block inputs, blocks and outputs. It skips the cells inside a block.
 * **Outputs and wires** need a signal from the left. Inputs placed left of a block input are wired to
   it automatically.

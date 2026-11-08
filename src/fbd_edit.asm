@@ -119,6 +119,10 @@ fb_editor:
 .tkey:  call fb_pt_cell         ; (on its PT input: the timer)
         call nc,fb_to_timer
         call fb_cur_get
+        and FT_MASK             ; a compare block: its expression
+        cp FT_CMP
+        jp z,.place
+        ld a,(fb_t)
         call ld_isbox
         jr nz,.hott
         ld a,b                  ; same instance
@@ -297,7 +301,7 @@ fb_editor:
         call fb_pt_left         ; left of a PT input: nothing can go there
         jr nc,.ptl
         ld a,(fb_newt)          ; output / wire: a signal must come from the left
-        and FT_MASK
+        call fb_cls
         cp FT_OUT
         jr z,.src
         cp FT_WIRE
@@ -314,6 +318,25 @@ fb_editor:
         jp .redraw
 .srco2:
         call fb_cur_get         ; old element: fb_t, B/C operand, ld_gpt
+        ld a,(fb_newt)          ; compare / compute: the expression
+        and FT_MASK
+        cp FT_CMP
+        jr c,.pn
+        ld a,(fb_t)
+        and FT_MASK
+        ld hl,fb_newt
+        ld b,0
+        cp (hl)
+        jr nz,.pw
+        inc b                   ; the same kind: edit its expression
+.pw:    ld a,(fb_newt)
+        BCALL wx_edit
+        jp c,.redraw
+        xor a
+        ld (ld_ar),a
+        ld (ld_ar+1),a
+        jp .room
+.pn:
         ld hl,50                ; default PT T#1s / PV 10, kept from a box
         ld a,(fb_t)
         call ld_isbox
@@ -375,12 +398,16 @@ fb_editor:
         ld a,b
         call fb_height_t
         or a
-        jr z,.put
+        jp z,.put
         ld (fb_hh),a
         xor a
         ld (fb_ins),a
+        ld a,(fb_newt)          ; (a compare block: no signal inputs)
+        and FT_MASK
+        cp FT_CMP
+        jr z,.rows
         call fb_cur_get         ; block on an input: the input feeds its
-        and FT_MASK             ; first input (the network moves right)
+        call fb_cls             ; first input (the network moves right)
         cp FT_IN
         jr nz,.rows
         call fb_ins_col
@@ -390,7 +417,28 @@ fb_editor:
 .rows:  ld a,(fb_hh)
         call fb_make_rows       ; free rows below (rows inserted if needed)
         jr c,.noroom
-        ld a,(fb_newt)          ; timer / counter: its PT / PV input needs
+        ld a,(fb_newt)          ; compare: both cells on its left free
+        and FT_MASK
+        cp FT_CMP
+        jr nz,.nc2
+        ld a,(ld_pos)
+        or a
+        jr z,.noroom
+        dec a
+        ld e,a
+        ld a,(ld_row)
+        ld d,a
+        call ld_get
+        and FT_MASK
+        jr nz,.noroom
+        ld a,(ld_row)
+        inc a
+        ld d,a
+        call ld_get
+        and FT_MASK
+        jr z,.put
+        jr .noroom
+.nc2:   ld a,(fb_newt)          ; timer / counter: its PT / PV input needs
         call ld_isbox           ; the cell left of the last row
         jr nz,.put
         ld a,(ld_pos)
@@ -420,7 +468,19 @@ fb_editor:
         ld (fb_oldc),a
         ld hl,(ld_gpt)
         ld (fb_oldpt),hl
-        ld a,(ld_row)
+        ld hl,ld_gext           ; (a compare / compute: its operands)
+        ld de,fb_oldx
+        ld bc,9
+        ldir
+        ld a,(fb_newt)
+        and FT_MASK
+        cp FT_CMP
+        jr c,.pt0
+        ld hl,WD_EXT
+        ld de,ld_gext
+        ld bc,9
+        ldir
+.pt0:   ld a,(ld_row)
         ld d,a
         ld a,(ld_pos)
         ld e,a
@@ -460,7 +520,11 @@ fb_editor:
         ld hl,ld_pos
         dec (hl)
         jr .redraw
-.undo:  ld hl,(fb_oldpt)
+.undo:  ld hl,fb_oldx
+        ld de,ld_gext
+        ld bc,9
+        ldir
+        ld hl,(fb_oldpt)
         ld (ld_ppt),hl
         ld a,(ld_row)
         ld d,a
@@ -527,7 +591,7 @@ fb_editor:
 .x0:    ld (tl_cmd),a
         call fb_to_owner        ; operand of the element (logic boxes: none)
         call fb_cur_get
-        and FT_MASK
+        call fb_cls
         cp FT_IN
         jr z,.xo
         cp FT_OUT
@@ -649,7 +713,23 @@ fb_pt_cell:
 ;      one row below it, PV of a counter two rows below) of a box at
 ;      position E: D = the row of the box (keeps E)
 fb_prow:
+        call ld_get             ; a compare block: both of its rows hold an
+        and FT_MASK             ; operand (A, B) in the cell on the left
+        cp FT_CMP
+        jr z,.cmp
         ld a,d
+        or a
+        jr z,.p0
+        dec d
+        call ld_get
+        inc d
+        and FT_MASK
+        cp FT_CMP
+        jr nz,.p0
+        dec d
+.cmp:   or a
+        ret
+.p0:    ld a,d
         or a
         scf
         ret z
@@ -820,6 +900,14 @@ fb_cur_get:
         ld (fb_t),a
         ret
 
+; ---- fb_cls: A = type -> A = its class (type without FT_NEG; a compute
+;      element is an output)
+fb_cls: and FT_MASK
+        cp FT_MATH
+        ret nz
+        ld a,FT_OUT
+        ret
+
 ; ---- fb_kind: A = type -> A = operand kind for ld_ask_operand, Z = none
 fb_kind:
         ld e,a
@@ -890,6 +978,8 @@ fb_height_t:
         jr z,.three
         cp FT_CTD
         jr z,.three
+        cp FT_CMP               ; compare: A row + B row
+        jr z,.two
         call ld_isbox           ; timers: IN row + PT row
         jr z,.two
         xor a
@@ -1291,7 +1381,7 @@ fb_chain:
         call ld_get
         or a
         ret z                   ; empty: nothing connected
-        and FT_MASK
+        call fb_cls
         cp FT_CMT
         ret z
         cp FT_IN
@@ -1693,8 +1783,10 @@ fb_rows_fit:
 ;      wires (up to the previous element, not into a block above)
 fb_autowire:
         call fb_cur_get
-        and FT_MASK
+        call fb_cls
         cp FT_IN
+        ret z
+        cp FT_CMP               ; (its operands are on the left)
         ret z
         cp FT_WIRE
         ret z
@@ -1731,7 +1823,7 @@ fb_autowire:
 ;      (its first row or a row it covers) become wires
 fb_autowire_r:
         call fb_cur_get
-        and FT_MASK
+        call fb_cls
         cp FT_IN
         ret nz
         ld a,(ld_row)
@@ -2104,7 +2196,9 @@ fb_draw_row:
         ld a,(hl)
         call fb_draw_cov        ; A = rows left below this one (0 = last)
         jr .next
-.own:   call fd_ptcell          ; PT input of a timer on the right?
+.own:   call fd_cmpcell         ; operand of a compare block on the right?
+        jr nz,.next
+        call fd_ptcell          ; PT input of a timer on the right?
         jr nz,.next
         ld a,(fd_p)
         ld e,a
@@ -2140,7 +2234,11 @@ fb_draw_elem:
         ld c,a
         ld d,24
         jp fd_hline
-.nw:    cp FT_IN                ; input: "name--" on the signal row
+.nw:    cp FT_MATH              ; compute: "-MW2:=MW1+5" like an output
+        jr nz,.nwm
+        call fd_wfmt
+        jr .ol
+.nwm:   cp FT_IN                ; input: "name--" on the signal row
         jr nz,.nin
         call fd_fmt
         ld a,(fd_t)             ; negated: "o" at the end of the line, or at
@@ -2240,6 +2338,8 @@ fb_draw_elem:
         ; type name inside the block, instance above it
         ld a,(fd_t)
         and FT_MASK
+        cp FT_CMP
+        call z,fd_cmpname       ; (compare: GT GE EQ NE LE LT)
         add a,a
         ld e,a
         ld d,0
@@ -2396,6 +2496,63 @@ fd_setcb:
         inc hl
         ld (hl),b
         pop de
+        ret
+
+; fd_cmpname: the compare block at (fd_r, fd_p) -> A = its fd_names index
+fd_cmpname:
+        ld a,(fd_r)
+        ld d,a
+        ld a,(fd_p)
+        ld e,a
+        call ld_get
+        ld a,(ld_gext+3)
+        add a,FD_NCMP
+        ret
+
+; fd_cmpcell: the cell left of a compare block: its operand A (first row)
+;      or B (second row) as "MW3--" -> NZ if drawn
+fd_cmpcell:
+        ld a,(fd_p)
+        cp LD_CPOS-1
+        jr nc,.no
+        inc a
+        ld e,a
+        ld d,0
+        ld hl,fw_t              ; the block starts on this row: A
+        add hl,de
+        ld a,(hl)
+        and FT_MASK
+        cp FT_CMP
+        ld hl,ld_gext
+        ld a,(fd_r)
+        jr z,.get
+        ld hl,fd_cov            ; its second row: B
+        add hl,de
+        ld a,(hl)
+        cp 1
+        jr nz,.no
+        ld hl,fd_cbt
+        add hl,de
+        ld a,(hl)
+        and FT_MASK
+        cp FT_CMP
+        jr nz,.no
+        ld hl,ld_gext+4
+        ld a,(fd_r)
+        dec a
+.get:   push hl
+        ld d,a
+        call ld_get             ; (keeps E = the block position)
+        pop hl
+        ld de,FMT_BUF
+        BCALL il_fmt_short
+        xor a
+        ld (de),a
+        ld bc,20*256+24
+        call fd_in_txt
+        or 1
+        ret
+.no:    xor a
         ret
 
 ; fd_ptcell: the cell left of the PT row of a timer: draws "T#..--" and
@@ -2616,6 +2773,20 @@ fd_circle:
 fd_fmt: BCALL ld_fmt_ar
         ret
 
+; fd_wfmt: the expression of the compare / compute element at (fd_r, fd_p)
+;      -> FMT_BUF
+fd_wfmt:
+        ld a,(fd_r)
+        ld d,a
+        ld a,(fd_p)
+        ld e,a
+        call ld_get
+        BCALL wx_fmt
+        ld de,FMT_BUF
+        ld bc,40
+        ldir
+        ret
+
 ; fd_in_txt: FMT_BUF right-aligned to x+B on the signal row (it may reach
 ;      into the empty cells on the left), then the line up to x+C-1
 fd_in_txt:
@@ -2722,7 +2893,15 @@ fd_out_lim:
 fd_names:
         dw 0, 0, 0, 0, fdn_and, fdn_or, fdn_ton, fdn_tof
         dw fdn_xor, fdn_not, fdn_sr, fdn_rs, fdn_tp, fdn_rt, 0, fdn_ft
-        dw fdn_ctu, fdn_ctd
+        dw fdn_ctu, fdn_ctd, 0, 0
+        dw fdn_gt, fdn_ge, fdn_eq, fdn_ne, fdn_le, fdn_lt      ; FD_NCMP + op
+FD_NCMP EQU 20-OP_GT
+fdn_gt:  db "GT",0
+fdn_ge:  db "GE",0
+fdn_eq:  db "EQ",0
+fdn_ne:  db "NE",0
+fdn_le:  db "LE",0
+fdn_lt:  db "LT",0
 fdn_ctu: db "CTU",0
 fdn_ctd: db "CTD",0
 fdn_and: db "AND",0
@@ -2863,6 +3042,8 @@ fb_set_state:
         inc hl
         ld c,(hl)
         and FT_MASK
+        cp FT_MATH              ; compute: not coloured
+        ret z
         ld e,3                  ; colour cell: input = right (its line),
         cp FT_IN                ; output = left, block = middle
         jr z,.opc
@@ -2935,6 +3116,9 @@ fb_set_state:
 .lgc:   ld a,(fs_t)             ; logic block: its monitor bit
         call fb_is_lg
         ret nz
+        call .bit
+        jr .blk
+.bit:   ld e,ATTR_NORMAL        ; E = colour of monitor bit fs_li
         ld a,(fs_li)
         cp 64
         ret nc
@@ -2957,8 +3141,9 @@ fb_set_state:
         pop hl
         and (hl)
         ld e,ATTR_NORMAL
-        jr z,.blk
+        ret z
         ld e,ATTR_FBON
+        ret
 .blk:   ld a,(fs_p)
         ld c,a
         add a,a
@@ -2972,9 +3157,12 @@ fb_set_state:
         ld (hl),e
         ret
 
-; fb_is_lg: A = type -> Z if AND / OR / XOR / NOT
+; fb_is_lg: A = type -> Z if it has a monitor bit: AND / OR / XOR / NOT and
+;   compares (as fc_is_lg in fbd_comp.asm)
 fb_is_lg:
         and FT_MASK
+        cp FT_CMP
+        ret z
         cp FT_AND
         ret z
         cp FT_OR
@@ -3045,6 +3233,15 @@ fb_info0:
         ld hl,0
         ld (st_left),hl
         call fb_cur_get
+        push af                 ; compare / compute: the expression
+        and FT_MASK
+        cp FT_CMP
+        jr c,.nw
+        pop af
+        BCALL wx_fmt
+        ld (st_left),hl
+        jp status_left
+.nw:    pop af
         ld a,b
         ld (ld_ar),a
         ld a,c
@@ -3310,6 +3507,7 @@ fb_pick_i:
         db FT_TP,        'U',"TP pulse",0
         db FT_CTU,       'K',"CTU counter",0
         db FT_CTD,       'D',"CTD counter",0
+        db FT_CMP,       'G',"Compare",0
         db 0xFF
 fb_pick_l:
         db FT_IN,        'I',"Input",0
@@ -3328,12 +3526,15 @@ fb_pick_l:
         db FT_TP,        'U',"TP pulse",0
         db FT_CTU,       'K',"CTU counter",0
         db FT_CTD,       'D',"CTD counter",0
+        db FT_CMP,       'G',"Compare",0
         db FT_OUT,       'Q',"Output",0
         db FT_OUT|FT_NEG,'W',"Negated output",0
+        db FT_MATH,      'M',"Compute",0
         db 0xFF
 fb_pick_o:
         db FT_OUT,       'Q',"Output",0
         db FT_OUT|FT_NEG,'N',"Negated output",0
+        db FT_MATH,      'M',"Compute",0
         db 0xFF
 
 txt_fb_inq:  db "Number of inputs (2-4)?",0,0
@@ -3397,6 +3598,7 @@ fd_cov:   ds LD_CPOS+1          ; rows of a block still to draw (per position)
 fd_rr:    db 0
 fd_i:     db 0
 fd_r:     db 0
+fb_oldx:  ds 9              ; .place: operands of the old element (undo)
 fd_p:     db 0
 fd_x:     db 0
 fd_t:     db 0
