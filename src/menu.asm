@@ -431,7 +431,10 @@ menu_inv_item:
 
 ; ---- menu_run: interactive menu. A = command or 0 (cancelled)
 menu_run:
-        ld a,(menu_sel)
+        BCALL ms_msel           ; (opened by a click on a title)
+        jr c,.m0
+        ld (menu_sel),a
+.m0:    ld a,(menu_sel)
         cp MENU_N
         jr c,.ok
         xor a
@@ -445,9 +448,9 @@ menu_run:
         call menu_inv_item
 .key:   call kb_wait
         cp K_LEFT
-        jr z,.left
+        jp z,.left
         cp K_RIGHT
-        jr z,.right
+        jp z,.right
         cp K_UP
         jp z,.up
         cp K_DOWN
@@ -457,7 +460,9 @@ menu_run:
         cp K_BREAK
         jp z,.cancel
         cp K_EDIT
-        jp z,.cancel
+        jr z,.edk
+        cp K_MOUSE
+        jr z,.mouse
         call to_upper
         ld c,a
         ; hotkey of an item in the open drop-down
@@ -480,7 +485,7 @@ menu_run:
         ld a,b
         ld (drop_sel),a
         call menu_inv_item
-        jr .enter
+        jp .enter
         ; hotkey of a top title (first letter)
 .hktop: ld b,0
 .ht:    ld a,b
@@ -496,12 +501,20 @@ menu_run:
         cp MENU_N
         jr c,.ht
         jr .key
+.edk:   BCALL ms_msel           ; a click on another title, or EDIT
+        jp c,.cancel
+        ld b,a
+        jr .htgo
+.mouse: BCALL ms_mhit           ; a click on an item, or outside
+        jp c,.cancel
+        ld b,a
+        jr .hkgo
 .htgo:  push bc
         call .close
         pop bc
         ld a,b
         ld (menu_sel),a
-        jr .open
+        jp .open
 .left:  call .close
         ld a,(menu_sel)
         or a
@@ -1064,7 +1077,7 @@ menu_cmd:
 .new:   ld hl,txt_new_q
         call ui_confirm
         jr nz,.no
-        call ui_choose_lang
+        BCALL ui_choose_lang
         jr c,.no
         call proj_new
         ld a,CMD_POU_MANAGE

@@ -3676,7 +3676,15 @@ fb_pick:
         jr .it
 .drawn: call fk_inv
 .key:   call kb_wait
-        cp K_UP
+        cp K_MOUSE              ; a click on an item, or outside
+        jr nz,.nm
+        ld a,(fk_n)
+        ld b,1
+        BCALL ms_item
+        jp c,.cancel
+        ld b,a
+        jr .hkf
+.nm:    cp K_UP
         jr z,.up
         cp K_DOWN
         jr z,.down

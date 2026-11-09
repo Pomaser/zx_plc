@@ -134,6 +134,9 @@ ms_poll:
         ld a,(ms_y)
         ld (ms_cy),a
         call ms_hide
+        call ms_bar             ; on the menu bar: it opens (K_EDIT)
+        ld a,K_EDIT
+        ret nc
         ld a,K_MOUSE
         ret
 
@@ -242,3 +245,167 @@ ms_arrow:
         db 0x80,0xC0,0xE0,0xF0,0xF8,0xE0,0xB0,0x18
 
 txt_ms_none: db "No Kempston mouse",0
+
+; ---- ui_choose_lang: A = language (0-2), carry = cancelled (DEMO bank: BCALL)
+ui_choose_lang:
+        ld hl,txt_lang_q
+        call popup_open
+.k:     call kb_wait
+        cp K_MOUSE              ; a click on a language line
+        jr nz,.nm
+        ld a,3
+        ld b,3
+        call ms_item
+        jr c,.cancel
+        ld b,a
+        jr .ok
+.nm:    cp K_BREAK
+        jr z,.cancel
+        cp K_EDIT
+        jr z,.cancel
+        call to_upper
+        ld b,LANG_IL
+        cp 'I'
+        jr z,.ok
+        ld b,LANG_LD
+        cp 'L'
+        jr z,.ok
+        ld b,LANG_FBD
+        cp 'F'
+        jr z,.ok
+        jr .k
+.ok:    push bc
+        call win_close
+        pop bc
+        ld a,b
+        or a
+        ret
+.cancel:
+        call win_close
+        scf
+        ret
+
+txt_lang_q:
+        db "Choose language:",0
+        db " ",0
+        db "I",PT_TAB,"IL - Instruction List",0
+        db "L",PT_TAB,"LD - Ladder Diagram",0
+        db "F",PT_TAB,"FBD - Function Block Diagram",0
+        db 0
+
+; ---- ms_item: a click in a list window: A = items, B = row of item 0
+;      relative to win_r -> NC: A = the item clicked; C: right button or
+;      outside the items (cancel)
+ms_item:
+        ld c,a
+        ld a,(ms_btn)
+        dec a
+        scf
+        ret nz                  ; right button
+        ld a,(ms_cy)
+        rrca
+        rrca
+        rrca
+        and 31
+        ld hl,win_r
+        sub (hl)
+        sub b
+        ret c
+        cp c
+        ccf
+        ret c
+        ld e,a
+        ld a,(ms_cx)
+        ld hl,win_bx
+        sub (hl)
+        ret c
+        ld hl,win_bw
+        cp (hl)
+        ccf
+        ret c
+        ld a,e
+        ret
+
+; ---- ms_msel: NC: A = the menu title clicked on the menu bar (then
+;      forgotten); C: none
+ms_msel:
+        ld a,(ms_menu)
+        cp 0xFF
+        scf
+        ret z
+        ld b,a
+        ld a,0xFF
+        ld (ms_menu),a
+        ld a,b
+        or a
+        ret
+
+; ---- ms_mhit: a click in the open drop-down -> NC: A = item; C: cancel
+ms_mhit:
+        ld a,(drop_n)
+        ld b,0
+        jr ms_item
+
+; ---- ms_yn: a click in a yes / no question -> A = 'Y' (left part of the
+;      last line), 'N' (its right part, or the right button) or 0
+ms_yn:  ld a,(ms_btn)
+        dec a
+        ld a,'N'
+        ret nz
+        ld a,(ms_cy)
+        rrca
+        rrca
+        rrca
+        and 31
+        ld b,a
+        ld a,(win_rows)
+        ld hl,win_r
+        add a,(hl)
+        sub 2
+        cp b
+        ld a,0
+        ret nz                  ; not on the "Y = yes  N = no" line
+        ld a,(win_bx)
+        add a,8+MB_TAB
+        ld b,a
+        ld a,(ms_cx)
+        cp b
+        ld a,'Y'
+        ret c
+        ld a,'N'
+        ret
+
+; ---- ms_bar: a click on the menu bar -> NC: A = title (ms_menu set); C: no
+ms_bar: ld a,(ms_cy)
+        cp 8
+        ccf
+        ret c
+        ld b,0
+.l:     ld hl,menu_x
+        ld e,b
+        ld d,0
+        add hl,de
+        ld a,(hl)
+        sub 3
+        ld c,a                  ; C = left edge
+        ld hl,menu_w
+        add hl,de
+        ld a,(hl)
+        add a,5
+        add a,c
+        ld d,a                  ; D = right edge
+        ld a,(ms_cx)
+        cp c
+        jr c,.n
+        cp d
+        jr nc,.n
+        ld a,b
+        ld (ms_menu),a
+        or a
+        ret
+.n:     inc b
+        ld a,b
+        cp MENU_N
+        jr c,.l
+        scf
+        ret

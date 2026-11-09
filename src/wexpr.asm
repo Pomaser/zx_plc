@@ -247,7 +247,15 @@ wx_choose:
         call popup_open
 .bar:   call .inv
 .k:     call kb_wait
-        cp K_UP
+        cp K_MOUSE              ; a click on an operator, or outside
+        jr nz,.nm
+        ld a,(wx_n)
+        ld b,1
+        call ms_item
+        jr c,.can
+        ld (wx_sel),a
+        jr .ok
+.nm:    cp K_UP
         jr z,.up
         cp K_DOWN
         jr z,.dn

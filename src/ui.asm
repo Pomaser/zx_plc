@@ -39,7 +39,10 @@ ui_confirm:
         ld hl,popup_buf
         call popup_open
 .k:     call kb_wait
-        call to_upper
+        cp K_MOUSE              ; a click on "Y = yes" / "N = no"
+        jr nz,.k0
+        BCALL ms_yn
+.k0:    call to_upper
         cp 'Y'
         jr z,.done
         cp 'N'
@@ -58,44 +61,6 @@ ui_confirm:
 txt_yn: db " ",0,"Y = yes",PT_TAB,"N = no",0,0
 txt_yn_end:
 
-; ---- ui_choose_lang: A = language (0-2), carry = cancelled
-ui_choose_lang:
-        ld hl,txt_lang_q
-        call popup_open
-.k:     call kb_wait
-        cp K_BREAK
-        jr z,.cancel
-        cp K_EDIT
-        jr z,.cancel
-        call to_upper
-        ld b,LANG_IL
-        cp 'I'
-        jr z,.ok
-        ld b,LANG_LD
-        cp 'L'
-        jr z,.ok
-        ld b,LANG_FBD
-        cp 'F'
-        jr z,.ok
-        jr .k
-.ok:    push bc
-        call win_close
-        pop bc
-        ld a,b
-        or a
-        ret
-.cancel:
-        call win_close
-        scf
-        ret
-
-txt_lang_q:
-        db "Choose language:",0
-        db " ",0
-        db "I",PT_TAB,"IL - Instruction List",0
-        db "L",PT_TAB,"LD - Ladder Diagram",0
-        db "F",PT_TAB,"FBD - Function Block Diagram",0
-        db 0
 
 
 ; ---- ui_title: HL = title text -> row 2 in the proportional font, dark blue
@@ -197,7 +162,14 @@ ui_input:
         xor a
         ld (in_con),a
 .key:   call in_getkey
-        cp K_ENTER
+        cp K_MOUSE              ; a click: left = ENTER, right = cancel
+        jr nz,.k0
+        ld a,(ms_btn)
+        dec a
+        ld a,K_ENTER
+        jr z,.k0
+        ld a,K_BREAK
+.k0:    cp K_ENTER
         jp z,.ok
         cp K_BREAK
         jp z,.cancel
@@ -263,7 +235,7 @@ ui_input:
         jp .redraw
 .left:  ld a,(in_pos)
         or a
-        jr z,.key
+        jp z,.key
         dec a
         ld (in_pos),a
         jp .key

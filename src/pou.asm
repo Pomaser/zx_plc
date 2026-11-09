@@ -177,7 +177,7 @@ scr_pou:
         ld a,0xFF
         call input_pou_name
         jp c,.key
-        call ui_choose_lang
+        BCALL ui_choose_lang
         jp c,.key
         ld hl,name8
         call pou_add
@@ -237,7 +237,7 @@ scr_pou:
         ld hl,err_not_empty
         call ui_error
         jp .key
-.l1:    call ui_choose_lang
+.l1:    BCALL ui_choose_lang
         jp c,.key
         ld b,a
         call undo_save
