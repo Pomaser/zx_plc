@@ -360,6 +360,9 @@ fb_editor:
 
         ; ---- place an element (A = type incl. FT_NEG)
 .place: ld (fb_newt),a
+        xor a                   ; (fb_wroom: nothing moved yet)
+        ld (fb_wsh),a
+        ld a,(fb_newt)
         call fb_to_owner
         call fb_pt_left         ; left of a PT input: nothing can go there
         jr nc,.ptl
@@ -511,12 +514,16 @@ fb_editor:
         ld (fb_hh),a
         xor a
         ld (fb_ins),a
-        ld a,(fb_newt)          ; (compare / compute: no signal inputs)
-        and FT_MASK
+        ld a,(fb_newt)          ; compare / compute: room for the values on
+        and FT_MASK             ; the left (and the result on the right)
         cp FT_CMP
-        jr z,.rows
+        jr z,.wr
         cp FT_MATH
-        jr z,.rows
+        jr nz,.nwr
+.wr:    call fb_wroom
+        jp c,.noroom
+        jr .rows
+.nwr:
         call fb_cur_get         ; block on an input: the input feeds its
         call fb_cls             ; first input (the network moves right)
         cp FT_IN
@@ -580,6 +587,9 @@ fb_editor:
         and FT_MASK
         jr z,.put
 .noroom:
+        ld a,(fb_wsh)           ; the network was moved for a compare /
+        or a                    ; compute block: back as it was
+        call nz,undo_do
         ld hl,err_fb_room
         call ui_error
         jp .redraw
@@ -1026,6 +1036,68 @@ fb_cur_get:
         ld e,a
         call ld_get
         ld (fb_t),a
+        ret
+
+; ---- fb_wroom: room for a compare / compute block (fb_newt) at the cursor:
+;      the cell on its left (its value A) free, for compute also the cell
+;      of the result on its right. At position 0 or when the left cell is
+;      used, the network moves right from the cursor and the block goes one
+;      position to the right (it takes the place of what was there, e.g. an
+;      input). C = no room
+fb_wroom:
+        ld a,(ld_pos)
+        or a
+        jr z,.sh
+        dec a
+        ld e,a
+        ld a,(ld_row)
+        ld d,a
+        call ld_get
+        and FT_MASK
+        jr z,.out
+.sh:    ld a,(ld_pos)
+        cp LD_CPOS-2
+        ccf
+        ret c
+        ld (fm_p),a
+        ld a,(ld_row)           ; an empty row (not a network): the block
+        call fb_net_row         ; just goes one position to the right
+        jr nc,.mv
+        call fb_net_shift
+        ret c
+        ld a,1
+        ld (fb_wsh),a
+.mv:    ld hl,ld_pos
+        inc (hl)
+.out:   ld a,(fb_newt)          ; compute: its result cell
+        and FT_MASK
+        cp FT_MATH
+        jr nz,.ok
+        ld a,(ld_pos)
+        inc a
+        cp LD_CPOS
+        ccf
+        ret c
+        ld e,a
+        ld a,(ld_row)
+        ld d,a
+        call ld_get
+        and FT_MASK
+        jr z,.ok
+        ld a,(ld_pos)
+        inc a
+        cp LD_CPOS-1
+        ccf
+        ret c
+        ld (fm_p),a
+        ld a,(ld_row)
+        call fb_net_row
+        jr nc,.ok               ; (not a network: nothing to move)
+        call fb_net_shift
+        ret c
+        ld a,1
+        ld (fb_wsh),a
+.ok:    or a
         ret
 
 ; ---- fb_cls: A = type -> A = its class (the type without FT_NEG)
@@ -3808,6 +3880,7 @@ fd_rr:    db 0
 fd_i:     db 0
 fd_r:     db 0
 fd_k:     db 0
+fb_wsh:   db 0              ; fb_wroom moved the network (undo on "no room")
 fb_vrow:  db 0              ; .tkey: the row of the cursor (A or B)
 fb_lnk:   db 0              ; .place: A comes from a compute block (1)
 fb_lnkd:  dw 0              ;   its D              ; fd_cmpcell: rows of the block left

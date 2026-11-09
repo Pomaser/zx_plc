@@ -333,6 +333,10 @@ ENTER opens the picker. On a block input, outputs are not offered:
   are written on the left of its rows, the result D on the right of it (`MW3--ADD--MW3`). As with the
   compare block, placing it only asks for the operator; A and B are entered on the cells on its left and
   D with ENTER on the cell on its right (`-?` until then). The cell of D stays free.
+* **Placing them:** the values need the cell on the left. At position 0, or when that cell is used, the
+  block goes one position to the right; inside a network the network moves right, so a compare put on
+  an input replaces it and feeds the block input. A compute block also needs its result cell. When
+  nothing fits, "No room for the block" is shown and nothing changes.
 * **Chaining:** a compare or compute block placed right behind the result of a compute block takes that
   result as its A (`MW3--ADD--MW3--GE`); A is then not asked.
 * **The cursor** stands only on block inputs, blocks and outputs. It skips the cells inside a block.
