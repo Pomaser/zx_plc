@@ -195,8 +195,8 @@ ENTER opens the picker (shortcut keys in brackets):
 | output (Q), negated output (W) - e.g. right behind a block | |
 | TON (T), TOF (F), TP (U) - two rows: IN and the PT input (`T#4s--PT` on the left of the second row); ENTER or `T` on the PT input or `T` on the timer edits PT | |
 | CTU (K), CTD (D) - three rows: CU and R (CTD: CD and LD) and the PV input (`10--PV`), edited like PT | |
-| compare (G) - a block GT / GE / EQ / NE / LE / LT with the two values on the left of its rows (operator from a list, then A and B) | |
-| compute (M) - a block ADD / SUB / MUL / DIV / MOVE: the values A and B on the left of its rows, the result on the right (`MW3--ADD--MW3`); operator from a list, then A, B, D; runs in every scan; a compare / compute block right behind the result takes it as its A | |
+| compare (G) - a block GT / GE / EQ / NE / LE / LT with the two values on the left of its rows (operator from a list; the values with ENTER on their cells) | |
+| compute (M) - a block ADD / SUB / MUL / DIV / MOVE: the values A and B on the left of its rows, the result on the right (`MW3--ADD--MW3`); operator from a list; A, B with ENTER on the cells on its left, D on the cell on its right; runs in every scan; a compare / compute block right behind the result takes it as its A | |
 
 A block with h inputs covers h rows: input k comes from the left on the k-th row, the output leaves on the
 top row to the right, so blocks can be chained (e.g. an OR one row lower feeding the second input of an

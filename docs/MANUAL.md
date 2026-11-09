@@ -325,12 +325,14 @@ ENTER opens the picker. On a block input, outputs are not offered:
   ![Editing the PV of a counter](img/fbd_pv.png)
 
 * **Compare:** the block compares two words, written on the left of its rows (`MW3--` and `50--`), and its
-  output is TRUE when the comparison holds (green in the simulation). As in LD, the operator is chosen
-  from a list (the block is named after it, `LT`) and then A and B are asked. ENTER on the block or on a
-  value edits it.
+  output is TRUE when the comparison holds (green in the simulation). Placing it only asks for the
+  operator (from a list; the block is named after it, `LT`). The values are entered like inputs: ENTER on
+  the cell left of a row asks for that value. ENTER on the block chooses the operator again. Run reports
+  a missing value at the block.
 * **Compute:** the block runs `D:=A op B` (`+` `-` `*` `/`, or `D:=A` for MOVE) in every scan. A and B
-  are written on the left of its rows, the result D on the right of it (`MW3--ADD--MW3`). The operator,
-  A, B and D are asked as in LD; ENTER on the block or on a value edits it. The cell of D stays free.
+  are written on the left of its rows, the result D on the right of it (`MW3--ADD--MW3`). As with the
+  compare block, placing it only asks for the operator; A and B are entered on the cells on its left and
+  D with ENTER on the cell on its right (`-?` until then). The cell of D stays free.
 * **Chaining:** a compare or compute block placed right behind the result of a compute block takes that
   result as its A (`MW3--ADD--MW3--GE`); A is then not asked.
 * **The cursor** stands only on block inputs, blocks and outputs. It skips the cells inside a block.

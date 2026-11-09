@@ -108,7 +108,8 @@ on tape. See README.md for the user-facing description of every editor and key.
     `ld_put` writes them back. The operator list, value prompts and expression text are `src/wexpr.asm` (DEMO bank). In LD a compare
     is a contact and compute a coil; in FBD a compare is a 2-row block (A, B on the left of its rows)
     and compute a 2-row block (A, B; the result D drawn in the cell on its right, kept free); their value
-    rows are handled like preset cells by `fb_prow`. A block right behind a compute result takes D as its
+    rows are handled like preset cells by `fb_prow`. Placing an FBD block only chooses the operator
+    (`wx_opsel`); the values are asked one at a time on their cells (`wx_value`). A block right behind a compute result takes D as its
     A (`fc_link` in fbd_comp.asm, the same when placed).
 - **Compile and run:**
   - `il_compile` (RUN) compiles every POU to 5-byte bytecode `[op][mode][arg lo][arg hi][arg3]`:

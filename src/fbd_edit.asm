@@ -116,14 +116,16 @@ fb_editor:
         jr z,.slash
         cp 'T'                  ; T on a timer block: only its PT
         jr nz,.hot
-.tkey:  call fb_pt_cell         ; (on its PT input: the timer)
+.tkey:  ld a,(ld_row)
+        ld (fb_vrow),a
+        call fb_pt_cell         ; (on its PT input: the timer)
         call nc,fb_to_timer
         call fb_cur_get
-        and FT_MASK             ; a compare / compute block: its expression
-        cp FT_CMP
-        jp z,.place
+        and FT_MASK             ; a compare / compute block: the value of
+        cp FT_CMP               ; this input cell (A on the first row, B on
+        jp z,.val               ; the second)
         cp FT_MATH
-        jp z,.place
+        jp z,.val
         ld a,(fb_t)
         call ld_isbox
         jr nz,.hott
@@ -291,11 +293,70 @@ fb_editor:
         jp nc,.cedit
         call fb_pt_cell         ; PT input of a timer: its PT
         jp nc,.tkey
+        ld a,(ld_pos)           ; the result cell of a compute block: D
+        or a
+        jr z,.en1
+        dec a
+        ld e,a
+        ld a,(ld_row)
+        ld d,a
+        call ld_get
+        and FT_MASK
+        cp FT_MATH
+        jr nz,.en1
+        ld a,e
+        ld (ld_pos),a
+        call fb_cur_get
+        ld e,7
+        jr .vask
+.en1:
         call fb_to_owner        ; inside a block: the block itself
         call fb_cur_get
         ld a,(fb_t)
         call fb_pick
         jp c,.cur
+
+        jr .place
+
+        ; ---- a value of a compare / compute block (cursor on the block)
+.val:   ld e,0                  ; A or B
+        ld a,(fb_vrow)
+        ld hl,ld_row
+        cp (hl)
+        jr z,.va
+        ld e,4
+        jr .vask
+.va:    ld a,(ld_pos)           ; A behind a compute result: given by it
+        cp 2
+        jr c,.vask
+        sub 2
+        push de
+        ld e,a
+        ld a,(ld_row)
+        ld d,a
+        call ld_get
+        pop de
+        and FT_MASK
+        cp FT_MATH
+        jr nz,.vask0
+        ld hl,err_fb_lnk
+        call ui_error
+        jp .redraw
+.vask0: call fb_cur_get         ; (ld_gext: the block again)
+        ld e,0
+.vask:  BCALL wx_value
+        jp c,.redraw
+        ld hl,WD_EXT
+        ld de,ld_gext
+        ld bc,9
+        ldir
+        ld a,(ld_row)
+        ld d,a
+        ld a,(ld_pos)
+        ld e,a
+        ld a,(fb_t)
+        BCALL ld_put
+        jp .redraw
 
         ; ---- place an element (A = type incl. FT_NEG)
 .place: ld (fb_newt),a
@@ -367,8 +428,8 @@ fb_editor:
         ld (WD_LINK),a
 .pw1:   call fb_cur_get         ; (ld_gext: the old element again)
         pop bc
-        ld a,(fb_newt)
-        BCALL wx_edit
+        ld a,(fb_newt)          ; only the operator; the values are entered
+        BCALL wx_opsel          ; on the input cells
         jp c,.redraw
         ld a,(fb_lnk)
         or a
@@ -776,9 +837,11 @@ fb_pt_cell:
 ;      one row below it, PV of a counter two rows below) of a box at
 ;      position E: D = the row of the box (keeps E)
 fb_prow:
-        call ld_get             ; a compare block: both of its rows hold an
-        and FT_MASK             ; operand (A, B) in the cell on the left
+        call ld_get             ; a compare / compute block: both of its rows
+        and FT_MASK             ; hold a value (A, B) in the cell on the left
         cp FT_CMP
+        jr z,.cmp
+        cp FT_MATH
         jr z,.cmp
         ld a,d
         or a
@@ -2425,8 +2488,16 @@ fb_draw_elem:
         call fd_fmt
         jp fd_label
 .dst:   ld hl,ld_gext+7         ; its output D: "-MW3" in the cell on the
-        ld de,FMT_BUF           ; right (ld_gext: from fd_cmpname)
-        BCALL il_fmt_short
+        ld a,(hl)               ; right (ld_gext: from fd_cmpname); none yet:
+        or a                    ; only "-?"
+        ld de,FMT_BUF
+        jr nz,.dfm
+        ld a,'?'
+        ld (de),a
+        inc de
+        jr .dfe
+.dfm:   BCALL il_fmt_short
+.dfe:
         xor a
         ld (de),a
         ld a,(fd_x)
@@ -2680,7 +2751,12 @@ fd_cmpcell:
         ld d,a
         call ld_get             ; (keeps E = the block position)
         pop hl
-.fmt:   ld de,FMT_BUF
+.fmt:   ld a,(hl)               ; no value yet: only the stub of the block
+        or a
+        jr nz,.fm
+        inc a
+        ret
+.fm:    ld de,FMT_BUF
         BCALL il_fmt_short
         xor a
         ld (de),a
@@ -3678,6 +3754,7 @@ txt_fb_rl:   db "R",0
 txt_fb_ldl:  db "LD",0
 err_fb_room: db "No room for the block",0
 err_fb_mout: db "Here is the output of the block",0
+err_fb_lnk:  db "A is the result on the left",0
 err_fb_src:  db "No signal here (nothing on the left)",0
 err_fb_ptl:  db "Right of it is the PT of a timer",0
 
@@ -3731,6 +3808,7 @@ fd_rr:    db 0
 fd_i:     db 0
 fd_r:     db 0
 fd_k:     db 0
+fb_vrow:  db 0              ; .tkey: the row of the cursor (A or B)
 fb_lnk:   db 0              ; .place: A comes from a compute block (1)
 fb_lnkd:  dw 0              ;   its D              ; fd_cmpcell: rows of the block left
 fb_oldx:  ds 9              ; .place: operands of the old element (undo)

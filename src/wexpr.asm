@@ -50,7 +50,16 @@ wx_opstr:
 ;      one (A, B, and the result D of a compute element). WD_LINK = 1: A is
 ;      given by the editor (FBD chaining) and not asked.
 wx_edit:
-        ld (wx_t),a
+        ld c,0
+        jr wx_e0
+
+; ---- wx_opsel: as wx_edit, but only the operator is chosen (FBD blocks: the
+;      values are entered later on their input cells, wx_value)
+wx_opsel:
+        ld c,1
+wx_e0:  ld (wx_t),a
+        ld a,c
+        ld (wx_nov),a
         ld a,b
         ld (wx_old),a
         ld hl,ld_gext           ; the old values (or nothing)
@@ -68,6 +77,9 @@ wx_edit:
 .op:    call wx_choose          ; the operator
         jr c,.end
         ld (WD_EXT+3),a
+        ld a,(wx_nov)
+        or a
+        jr nz,.ok
         ld a,(WD_LINK)          ; A
         or a
         jr nz,.b
@@ -96,6 +108,31 @@ wx_edit:
         ld (WD_LINK),a
         pop af
         ret
+
+; ---- wx_value: E = slot (0 A, 4 B, 7 D) -> asks that value of the element
+;      in ld_gext; NC: WD_EXT = all its operands with the new value
+wx_value:
+        push de
+        ld hl,ld_gext
+        ld de,WD_EXT
+        ld bc,9
+        ldir
+        pop de
+        ld d,0
+        ld hl,txt_wx_qa
+        ld a,e
+        or a
+        jr z,.q
+        ld hl,txt_wx_qb
+        cp 4
+        jr z,.q
+        ld hl,txt_wx_qd
+.q:     push hl
+        ld hl,WD_EXT
+        add hl,de
+        ex de,hl
+        pop hl
+        ; fall through
 
 ; ---- wx_ask: HL = prompt, DE = slot in WD_EXT -> NC: the slot holds the
 ;      typed value (D slot: an MW only); C: cancelled
@@ -307,6 +344,7 @@ wx_operand:
 WX_PBUF EQU rd_c                ; (64 bytes, free in the editors)
 wx_t:   db 0
 wx_old: db 0
+wx_nov: db 0                    ; 1: wx_opsel (no values asked)
 wx_q:   dw 0
 wx_slot: dw 0
 wx_list: dw 0
