@@ -159,8 +159,17 @@ kb_get:
         and KB_QLEN-1
         ld (kb_head),a
         ld a,(hl)
+        push af                 ; (the mouse pointer goes while the screen
+        ld a,(ms_vis)           ; reacts to the key)
+        or a
+        jr z,.k
+        BCALL ms_hide
+.k:     pop af
         ret
-.none:  xor a
+.none:  ld a,(ms_on)            ; no key: the mouse (A = K_MOUSE or 0)
+        or a
+        ret z
+        BCALL ms_poll
         ret
 
 ; ---- kb_wait: waits for a queued key, A = code

@@ -93,7 +93,11 @@ scr_run:
 .dtmax: ld l,50
 .dt:    ld h,0
         call sim_scan
-.nrun:  call sim_update
+.nrun:  ld a,(ms_vis)           ; (no mouse pointer under the redraw)
+        or a
+        jr z,.nr2
+        BCALL ms_hide
+.nr2:   call sim_update
         call kb_get
         or a
         jr z,.loop

@@ -60,6 +60,7 @@ mi_view:
         db CMD_VIEW_ADDR,'A',"Addresses",0
         db CMD_XREF,     'X',"Cross references",0
         db CMD_SOUND,    'O',"Sound",0
+        db CMD_MOUSE,    'M',"Mouse",0
         db 0
 mi_run:
         db CMD_RUN,  'R',"Run",0
@@ -370,6 +371,8 @@ menu_checkable:
         ret z
         cp CMD_SOUND
         ret z
+        cp CMD_MOUSE
+        ret z
         scf
         ret
 
@@ -378,6 +381,8 @@ menu_active:
         ld a,(hl)
         cp CMD_SOUND
         jr z,.snd
+        cp CMD_MOUSE
+        jr z,.ms
         cp CMD_VIEW_SYM
         jr z,.sym
         cp CMD_VIEW_ADDR
@@ -388,6 +393,8 @@ menu_active:
         ccf
         ret
 .snd:   ld a,(snd_on)
+        jr .is1
+.ms:    ld a,(ms_on)
         jr .is1
 .sym:   ld a,(view_sym)
 .is1:   cp 1                    ; NC if 1
@@ -1003,7 +1010,12 @@ menu_cmd:
         jr z,.vadr
         cp CMD_SOUND
         jr z,.snd
-        or a
+        cp CMD_MOUSE
+        jr nz,.nms
+        BCALL ms_toggle
+        xor a
+        ret
+.nms:   or a
         ret
 .snd:   ld a,(snd_on)
         xor 1

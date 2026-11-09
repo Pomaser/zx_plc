@@ -8,6 +8,11 @@ Script: whitespace separated commands:
             KEY = A-Z 0-9 ENTER SPACE CS SS, combos with '+', e.g. k:CS+5
   t:TEXT    type text (letters/digits/space, uppercase via CS)
   shot:NAME save screenshot NAME.png
+  (with --mouse, a Kempston mouse:)
+  mv:DX,DY  move the mouse by DX, DY screen pixels (Y down)
+  at:X,Y    move it so that the program's pointer is at screen pixel X, Y
+            (tracked from 128,96, where the program puts it when switched on)
+  cl:L/R    click the left / right button
 Requires the 'z80' python package and /usr/share/fuse/48.rom.
 """
 import sys, argparse, struct, zlib
@@ -36,6 +41,10 @@ class Spectrum:
         self.tape_i = 0
         self.edges = []                 # T-state times of MIC edges (saving)
         self.ay_log = []                # (frame, register, value)
+        self.mouse = False              # Kempston mouse attached (--mouse)
+        self.mx = self.my = 0           # its X / Y counters
+        self.mb = 0xFF                  # its buttons (active low)
+        self.px, self.py = 128, 96      # tracked pointer position
         self.m.set_input_callback(self.inp)
         self.m.set_output_callback(self.out)
         data = open(sna, "rb").read()
@@ -106,6 +115,14 @@ class Spectrum:
         return bytes(self.banks[bank][off:off + n])
 
     def inp(self, port):
+        if self.mouse and port & 0xFF == 0xDF:
+            hi = port >> 8
+            if hi == 0xFA:
+                return self.mb
+            if hi == 0xFB:
+                return self.mx
+            if hi == 0xFF:
+                return self.my
         if port & 1:
             return 0xFF
         hi = port >> 8
@@ -231,6 +248,29 @@ class Spectrum:
         self.pressed = set()
         self.run(gap)
 
+    def mouse_move(self, dx, dy):
+        """moves the mouse in steps the program can follow (|delta| < 128)"""
+        while dx or dy:
+            sx = max(-60, min(60, dx))
+            sy = max(-60, min(60, dy))
+            self.mx = (self.mx + sx) & 255
+            self.my = (self.my - sy) & 255      # Kempston: Y grows upward
+            self.px = max(0, min(255, self.px + sx))
+            self.py = max(0, min(191, self.py + sy))
+            dx -= sx
+            dy -= sy
+            self.run(2)
+
+    def mouse_at(self, x, y):
+        self.mouse_move(x - self.px, y - self.py)
+        self.run(2)
+
+    def click(self, button="L", hold=3, gap=6):
+        self.mb = 0xFF & ~(2 if button == "L" else 1)
+        self.run(hold)
+        self.mb = 0xFF
+        self.run(gap)
+
     def type(self, text):
         for ch in text:
             if ch == " ":
@@ -296,9 +336,11 @@ def main():
     ap.add_argument("--ay", action="store_true", help="print AY volume/mixer writes")
     ap.add_argument("--tap", default=None, help="save the tape output as a .tap file")
     ap.add_argument("--noborder", action="store_true", help="screenshots without the border")
+    ap.add_argument("--mouse", action="store_true", help="attach a Kempston mouse")
     a = ap.parse_args()
     z = Spectrum(a.sna)
     z.noborder = a.noborder
+    z.mouse = a.mouse
     z.run(a.frames)
     for cmd in a.script.split():
         if cmd.startswith("w"):
@@ -311,6 +353,14 @@ def main():
             z.png(cmd[5:] + ".png")
         elif cmd.startswith("play:"):
             z.play_tap(cmd[5:])
+        elif cmd.startswith("mv:"):
+            dx, dy = map(int, cmd[3:].split(","))
+            z.mouse_move(dx, dy)
+        elif cmd.startswith("at:"):
+            x, y = map(int, cmd[3:].split(","))
+            z.mouse_at(x, y)
+        elif cmd.startswith("cl:"):
+            z.click(cmd[3:])
         elif cmd == "mark":
             z.ay_log.append((z.frames, "mark", 0))
     if a.out:

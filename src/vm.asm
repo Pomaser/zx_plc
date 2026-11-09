@@ -46,7 +46,22 @@ RT_FRC    EQU st_llast+60       ; WT_MAX x 5 forced values of the watch list
 WD_EXT    EQU RT_FRC+WT_MAX*5   ; 9  compare / arithmetic: operands from wexpr.asm
 WD_LINK   EQU WD_EXT+9          ; 1  1: wx_edit does not ask A (FBD chaining)
 WD_TEXT   EQU il_out            ;     (its expression text)
-RT_END    EQU WD_EXT+10
+ms_on     EQU WD_EXT+10       ; Kempston mouse (mouse.asm): 1 = on
+ms_x      EQU ms_on+1         ;   pointer x (0-255)
+ms_y      EQU ms_on+2         ;   pointer y (0-191)
+ms_lx     EQU ms_on+3         ;   last X / Y counters, buttons
+ms_ly     EQU ms_on+4
+ms_b      EQU ms_on+5
+ms_vis    EQU ms_on+6         ;   1: the pointer is drawn at ms_dx / ms_dy
+ms_dx     EQU ms_on+7
+ms_dy     EQU ms_on+8
+ms_nx     EQU ms_on+9         ;   (new position while moving)
+ms_ny     EQU ms_on+10
+ms_cx     EQU ms_on+11        ;   the last click: position, button (1 L, 2 R)
+ms_cy     EQU ms_on+12
+ms_btn    EQU ms_on+13
+ms_menu   EQU ms_on+14        ;   0xFF, or the menu title clicked
+RT_END    EQU ms_on+15
         ASSERT RT_END <= PROJ
 
 VM_MB     EQU 1

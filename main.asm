@@ -177,6 +177,7 @@ FBD_END:
         INCLUDE "src/tools.asm"     ; cross references
         INCLUDE "src/clip.asm"      ; mark / copy / cut / paste
         INCLUDE "src/wexpr.asm"     ; word compare / arithmetic (LD, FBD)
+        INCLUDE "src/mouse.asm"     ; Kempston mouse
 demo_img:
     IFNDEF MKDEMO
         INCBIN "src/demo_proj.bin"
