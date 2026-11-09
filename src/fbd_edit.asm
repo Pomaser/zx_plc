@@ -1450,20 +1450,35 @@ fb_net_rows:
         jr z,.dn0
         dec a
         push af
-        call fb_net_row
-        pop bc                  ; B = row (flags kept)
+        call fb_join            ; (FBD has no vertical links: rows belong
+        pop bc                  ; together only through a block over both)
         ld a,b
         jr c,.up
 .dn0:   ld a,(ld_row)           ; last row
 .dn:    ld (fm_r1),a
-        inc a
-        cp LD_MAXROWS
+        cp LD_MAXROWS-1
         ret nc
         push af
-        call fb_net_row
+        call fb_join
         pop bc
         ld a,b
+        inc a                   ; (keeps C)
         jr c,.dn
+        ret
+
+; fb_join: A = row r -> C if a block from row r or above covers row r+1
+fb_join:
+        inc a
+        ld d,a
+        ld e,0
+.l:     call fb_owner           ; (keeps DE)
+        ccf
+        ret c
+        inc e
+        ld a,e
+        cp LD_CPOS+1
+        jr c,.l
+        or a
         ret
 
 fb_net_shift.chk:
