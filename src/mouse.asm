@@ -409,3 +409,69 @@ ms_bar: ld a,(ms_cy)
         jr c,.l
         scf
         ret
+
+; ---- ms_crow: A = the char row of the last click
+ms_crow:
+        ld a,(ms_cy)
+        rrca
+        rrca
+        rrca
+        and 31
+        ret
+
+; ---- ms_grid: the last click in an LD / FBD view -> NC: D = row
+;      (ld_top + (char row - ld_vbase) / 2), E = position 0-9; C: outside
+ms_grid:
+        call ms_crow
+        ld hl,ld_vbase
+        sub (hl)
+        ret c
+        srl a
+        ld hl,ld_vn
+        cp (hl)
+        ccf
+        ret c
+        ld hl,ld_top
+        add a,(hl)
+        ld d,a
+        ld a,(ms_cx)            ; cell 1+3p .. 3+3p
+        rrca
+        rrca
+        rrca
+        and 31
+        or a
+        jr z,.p
+        dec a
+.p:     ld e,0
+.dv:    sub 3
+        jr c,.dd
+        inc e
+        jr .dv
+.dd:    ld a,e
+        cp LD_CPOS+1
+        jr c,.ok
+        ld e,LD_CPOS
+.ok:    or a
+        ret
+
+; ---- ms_pou: the last click in the POU list -> NC: A = the slot of its row
+;      (rows from POU_LIST_ROW, used slots only); C: no POU there
+ms_pou: call ms_crow
+        sub POU_LIST_ROW
+        ret c
+        ld c,a                  ; C = used slots to skip
+        ld b,0
+.l:     ld a,b
+        call pou_used
+        jr z,.n
+        ld a,c
+        or a
+        ld a,b
+        ret z                   ; (NC)
+        dec c
+.n:     inc b
+        ld a,b
+        cp MAX_POU
+        jr c,.l
+        scf
+        ret

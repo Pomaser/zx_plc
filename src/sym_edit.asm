@@ -38,6 +38,8 @@ scr_sym:
         call il_fix_top
 .full:  call sy_redraw_all
 .loop:  call il_key
+        cp K_MOUSE
+        jp z,.mouse
         cp K_ENTER
         jp z,.enter
         cp K_DOWN
@@ -101,6 +103,60 @@ scr_sym:
         jp .loop
 .beep:  call beep
         jp .loop
+        ; ---- mouse: a click puts the cursor on the row and field under it;
+        ;      on the cursor's own field (or the right button) it is ENTER
+.mouse: BCALL ms_crow
+        sub IL_ROW0
+        jp c,.loop
+        cp IL_ROWS
+        jp nc,.loop
+        ld e,a
+        ld d,0
+        ld hl,(il_top)
+        add hl,de
+        ld de,(il_n)
+        or a
+        sbc hl,de
+        add hl,de
+        jr c,.ml
+        ld hl,(il_n)
+        dec hl
+.ml:    ld a,(ms_btn)
+        dec a
+        jp nz,.enter
+        ld de,(il_cur)
+        or a
+        sbc hl,de
+        add hl,de
+        jr z,.mf
+        push hl
+        call sy_commit
+        pop hl
+        jp c,.loop
+        jp .move
+.mf:    ld a,(ms_cx)            ; the field: name, address, comment
+        ld b,F_MNEM
+        cp 80
+        jr c,.mf1
+        inc b
+        cp 120
+        jr c,.mf1
+        inc b
+.mf1:   ld a,(ed_field)
+        cp b
+        jp z,.enter
+        ld a,b
+        cp F_OPER
+        jp z,.toaddr
+        cp F_COMM
+        jr z,.mfc
+        ld a,(ed_field)         ; (leaving the address field)
+        cp F_OPER
+        call z,sy_norm_addr
+        jr .toname
+.mfc:   ld a,F_OPER
+        ld (ed_field),a
+        jp .tocomm
 .toname:
         ld a,F_MNEM
         ld hl,ed_m
@@ -125,7 +181,7 @@ scr_sym:
         ld (ed_field),a
         xor a
         ld (ed_pos),a
-        jr .redraw
+        jp .redraw
 .end:   ld a,(ed_field)         ; SS+RIGHT: end of the comment
         cp F_COMM
         jr z,.tocomm2

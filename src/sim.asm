@@ -121,7 +121,43 @@ scr_run:
 .wk:    BCALL wt_key
         jp .loop
 .np:
-        cp K_UP
+        cp K_MOUSE              ; a click on an input LED toggles it
+        jr nz,.nmo
+        BCALL ms_crow
+        cp ROW_IN
+        jp nz,.loop
+        ld a,(ms_cx)            ; bit x / 16 (LED + number: 2 cells)
+        rrca
+        rrca
+        rrca
+        rrca
+        and 15
+        ld c,a
+        and 7
+        ld e,a
+        ld d,0
+        ld hl,bit_masks
+        add hl,de
+        ld b,(hl)
+        ld a,c
+        rrca
+        rrca
+        rrca
+        and 1
+        ld e,a
+        ld hl,sim_tog
+        add hl,de
+        ld a,(hl)
+        xor b
+        ld (hl),a
+        ld a,e                  ; (its byte becomes the active one)
+        ld hl,sm_ib
+        cp (hl)
+        jp z,.loop
+        ld (hl),a
+        call sim_dim
+        jp .loop
+.nmo:   cp K_UP
         jp z,.up
         cp K_DOWN
         jp z,.down

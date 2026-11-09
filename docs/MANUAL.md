@@ -77,6 +77,20 @@ The cursor keys are CAPS SHIFT + 5 / 6 / 7 / 8, DELETE is CAPS SHIFT + 0. Combin
 The AY chip plays a soft click for every key and a short warning tone on errors (View > Sound switches
 them off).
 
+**Kempston mouse.** View > Mouse switches a Kempston mouse on (it is off after the start). It is only
+switched on when a mouse answers, otherwise "No Kempston mouse" is shown. A small arrow follows the mouse:
+
+* a click on a menu title opens the menu, a click on an item runs it, a click elsewhere closes it;
+* in the element pickers, the operator list and the language choice a click picks an item; outside or
+  the right button cancels;
+* in a yes / no question a click on "Y = yes" or "N = no" answers; in an input line the left button is
+  ENTER and the right one cancels; a message closes on a click;
+* in the editors a click puts the cursor on the line, field or element under it, and a click on the
+  cursor itself (or the right button) is ENTER;
+* in the POU list a click selects a POU and a second click opens it;
+* in the simulation a click on an input LED toggles that input.
+
+
 ## 3. Menus
 
 Each menu title opens a drop-down list. The first letter of a title or item is its hotkey.
@@ -132,6 +146,7 @@ Each menu title opens a drop-down list. The first letter of a title or item is i
 | Addresses | show operands by their addresses (default) |
 | Cross references | uses of the operand at the cursor (also SS+X) |
 | Sound | key click and error tone on / off |
+| Mouse | Kempston mouse on / off (only when one is found) |
 
 ### Run
 

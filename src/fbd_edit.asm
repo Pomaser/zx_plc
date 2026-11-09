@@ -71,7 +71,9 @@ fb_editor:
         ld (in_pend),a
         jp .cedit
 .ckn:   pop af
-.nck:   cp K_LEFT
+.nck:   cp K_MOUSE
+        jp z,.mouse
+        cp K_LEFT
         jp z,.left
         cp K_RIGHT
         jp z,.right
@@ -286,6 +288,31 @@ fb_editor:
         call fb_fix_top
         jp nz,.full
         jp .cur
+
+        ; ---- mouse: a click puts the cursor on the cell under it (the
+        ;      usual cursor rules apply); on the cursor itself (or the
+        ;      right button) it is ENTER
+.mouse: BCALL ms_grid
+        jp c,.cur
+        push de
+        call fb_nrows
+        pop de
+        cp d
+        jr nc,.mr
+        ld d,a
+.mr:    ld a,(ms_btn)
+        dec a
+        jp nz,.enter
+        ld a,(ld_row)
+        cp d
+        jr nz,.mm
+        ld a,(ld_pos)
+        cp e
+        jp z,.enter
+.mm:    ld a,e
+        ld (ld_pos),a
+        ld a,d
+        jr .mv
 
         ; ---- ENTER: picker for the current position
 .enter: ld a,(ld_row)           ; comment row: edit it

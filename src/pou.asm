@@ -15,7 +15,21 @@ scr_pou:
 .redraw:
         call pou_draw_list
 .key:   call kb_wait
-        cp K_UP
+        cp K_MOUSE              ; a click selects a POU, on the selected
+        jr nz,.nm               ; one (or the right button) it opens
+        BCALL ms_pou
+        jr c,.key
+        ld b,a
+        ld a,(ms_btn)
+        dec a
+        jp nz,.edit
+        ld a,(cur_pou)
+        cp b
+        jp z,.edit
+        ld a,b
+        or a
+        jr .move
+.nm:    cp K_UP
         jr z,.up
         cp K_DOWN
         jr z,.down

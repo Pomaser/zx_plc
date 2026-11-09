@@ -106,6 +106,8 @@ il_editor:
         jp z,.pgdn
         cp K_SSENTER
         jp z,.ssent
+        cp K_MOUSE
+        jp z,.mouse
         cp K_MARK               ; SS+A / SS+D / SS+F: mark, copy, paste
         jr c,.kc
         cp K_PASTE+1
@@ -423,6 +425,9 @@ il_editor:
         pop hl
         ld (il_cur),hl
         call il_load
+        ld a,(il_mpend)         ; (a mouse click: the field under it)
+        or a
+        call nz,.mpf
         call il_fix_top
         jp nz,.full
         ld a,(il_oldrow)
@@ -430,6 +435,65 @@ il_editor:
         ld de,(il_oldln)
         call il_draw_row
         jp .redrawf
+
+        ; ---- mouse: a click puts the cursor on the line and field under it;
+        ;      on the cursor's own field (or the right button) it is ENTER
+.mouse: BCALL ms_crow
+        sub IL_ROW0
+        jp c,.loop
+        cp IL_ROWS
+        jp nc,.loop
+        ld e,a
+        ld d,0
+        ld hl,(il_top)
+        add hl,de
+        ld de,(il_n)            ; (below the last line: the last line)
+        or a
+        sbc hl,de
+        add hl,de
+        jr c,.ml
+        ld hl,(il_n)
+        dec hl
+.ml:    ld a,(ms_btn)
+        dec a
+        jp nz,.enter
+        ld de,(il_cur)
+        or a
+        sbc hl,de
+        add hl,de
+        jr z,.mf
+        push hl
+        call il_commit
+        pop hl
+        jp c,.loop
+        ld a,1
+        ld (il_mpend),a
+        jp .move
+.mf:    call .mfs
+        jp z,.enter
+        jp .en1
+.mpf:   xor a
+        ld (il_mpend),a
+        call .mfs
+        call ed_field_info
+        call strlen
+        ld (ed_pos),a
+        ret
+.mfs:   ld a,(ed_field)         ; Z: the click is on the current field
+        cp F_COMM
+        ret z
+        ld b,F_MNEM
+        ld a,(ms_cx)
+        cp IL_X_OPER-2
+        jr c,.mf1
+        ld b,F_OPER
+.mf1:   ld a,(ed_field)
+        cp b
+        ret z
+        ld a,b
+        ld (ed_field),a
+        or 1
+        ret
 
 .wak:   ld a,CMD_WADD           ; SS+W: add to the watch list
         ld (mk_cmd),a
@@ -1012,6 +1076,7 @@ sp_more:
 fo_inst: dw 0
 fo_src:  dw 0
 fo_style: db 0
+il_mpend: db 0              ; 1: .move picks the field under the mouse
 sp_end:  dw 0
 
 ; ---- il_load: loads line il_cur into the edit buffer, cursor at the end,

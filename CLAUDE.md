@@ -28,7 +28,7 @@ on tape. See README.md for the user-facing description of every editor and key.
   per image, `--noborder`). Update the manual and the scripts when the UI changes.
 - `python3 tools/fixjr.py main.asm`: builds and converts every out-of-range `jr` to `jp` in the source,
   then prints the remaining errors. Run it after edits that make code longer.
-- `python3 tools/xref.py --check "pou:R,app:E,il_edit:E,sym_edit:E,ld_edit:E,sim:E,demo:E,il_comp:R,vm:R,ld_comp:R,fbd_comp:R,tape:R,tests:E,fbd_edit:F,tools:D,clip:D,wexpr:D"`:
+- `python3 tools/xref.py --check "pou:R,app:E,il_edit:E,sym_edit:E,ld_edit:E,sim:E,demo:E,il_comp:R,vm:R,ld_comp:R,fbd_comp:R,tape:R,tests:E,fbd_edit:F,tools:D,clip:D,wexpr:D,mouse:D"`:
   reports labels referenced across paged banks without `BCALL`. Unlisted modules are core. The
   `run_tests` / `demo_build` hits in main.asm are expected. Extend the map when a module moves.
 - Headless emulator: `.scratch/venv/bin/python tools/zxrun.py zxplc.sna -f 30 -s "<script>"`
@@ -68,6 +68,10 @@ on tape. See README.md for the user-facing description of every editor and key.
   - Data shared by two banks lives in `src/shared.asm` (core); the jump target of the cross
     references (xr_jf / xr_jl / xr_jp) too.
   - Calls within one bank, or from a bank into the core, are plain `call`.
+- Kempston mouse: `src/mouse.asm` (DEMO bank), state in the RT area (`ms_*`, vm.asm). `kb_get` polls it
+  while waiting and returns `K_MOUSE` (position `ms_cx` / `ms_cy`, button `ms_btn`); a click on a menu
+  title becomes `K_EDIT` with `ms_menu`. The pointer is hidden before a key is returned. Screens handle
+  `K_MOUSE` with `ms_item` / `ms_grid` / `ms_crow` / `ms_pou`. zxrun: `--mouse`, `at:x,y`, `cl:L`.
 - `bank_copy` (core) copies with another bank paged in. Core routines that page a bank (`win_open` /
   `win_close` → DATA) restore the caller's bank.
 

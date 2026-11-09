@@ -53,6 +53,22 @@ The AY chip of the 128K plays a short soft click (noise with a fast envelope dec
 errors (unknown instruction or operand, invalid name, ...). Both are played by the interrupt, so the
 program never waits for them; View > Sound switches them off.
 
+## Kempston mouse
+
+View > Mouse switches a Kempston mouse on (it is off after the start). It is only
+switched on when a mouse answers, otherwise "No Kempston mouse" is shown. A small arrow follows the mouse:
+
+* a click on a menu title opens the menu, a click on an item runs it, a click elsewhere closes it;
+* in the element pickers, the operator list and the language choice a click picks an item; outside or
+  the right button cancels;
+* in a yes / no question a click on "Y = yes" or "N = no" answers; in an input line the left button is
+  ENTER and the right one cancels; a message closes on a click;
+* in the editors a click puts the cursor on the line, field or element under it, and a click on the
+  cursor itself (or the right button) is ENTER;
+* in the POU list a click selects a POU and a second click opens it;
+* in the simulation a click on an input LED toggles that input.
+
+
 ## Building
 
 ```
@@ -100,7 +116,7 @@ Keys are read in the interrupt into an 8-key queue, so typing ahead is not lost.
 | File | New project, Open demo, Load..., Save... |
 | POU | Manage, New..., Rename/Comment..., Language..., Duplicate..., Delete |
 | Edit | Edit POU, Undo, Add to watch, Symbols, Insert line, Delete line, Mark block, Copy, Cut, Paste |
-| View | Symbols, Addresses (how operands are shown in the IL editor and the simulation), Cross references, Sound (on/off) |
+| View | Symbols, Addresses (how operands are shown in the IL editor and the simulation), Cross references, Sound (on/off), Mouse (on/off) |
 | Run | Run, Stop, Step, Reset, Watch |
 | Help | Controls, About |
 
