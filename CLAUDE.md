@@ -49,7 +49,7 @@ on tape. See README.md for the user-facing description of every editor and key.
   per image, `--noborder`). Update the manual and the scripts when the UI changes.
 - `python3 tools/fixjr.py main.asm`: builds and converts every out-of-range `jr` to `jp` in the source,
   then prints the remaining errors. Run it after edits that make code longer.
-- `python3 tools/xref.py --check "pou:R,app:E,il_edit:E,sym_edit:E,ld_edit:E,sim:E,demo:E,il_comp:R,vm:R,ld_comp:R,fbd_comp:R,tape:R,tests:E,fbd_edit:F,tools:D,clip:D,wexpr:D,mouse:D,undo:S,ur4:D,trend:D"`:
+- `python3 tools/xref.py --check "pou:R,app:E,il_edit:E,sym_edit:E,ld_edit:E,sim:E,demo:E,il_comp:R,vm:R,ld_comp:R,fbd_comp:R,tape:R,tests:E,fbd_edit:F,tools:D,clip:D,wexpr:D,mouse:D,undo:S,ur4:D,trend:D,sd:R"`:
   reports labels referenced across paged banks without `BCALL`. Unlisted modules are core. The
   `run_tests` / `demo_build` hits in main.asm are expected. Extend the map when a module moves.
 - Headless emulator: `.scratch/venv/bin/python tools/zxrun.py zxplc.sna -f 30 -s "<script>"`
@@ -100,6 +100,16 @@ on tape. See README.md for the user-facing description of every editor and key.
   (ET / CV scaled by PT / PV, the word before them in the instance) into one 256-byte ring buffer per
   trace (`tr_buf` + t*256, aligned) by `tr_tick`, called once per simulation loop with the page in A. A loop can take several
   frames, so it adds one sample per `tr_rate` frames passed. 200-pixel chart, scrolled by 8 pixels.
+- SD card (`src/sd.asm`, RUN bank): with a divMMC (`sd_present`: CONMEM changes the bytes at 0x0000)
+  File > Save / Load ask tape or SD card (`sd_choose`, called at the start of `tape_save` / after the
+  confirm in `tape_load`). esxDOS calls (`ESX` macro: RST 8 + function; HL and IX = name / buffer): a
+  file `NAME.PLC` with the project bytes. Loading lists `.PLC` files (F_OPENDIR / F_READDIR), reads into
+  PROJ and joins `tape_load.chk` (the same checks, `tape_load.rest` restores the old project).
+  - Test with real esxDOS 0.8.9 in zxrun (`tools/divmmc.py`: automap incl. the instant 0x3D00-0x3DFF
+    area esxDOS returns through, port 0xE3 RAM banks, an SDHC card in SPI mode on an image file):
+    `--divmmc ESXMMC.BIN --sd sd.img --boot .scratch/reset128.sna --boot-frames 300` boots esxDOS, then
+    loads the program snapshot. esxDOS is not in the repo: `.scratch/esx/` (esxdos.org, esxdos089.zip;
+    image: 64 MB, MBR + FAT16, `mcopy -i sd.img@@1M -s SYS BIN TMP ::/`).
 - UR-4 interface (8255; PA 0x1F, PB 0x3F, PC 0x5F, CWR 0x7F): `src/ur4.asm` (DEMO bank, View > UR-4 I/O,
   `ur_toggle` with a PC read-back detection), state `ur_on` (vm.asm). `sim_inputs` ORs PA / PB into RT_I,
   `ur_out` (sim.asm) writes %QX0 to PC in RUN, 0 otherwise. zxrun: `--ur4`, `ur:AA,BB`.

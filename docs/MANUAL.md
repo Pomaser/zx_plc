@@ -114,8 +114,8 @@ Each menu title opens a drop-down list. The first letter of a title or item is i
 |---|---|
 | New project | empty project with an empty MAIN (asks first) |
 | Open demo | loads the demo project (asks first) |
-| Load... | loads a project from tape |
-| Save... | saves the project to tape |
+| Load... | loads a project from tape or the SD card |
+| Save... | saves the project to tape or the SD card |
 
 ### POU
 
@@ -210,6 +210,18 @@ written as a standard CODE file (start 0x9000), so any tape tool can copy or che
 **File > Load...** waits for a project on the tape and skips other files. If loading fails or is broken
 off, the old project comes back. Projects saved by older versions (format 1, without the watch list) are
 converted when loaded.
+
+### SD card (divMMC)
+
+With a **divMMC** interface running **esxDOS**, File > Save... and File > Load... first ask
+`T = tape` or `S = SD card` (without a divMMC they go straight to the tape).
+
+* **Save** asks for a file name of up to 8 characters (A-Z, 0-9, `_`, `-`) and writes `NAME.PLC` to the
+  current folder of the card; an existing file is only overwritten after a question.
+* **Load** lists the `.PLC` files of the current folder (up to 16); choose one with UP / DOWN and ENTER
+  (or a click). A file that is not a ZX-PLC project is refused and the old project stays.
+* The file holds the same bytes as the data block on tape, so a project can be moved between tape and
+  card.
 
 ## 5. Operands and symbols
 

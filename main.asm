@@ -163,6 +163,7 @@ EDIT_END:
         INCLUDE "src/fbd_comp.asm"
         INCLUDE "src/pou.asm"           ; POU list screen
         INCLUDE "src/tape.asm"          ; tape (uncontended bank)
+        INCLUDE "src/sd.asm"            ; SD card (divMMC / esxDOS)
 RUN_END:
         DISPLAY "RUN:   free: ",/D,BCODE-RUN_END
         ASSERT RUN_END <= BCODE

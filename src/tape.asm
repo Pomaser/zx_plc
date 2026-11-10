@@ -9,6 +9,12 @@
 
 ; ---- tape_save: File > Save
 tape_save:
+        ld hl,txt_sd_saveq      ; tape or SD card (with a divMMC)
+        call sd_choose
+        or a
+        ret z
+        cp 'S'
+        jp z,sd_save
         ld hl,txt_tp_nameq      ; tape name
         call popup_open
         ld a,(win_r)
@@ -165,7 +171,13 @@ tape_load:
         jr z,.go
         xor a
         ret
-.go:    ld hl,txt_tp_play
+.go:    ld hl,txt_sd_loadq      ; tape or SD card (with a divMMC)
+        call sd_choose
+        or a
+        ret z
+        cp 'S'
+        jp z,sd_load
+        ld hl,txt_tp_play
         call popup_open
         ld a,BANK_SPARE         ; keep a copy of the project
         ld hl,PROJ
@@ -206,8 +218,8 @@ tape_load:
         scf
         call tp_ld_bytes
         jr nc,.err
-        ld hl,PROJ              ; a ZX-PLC project of that length?
-        ld de,proj_sig
+.chk:   ld hl,PROJ              ; a ZX-PLC project of that length? (also
+        ld de,proj_sig          ; sd_load, length in tp_lhdr+11)
         ld b,5
 .sig:   ld a,(de)
         cp (hl)

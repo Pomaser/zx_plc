@@ -47,8 +47,9 @@ not downloaded to a real PLC; they run in the built-in simulation with live moni
 * **Real inputs and outputs:** a UR-4 interface (8255) connects 16 inputs and 8 outputs to the
   running simulation.
 * **AY sound:** a soft key click and warning tones, played by the interrupt so that the program never waits.
-* **Tape:**
+* **Tape and SD card:**
   * projects are saved and loaded as standard ROM-format files, with a safe fallback when loading fails;
+  * with a divMMC (esxDOS) also as `.PLC` files on the SD card, chosen from a list;
   * the program tape is packed with ZX0 and loads in under 4 minutes;
   * an animated loading screen (the PLC switches from STOP to RUN, its LEDs blink).
 
@@ -75,5 +76,5 @@ make docs       # screenshots of the manual
 * **Tests and screenshots** need the Python package `z80`:
   `python3 -m venv .scratch/venv && .scratch/venv/bin/pip install z80`.
 
-`tools/zxrun.py` is a small headless 48K / 128K emulator with tape, Kempston mouse and UR-4 for tests and
+`tools/zxrun.py` is a small headless 48K / 128K emulator with tape, Kempston mouse, UR-4 and divMMC for tests and
 screenshots. `CLAUDE.md` describes the source structure and memory layout.

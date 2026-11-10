@@ -15,6 +15,8 @@ Script: whitespace separated commands:
   cl:L/R    click the left / right button
   (with --ur4, a UR-4 8255 interface; its PC writes are printed at the end:)
   ur:AA,BB  set the inputs PA, PB (hex)
+(with --divmmc ROM [--sd IMG], a divMMC + SD card (tools/divmmc.py), e.g. esxDOS;
+ --boot SNA boots that snapshot first (--boot-frames), then loads the program)
 Requires the 'z80' python package and /usr/share/fuse/48.rom.
 """
 import sys, argparse, struct, zlib
@@ -52,6 +54,7 @@ class Spectrum:
         self.mx = self.my = 0           # its X / Y counters
         self.mb = 0xFF                  # its buttons (active low)
         self.px, self.py = 128, 96      # tracked pointer position
+        self.dm = None                  # divMMC (--divmmc)
         self.m.set_input_callback(self.inp)
         self.m.set_output_callback(self.out)
         data = open(sna, "rb").read()
@@ -99,6 +102,8 @@ class Spectrum:
         self.set_rom()
 
     def set_rom(self):
+        if self.dm and self.dm.mapped:
+            return                      # (the divMMC memory is there)
         self.m.set_memory_block(0, self.roms[(self.port7ffd >> 4) & 1])
 
     def page(self, val):
@@ -122,6 +127,10 @@ class Spectrum:
         return bytes(self.banks[bank][off:off + n])
 
     def inp(self, port):
+        if self.dm:
+            v = self.dm.inp(port)
+            if v is not None:
+                return v
         if self.ur4 and port & 0xFF in (0x1F, 0x3F, 0x5F):
             return {0x1F: self.ur_a, 0x3F: self.ur_b, 0x5F: self.ur_c}[port & 0xFF]
         if self.mouse and port & 0xFF == 0xDF:
@@ -147,6 +156,8 @@ class Spectrum:
         return v | 0xA0
 
     def out(self, port, val):
+        if self.dm:
+            self.dm.out(port, val)
         if self.ur4 and port & 0xFF == 0x5F:
             if val != self.ur_c:
                 self.ur_log.append((self.frames, val))
@@ -175,7 +186,10 @@ class Spectrum:
             if ev & m._TICKS_LIMIT_HIT:
                 break
             if ev & m._BREAKPOINT_HIT:
-                break
+                if not self.dm:
+                    break
+                if self.dm.on_breakpoint() & m._TICKS_LIMIT_HIT:
+                    break
         # a real Z80 never takes an interrupt between a DD/FD prefix and its
         # opcode: finish a pending prefixed instruction first
         while m.index_rp_kind != HL_KIND:
@@ -353,8 +367,21 @@ def main():
     ap.add_argument("--noborder", action="store_true", help="screenshots without the border")
     ap.add_argument("--mouse", action="store_true", help="attach a Kempston mouse")
     ap.add_argument("--ur4", action="store_true", help="attach a UR-4 (8255) interface; prints its PC writes")
+    ap.add_argument("--divmmc", default=None, help="attach a divMMC with this EEPROM (e.g. esxDOS)")
+    ap.add_argument("--sd", default=None, help="SD card image for the divMMC (written back at the end)")
+    ap.add_argument("--boot", default=None, help="boot this snapshot first (e.g. a 128K at reset), then load sna")
+    ap.add_argument("--boot-frames", type=int, default=300)
     a = ap.parse_args()
-    z = Spectrum(a.sna)
+    z = Spectrum(a.boot or a.sna)
+    if a.divmmc:
+        from divmmc import DivMMC
+        z.dm = DivMMC(z, a.divmmc, a.sd)
+    if a.boot:
+        z.run(a.boot_frames)
+        if z.dm:
+            z.dm.automap = False
+            z.dm.map(bool(z.dm.ctl & 0x80))
+        z.load_sna(open(a.sna, "rb").read())
     z.noborder = a.noborder
     z.mouse = a.mouse
     z.ur4 = a.ur4
@@ -404,6 +431,8 @@ def main():
             for v in b:
                 x ^= v
             print("tap block: %d bytes, flag %02X, checksum %s" % (len(b), b[0], "ok" if x == 0 else "BAD"))
+    if z.dm and z.dm.sd:
+        z.dm.sd.flush()
     print("border=%d pc=%04X frames=%d" % (z.border, z.m.pc, z.frames))
 
 if __name__ == "__main__":
