@@ -28,7 +28,7 @@ on tape. See README.md for the user-facing description of every editor and key.
   per image, `--noborder`). Update the manual and the scripts when the UI changes.
 - `python3 tools/fixjr.py main.asm`: builds and converts every out-of-range `jr` to `jp` in the source,
   then prints the remaining errors. Run it after edits that make code longer.
-- `python3 tools/xref.py --check "pou:R,app:E,il_edit:E,sym_edit:E,ld_edit:E,sim:E,demo:E,il_comp:R,vm:R,ld_comp:R,fbd_comp:R,tape:R,tests:E,fbd_edit:F,tools:D,clip:D,wexpr:D,mouse:D,undo:S"`:
+- `python3 tools/xref.py --check "pou:R,app:E,il_edit:E,sym_edit:E,ld_edit:E,sim:E,demo:E,il_comp:R,vm:R,ld_comp:R,fbd_comp:R,tape:R,tests:E,fbd_edit:F,tools:D,clip:D,wexpr:D,mouse:D,undo:S,ur4:D"`:
   reports labels referenced across paged banks without `BCALL`. Unlisted modules are core. The
   `run_tests` / `demo_build` hits in main.asm are expected. Extend the map when a module moves.
 - Headless emulator: `.scratch/venv/bin/python tools/zxrun.py zxplc.sna -f 30 -s "<script>"`
@@ -74,6 +74,9 @@ on tape. See README.md for the user-facing description of every editor and key.
   while waiting and returns `K_MOUSE` (position `ms_cx` / `ms_cy`, button `ms_btn`); a click on a menu
   title becomes `K_EDIT` with `ms_menu`. The pointer is hidden before a key is returned. Screens handle
   `K_MOUSE` with `ms_item` / `ms_grid` / `ms_crow` / `ms_pou`. zxrun: `--mouse`, `at:x,y`, `cl:L`.
+- UR-4 interface (8255; PA 0x1F, PB 0x3F, PC 0x5F, CWR 0x7F): `src/ur4.asm` (DEMO bank, View > UR-4 I/O,
+  `ur_toggle` with a PC read-back detection), state `ur_on` (vm.asm). `sim_inputs` ORs PA / PB into RT_I,
+  `ur_out` (sim.asm) writes %QX0 to PC in RUN, 0 otherwise. zxrun: `--ur4`, `ur:AA,BB`.
 - `bank_copy` (core) copies with another bank paged in. Core routines that page a bank (`win_open` /
   `win_close` → DATA) restore the caller's bank.
 

@@ -11,7 +11,7 @@ SIM_X_VAL EQU 252
 ROW_SEP   EQU 20
 ROW_IN    EQU 21
 ROW_OUT   EQU 22
-SM_RCOL   EQU 29            ; status bar: hints left, RUN / STOP from here
+SM_RCOL   EQU 26            ; status bar: hints left, RUN / STOP from here
 LED_COL0  EQU 0             ; cell of the first LED (LED + number: 2 cells)
 LED_COL1  EQU 16            ; first LED of byte 1
 ATTR_LED_I EQU 0x3C         ; green ink
@@ -98,6 +98,8 @@ scr_run:
         jr z,.nr2
         BCALL ms_hide
 .nr2:   call sim_update
+        call ur_out
+        call sim_state
         call kb_get
         or a
         jr z,.loop
@@ -278,6 +280,7 @@ scr_run:
 .exit:  push af
         xor a
         ld (sm_run),a           ; the simulation stops when leaving the screen
+        call ur_out0            ; (UR-4 outputs off)
         ld hl,(sm_savecur)
         ld (il_cur),hl
         ld hl,0
@@ -343,7 +346,12 @@ sim_state:
         or a
         jr z,.s
         ld hl,txt_sm_run
-.s:     ld (st_right),hl
+.s:     ld a,(ur_on)            ; "UR-4 RUN": the outputs are live
+        or a
+        jr z,.s2
+        ld de,-5                ; (the "UR-4 " in front of the text)
+        add hl,de
+.s2:    ld (st_right),hl
         jp status_right
 
 ; ---- sim_scan: HL = elapsed ticks; one PLC scan, errors stop the simulation
@@ -395,7 +403,30 @@ sim_inputs:
 .b1:    ld a,h
         or e
         ld h,a
-.st:    ld (RT_I),hl
+.st:    ld a,(ur_on)            ; the UR-4: PA -> %IX0, PB -> %IX1
+        or a
+        jr z,.st2
+        in a,(0x1F)
+        or l
+        ld l,a
+        in a,(0x3F)
+        or h
+        ld h,a
+.st2:   ld (RT_I),hl
+        ret
+
+; ---- ur_out: %QX0 to the UR-4 port PC while running, otherwise 0
+ur_out: ld a,(sm_run)
+        or a
+        jr z,ur_out0
+        ld a,(RT_Q)
+ur_out0:
+        ld b,a
+        ld a,(ur_on)
+        or a
+        ret z
+        ld a,b
+        out (0x5F),a
         ret
 
 ; ---- sim_dim: the half of the panel the keys act on (its input byte, the
@@ -852,11 +883,13 @@ sim_draw_val:
 .p:     ld a,SIM_X_VAL
         jp pt_puts_r
 
+              db "UR-4 "
 txt_sm_run:   db "RUN",0
+              db "UR-4 "
 txt_sm_stop:  db "STOP",0
 txt_sm_true:  db "TRUE",0
 txt_wt_hint:  db "ENTER Edit  F Force  DEL Delete  W Program",0
-txt_sm_hint:  db "0-7 Force  SS+n Write  B Byte  R Run  S Step  E Res",0
+txt_sm_hint:  db "0-7 In  SS+n Set  B Byte  R Run  S Step  E Res",0
 txt_sm_nomon: db "No IL or LD POU to monitor.",0
 
 sim_tog:    dw 0              ; toggled inputs I0, I1

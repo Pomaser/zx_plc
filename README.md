@@ -44,6 +44,8 @@ not downloaded to a real PLC; they run in the built-in simulation with live moni
 * **The whole 128K in use:**
   * the editors, compilers, VM and tools are spread over the paged memory banks, with calls between them;
   * a small core, the runtime data and the 12 KB project stay in fixed memory.
+* **Real inputs and outputs:** a UR-4 interface (8255) connects 16 inputs and 8 outputs to the
+  running simulation.
 * **AY sound:** a soft key click and warning tones, played by the interrupt so that the program never waits.
 * **Tape:**
   * projects are saved and loaded as standard ROM-format files, with a safe fallback when loading fails;
@@ -70,5 +72,5 @@ make docs       # screenshots of the manual
 * **Tests and screenshots** need the Python package `z80`:
   `python3 -m venv .scratch/venv && .scratch/venv/bin/pip install z80`.
 
-`tools/zxrun.py` is a small headless 48K / 128K emulator with tape and Kempston mouse for tests and
+`tools/zxrun.py` is a small headless 48K / 128K emulator with tape, Kempston mouse and UR-4 for tests and
 screenshots. `CLAUDE.md` describes the source structure and memory layout.

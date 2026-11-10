@@ -62,6 +62,7 @@ mi_view:
         db CMD_XREF,     'X',"Cross references",0
         db CMD_SOUND,    'O',"Sound",0
         db CMD_MOUSE,    'M',"Mouse",0
+        db CMD_UR4,      'U',"UR-4 I/O",0
         db 0
 mi_run:
         db CMD_RUN,  'R',"Run",0
@@ -384,6 +385,8 @@ menu_active:
         jr z,.snd
         cp CMD_MOUSE
         jr z,.ms
+        cp CMD_UR4
+        jr z,.ur
         cp CMD_VIEW_SYM
         jr z,.sym
         cp CMD_VIEW_ADDR
@@ -396,6 +399,8 @@ menu_active:
 .snd:   ld a,(snd_on)
         jr .is1
 .ms:    ld a,(ms_on)
+        jr .is1
+.ur:    ld a,(ur_on)
         jr .is1
 .sym:   ld a,(view_sym)
 .is1:   cp 1                    ; NC if 1
@@ -1014,20 +1019,25 @@ menu_cmd:
         cp CMD_KEYS
         jr z,.keys
         cp CMD_LOAD
-        jr z,.load
+        jp z,.load
         cp CMD_SAVE
-        jr z,.save
+        jp z,.save
         cp CMD_NEW
         jp z,.new
         cp CMD_DEMO
-        jr z,.demo
+        jp z,.demo
         cp CMD_VIEW_SYM
         jr z,.vsym
         cp CMD_VIEW_ADDR
         jr z,.vadr
         cp CMD_SOUND
         jr z,.snd
-        cp CMD_MOUSE
+        cp CMD_UR4
+        jr nz,.nur
+        BCALL ur_toggle
+        xor a
+        ret
+.nur:   cp CMD_MOUSE
         jr nz,.nms
         BCALL ms_toggle
         xor a

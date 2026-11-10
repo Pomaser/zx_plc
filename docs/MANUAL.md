@@ -155,6 +155,7 @@ Each menu title opens a drop-down list. The first letter of a title or item is i
 | Cross references | uses of the operand at the cursor (also SS+X) |
 | Sound | key click and error tone on / off |
 | Mouse | Kempston mouse on / off (only when one is found) |
+| UR-4 I/O | real inputs and outputs through a UR-4 interface on / off (only when one is found, see [10](#10-simulation)) |
 
 ### Run
 
@@ -414,14 +415,34 @@ the faulty line or element; the message is shown in the status bar.
 
 | Key | Function |
 |---|---|
-| `0`-`7` | toggle input bit 0-7 of the selected byte ("Force") |
-| SS + `0`-`7` | push button: the input is on while the key is held ("Write") |
+| `0`-`7` | toggle input bit 0-7 of the selected byte ("In") |
+| SS + `0`-`7` | push button: the input is on while the key is held ("Set") |
 | `B` | select byte 0 / 1 |
 | `R` | run / stop |
 | `S` | one scan (step) |
 | `E` | reset all data |
 | `W` | program / watch page |
 | UP / DOWN | scroll the listing |
+
+### Real inputs and outputs: the UR-4 interface
+
+The simulation can read and drive real hardware through a **UR-4** interface (TESLA Kolín, an 8255
+chip with three 8-bit ports). **View > UR-4 I/O** switches it on; it is only switched on when the
+interface answers, otherwise "No UR-4 interface" is shown. It is off after the start.
+
+| UR-4 port | Address | PLC | Direction |
+|---|---|---|---|
+| PA | 31 | `%IX0.0`-`%IX0.7` | input |
+| PB | 63 | `%IX1.0`-`%IX1.7` | input |
+| PC | 95 | `%QX0.0`-`%QX0.7` | output |
+| control word | 127 | 146 (PA, PB in, PC out) | |
+
+* The inputs are read every frame and ORed with the inputs set by keys or mouse. A high pin (H) is TRUE.
+* The outputs are written only while the simulation runs (RUN). In STOP, after a step, when the
+  simulation screen is left and when the UR-4 is switched off they are all 0. `%QX1` stays simulated.
+* The status bar shows `UR-4 RUN` / `UR-4 STOP` while the interface is on.
+* When switched off, all ports are set back to inputs, as after a reset.
+* A Kempston joystick interface also answers on port 31; do not connect both.
 
 ## 11. Watch and force table
 

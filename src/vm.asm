@@ -61,7 +61,8 @@ ms_cx     EQU ms_on+11        ;   the last click: position, button (1 L, 2 R)
 ms_cy     EQU ms_on+12
 ms_btn    EQU ms_on+13
 ms_menu   EQU ms_on+14        ;   0xFF, or the menu title clicked
-RT_END    EQU ms_on+15
+ur_on     EQU ms_on+15        ; UR-4 interface (ur4.asm): 1 = on
+RT_END    EQU ms_on+16
         ASSERT RT_END <= PROJ
 
 VM_MB     EQU 1

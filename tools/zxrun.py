@@ -13,6 +13,8 @@ Script: whitespace separated commands:
   at:X,Y    move it so that the program's pointer is at screen pixel X, Y
             (tracked from 128,96, where the program puts it when switched on)
   cl:L/R    click the left / right button
+  (with --ur4, a UR-4 8255 interface; its PC writes are printed at the end:)
+  ur:AA,BB  set the inputs PA, PB (hex)
 Requires the 'z80' python package and /usr/share/fuse/48.rom.
 """
 import sys, argparse, struct, zlib
@@ -42,6 +44,11 @@ class Spectrum:
         self.edges = []                 # T-state times of MIC edges (saving)
         self.ay_log = []                # (frame, register, value)
         self.mouse = False              # Kempston mouse attached (--mouse)
+        self.ur4 = False                # UR-4 (8255) attached (--ur4)
+        self.ur_a = self.ur_b = 0       #   inputs PA, PB (script ur:AA,BB)
+        self.ur_c = 0                   #   output latch PC
+        self.ur_cwr = 0x9B
+        self.ur_log = []                #   (frame, value) of every PC change
         self.mx = self.my = 0           # its X / Y counters
         self.mb = 0xFF                  # its buttons (active low)
         self.px, self.py = 128, 96      # tracked pointer position
@@ -115,6 +122,8 @@ class Spectrum:
         return bytes(self.banks[bank][off:off + n])
 
     def inp(self, port):
+        if self.ur4 and port & 0xFF in (0x1F, 0x3F, 0x5F):
+            return {0x1F: self.ur_a, 0x3F: self.ur_b, 0x5F: self.ur_c}[port & 0xFF]
         if self.mouse and port & 0xFF == 0xDF:
             hi = port >> 8
             if hi == 0xFA:
@@ -138,6 +147,12 @@ class Spectrum:
         return v | 0xA0
 
     def out(self, port, val):
+        if self.ur4 and port & 0xFF == 0x5F:
+            if val != self.ur_c:
+                self.ur_log.append((self.frames, val))
+            self.ur_c = val
+        if self.ur4 and port & 0xFF == 0x7F:
+            self.ur_cwr = val
         if not port & 1:
             self.border = val & 7
             mic = val & 8
@@ -337,10 +352,12 @@ def main():
     ap.add_argument("--tap", default=None, help="save the tape output as a .tap file")
     ap.add_argument("--noborder", action="store_true", help="screenshots without the border")
     ap.add_argument("--mouse", action="store_true", help="attach a Kempston mouse")
+    ap.add_argument("--ur4", action="store_true", help="attach a UR-4 (8255) interface; prints its PC writes")
     a = ap.parse_args()
     z = Spectrum(a.sna)
     z.noborder = a.noborder
     z.mouse = a.mouse
+    z.ur4 = a.ur4
     z.run(a.frames)
     for cmd in a.script.split():
         if cmd.startswith("w"):
@@ -361,10 +378,14 @@ def main():
             z.mouse_at(x, y)
         elif cmd.startswith("cl:"):
             z.click(cmd[3:])
+        elif cmd.startswith("ur:"):
+            z.ur_a, z.ur_b = (int(v, 16) for v in cmd[3:].split(","))
         elif cmd == "mark":
             z.ay_log.append((z.frames, "mark", 0))
     if a.out:
         z.png(a.out)
+    if a.ur4:
+        print("UR-4 CWR %02X, PC: %s" % (z.ur_cwr, " ".join("%d:%02X" % e for e in z.ur_log)))
     if a.peek:
         ad, ln = a.peek.split(":")
         ad, ln = int(ad, 16), int(ln)

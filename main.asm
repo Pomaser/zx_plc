@@ -178,6 +178,7 @@ FBD_END:
         INCLUDE "src/clip.asm"      ; mark / copy / cut / paste
         INCLUDE "src/wexpr.asm"     ; word compare / arithmetic (LD, FBD)
         INCLUDE "src/mouse.asm"     ; Kempston mouse
+        INCLUDE "src/ur4.asm"       ; UR-4 interface (physical I/O)
 demo_img:
     IFNDEF MKDEMO
         INCBIN "src/demo_proj.bin"
