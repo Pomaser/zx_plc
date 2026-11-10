@@ -58,9 +58,8 @@
     <tr><td>letters</td><td>hotkeys of the menus and elements</td></tr>
   </table>
   <p>Try it: <b>Run &gt; Run</b> runs the demo project; in the simulation the keys <kbd>0</kbd>&ndash;<kbd>7</kbd>
-    toggle the inputs. Projects can be loaded from a <code>.tap</code> with the emulator&rsquo;s open button,
-    but saving to tape does not work in the browser. The Kempston mouse and the UR-4 interface are not emulated
-    here.</p>
+    toggle the inputs. Saving and loading projects does not work in the browser. The Kempston mouse and the
+    UR-4 interface are not emulated here.</p>
 
   <h2>More</h2>
   <ul>
@@ -123,8 +122,14 @@ document.getElementById('start').addEventListener('click', () => {
     machine: 128, zoom: 2, autoStart: true, autoLoadTapes: true,
     // (a query against the browser cache: a new release shows at once; JSSpeccy needs
     // the URL to end in .tap)
-    tapeTrapsEnabled: !realtime, openUrl: 'zxplc.tap?' + Date.now() + '.tap'
+    sandbox: true, tapeTrapsEnabled: !realtime, openUrl: 'zxplc.tap?' + Date.now() + '.tap'
   });
+  // only the Display menu, Reset, Pause and full screen stay: no File / Machine menu, no Open file and
+  // Start tape buttons (the page loads the tape itself)
+  for (const b of box.querySelectorAll('button')) {
+    if (b.innerText === 'File' || b.innerText === 'Machine') b.parentNode.style.display = 'none';
+    if (b.title === 'Open file' || b.title === 'Start tape') b.style.display = 'none';
+  }
 });
 </script>
 </body>
