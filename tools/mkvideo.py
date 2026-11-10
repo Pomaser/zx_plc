@@ -2,7 +2,7 @@
 """A video of ZX-PLC: a small project typed in step by step.
 
     .scratch/venv/bin/python tools/mkvideo.py [-o .scratch/zxplc_demo.mp4]
-            [--scale 3] [--no-audio] [--shots DIR]
+            [--scale 3] [--filter soft] [--no-audio] [--shots DIR]
 
 The snapshot zxplc.sna runs in the headless emulator of tools/zxrun.py with a
 Kempston mouse; the SCENARIO below is played into it (keys typed at a human
@@ -46,7 +46,7 @@ SCENARIO = [
     "go:36,3 w15 cl:L w30 go:40,20 w15 cl:L w30",
     "t:LAMP w15 k:ENTER w30",
     "go:140,100 w15 cl:L w30",
-    "t:Running~lamp w15 k:ENTER w60",
+    "t:running~lamp w15 k:ENTER w60",
     "go:20,36 w15 cl:L w20 cl:L w60",
     "go:20,36 w15 cl:L w30",
     "go:130,52 w15 cl:L w30",
@@ -54,30 +54,83 @@ SCENARIO = [
     "go:44,36 w15 cl:L w30 go:130,100 w15 cl:L w30",
     "t:TON0 w10 k:ENTER w40",
     "k:CS+0 k:CS+0 t:2s w10 k:ENTER w40",
-    "go:236,36 w15 cl:L w20 cl:L w30",
+    "go:236,36 w15 cl:L w30 cl:L w30",
     "go:130,76 w15 cl:L w30 t:Q0.1 w10 k:ENTER w60 shot:ld",
     # ---- POU > New...: FAN in FBD
     "go:36,3 w15 cl:L w30 go:40,20 w15 cl:L w30",
     "t:FAN w15 k:ENTER w30 go:140,108 w15 cl:L w30",
-    "t:Cooling~fan w15 k:ENTER w60",
+    "t:cooling~fan w15 k:ENTER w60",
     "go:20,44 w15 cl:L w20 cl:L w60",
     "go:20,36 w15 cl:L w30",
     "go:110,20 w15 cl:L w30 t:Q0.0 w10 k:ENTER w40",
-    "go:44,36 w15 cl:L w30 go:110,44 w15 cl:L w40 k:2 w50 shot:fbd0",
-    "go:20,52 w15 cl:L w20 cl:L w30",
-    "go:110,28 w15 cl:L w30 t:I0.2 w10 k:ENTER w40",
-    "go:68,36 w15 cl:L w20 cl:L w30",
-    "go:110,164 w15 cl:L w30 t:Q0.2 w10 k:ENTER w60 shot:fbd",
+    "go:44,36 w15 cl:L w30 go:110,108 w15 cl:L w40 shot:fbd0",
+    "t:TON2 w10 k:ENTER w40 k:CS+0 k:CS+0 t:3s w10 k:ENTER w40",
+    "go:68,36 w15 cl:L w30 go:110,164 w15 cl:L w30 t:Q0.2 w10 k:ENTER w50 shot:fbd1",
+    "go:20,68 w15 cl:L w30 cl:L w30 go:110,20 w15 cl:L w30 t:I0.2 w10 k:ENTER w40",
+    "go:44,68 w15 cl:L w30 go:110,132 w15 cl:L w40 t:CTU1 w10 k:ENTER w40",
+    "k:CS+0 k:CS+0 t:3 w10 k:ENTER w50 shot:fbd2",
+    "go:20,84 w15 cl:L w30 cl:L w30 go:110,28 w15 cl:L w30 t:I0.1 w10 k:ENTER w40",
+    "go:68,68 w15 cl:L w30 cl:L w30 go:110,164 w15 cl:L w30 t:Q0.5 w10 k:ENTER w60 shot:fbd",
     # ---- MAIN in IL: the motor latch and the calls
     "go:36,3 w15 cl:L w30 go:40,12 w15 cl:L w60",
-    "go:20,28 w15 cl:L w20 cl:L w30 go:200,140 w30",
+    "go:20,28 w15 cl:L w30 cl:L w30 go:200,140 w30",
     "t://~Motor~start/stop w10 k:ENTER w20",
     "t:LD~I0.0 w10 k:ENTER w20",
     "t:OR~Q0.0 w10 k:ENTER w20",
     "t:ANDN~I0.1 w10 k:ENTER w20",
     "t:ST~Q0.0 w10 k:ENTER w20",
+    "t://~Service~lamp~after~5~s w10 k:ENTER w20",
+    "t:CAL~TON1(IN:=Q0.0,~PT:=T#5s) w10 k:ENTER w20",
+    "t:LD~TON1.Q w10 k:ENTER w20",
+    "t:ST~Q0.3 w10 k:ENTER w20",
+    "t://~Count~the~starts w10 k:ENTER w20",
+    "t:CAL~CTU0(CU:=I0.0,~R:=I0.1,~PV:=3) w10 k:ENTER w20",
+    "t:LD~CTU0.Q w10 k:ENTER w20",
+    "t:ST~Q0.4 w10 k:ENTER w20",
     "t:CAL~LAMP w10 k:ENTER w20",
     "t:CAL~FAN w10 k:ENTER w60 shot:il",
+    # ---- symbols: Edit > Symbols
+    "go:60,3 w15 cl:L w30 go:70,44 w15 cl:L w30 go:200,150 w20",
+    "t:start k:SPACE t:I0.0 k:SPACE t:start~button k:ENTER w20",
+    "t:stop k:SPACE t:I0.1 k:SPACE t:stop~button k:ENTER w20",
+    "t:sensor k:SPACE t:I0.2 k:SPACE t:part~sensor k:ENTER w20",
+    "t:motor k:SPACE t:Q0.0 k:SPACE t:conveyor~motor k:ENTER w20",
+    "t:runLamp k:SPACE t:Q0.1 k:SPACE t:running~lamp k:ENTER w20",
+    "t:fanOn k:SPACE t:Q0.2 k:SPACE t:cooling~fan k:ENTER w20",
+    "t:service k:SPACE t:Q0.3 k:SPACE t:service~lamp k:ENTER w20",
+    "t:starts3 k:SPACE t:Q0.4 k:SPACE t:3~starts~done k:ENTER w20",
+    "t:parts3 k:SPACE t:Q0.5 k:SPACE t:3~parts~counted k:ENTER w20",
+    "w50",
+    # ---- back to MAIN: symbols instead of addresses (View > Symbols), and back
+    "go:60,3 w15 cl:L w30 go:70,12 w15 cl:L w30 go:200,150 w60",
+    "go:80,3 w15 cl:L w30 go:90,12 w15 cl:L w30 go:200,150 w150 shot:vsym",
+    "go:80,3 w15 cl:L w30 go:90,20 w15 cl:L w30 go:200,150 w100",
+    "go:80,3 w15 cl:L w30 go:90,12 w15 cl:L w30 go:200,150 w50",
+    # ---- simulation of MAIN (IL): Run > Run, the inputs by clicks on the LEDs
+    "go:115,3 w15 cl:L w30 go:125,12 w15 cl:L w100",
+    "go:6,174 w20 cl:L w50 cl:L w100 shot:sim1 w250 shot:sim2",
+    "cl:L w40 cl:L w60 cl:L w40 cl:L w100 shot:sim3",
+    "go:22,174 w20 cl:L w60 cl:L w100",
+    # ---- simulation of LAMP (LD)
+    "go:36,3 w15 cl:L w30 go:40,12 w15 cl:L w60",
+    "go:20,36 w15 cl:L w30 cl:L w60",
+    "go:115,3 w15 cl:L w30 go:125,12 w15 cl:L w100",
+    "go:6,174 w20 cl:L w50 cl:L w180",
+    # ---- simulation of FAN (FBD): the fan 3 s after the motor, 3 parts counted
+    "go:36,3 w15 cl:L w30 go:40,12 w15 cl:L w60",
+    "go:20,44 w15 cl:L w30 cl:L w60",
+    "go:115,3 w15 cl:L w30 go:125,12 w15 cl:L w100",
+    "go:6,174 w20 cl:L w50 cl:L w200 shot:f1",
+    "go:38,174 w20 cl:L w30 cl:L w40 cl:L w30 cl:L w40 cl:L w30 cl:L w100 shot:f2",
+    # ---- the watch page (W), operands added with ENTER on its last row
+    "go:200,140 w20 k:W w60",
+    "k:ENTER w30 t:Q0.0 w10 k:ENTER w40",
+    "k:CS+6 w10 k:ENTER w30 t:TON2.ET w10 k:ENTER w40",
+    "k:CS+6 w10 k:ENTER w30 t:CTU1.CV w10 k:ENTER w40",
+    "k:CS+6 w10 k:ENTER w30 t:I0.1 w10 k:ENTER w60 shot:w1",
+    # force Stop TRUE: the motor stops, the counter is reset; then release it
+    "w30 k:F w150 shot:w2 k:F w60 k:F w100 shot:w3",
+    "k:W w150",
     # ---- the end: the POU list with the three POUs
     "w50 go:36,3 w15 cl:L w30 go:40,12 w15 cl:L w30 go:200,140 w250 shot:end",
 ]
@@ -161,6 +214,8 @@ class Recorder(Spectrum):
 
 def play(z, scenario, shots=None):
     for line in scenario:
+        if line == "STOP":
+            break
         for cmd in line.split():
             if cmd == "rec":
                 z.rec = True
@@ -176,7 +231,7 @@ def play(z, scenario, shots=None):
                 x, y = map(int, cmd[3:].split(","))
                 z.glide(x, y)
             elif cmd.startswith("cl:"):
-                z.click(cmd[3:], hold=3, gap=4)
+                z.click(cmd[3:], hold=6, gap=6)
             elif cmd.startswith("shot:"):
                 if shots:
                     z.png(os.path.join(shots, cmd[5:] + ".png"))
@@ -265,12 +320,23 @@ def ay_render(log, f0, frames):
     return bytes(out)
 
 
+# the look of the pixels (ffmpeg filters; {s} = scale)
+FILTERS = {
+    "sharp": "scale=iw*{s}:ih*{s}:flags=neighbor",
+    "soft": "scale=iw*{s}:ih*{s}:flags=neighbor,gblur=sigma=0.8",
+    "hq": "hqx={s}",
+    "xbr": "xbr={s}",
+}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("-o", "--out", default=os.path.join(ROOT, ".scratch", "zxplc_demo.mp4"))
     ap.add_argument("--sna", default=os.path.join(ROOT, "zxplc.sna"))
     ap.add_argument("--scale", type=int, default=3)
     ap.add_argument("--no-audio", action="store_true")
+    ap.add_argument("--filter", choices=sorted(FILTERS), default="soft",
+                    help="pixel look: sharp, soft (a slight blur, default), hq (hqx), xbr")
     ap.add_argument("--shots", default=None, help="only checkpoint PNGs into this folder")
     a = ap.parse_args()
 
@@ -287,7 +353,7 @@ def main():
     ff = subprocess.Popen(
         ["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24",
          "-s", "%dx%d" % (W, H), "-r", "50", "-i", "-",
-         "-vf", "scale=%d:%d:flags=neighbor" % (W * a.scale, H * a.scale),
+         "-vf", FILTERS[a.filter].format(s=a.scale),
          "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18", "-preset", "medium", silent],
         stdin=subprocess.PIPE)
     z = Recorder(a.sna, a.scale, ff.stdin.write)
