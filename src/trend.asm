@@ -486,7 +486,7 @@ tr_dots:
         djnz .t
         ret
 
-; tr_vline: the vertical line between the labels and the chart (x = 54)
+; tr_vline: the vertical line between the labels and the chart (x = 55)
 tr_vline:
         ld a,(tr_n)
         add a,a
@@ -499,7 +499,7 @@ tr_vline:
         call pix_addr
         ld b,8
 .l:     ld a,(hl)
-        or 0x02
+        or 0x01
         ld (hl),a
         inc h
         djnz .l
