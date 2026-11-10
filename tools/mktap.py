@@ -21,14 +21,14 @@ The tape holds:
      tone, which is long enough for that.
 With a loading screen the fixed block also carries the effect code right after
 the program (that memory is zero in the snapshot); the loader calls it, then
-clears it again. The effect fills the pixels of "STOP" in the picture (row 11,
+clears it again. The effect fills the pixels of "STOP" in the picture (row 12,
 columns 2-4, plus the empty blue cells 1 and 5) with noise for 2 s, with AY
 noise on channel A, then copies the pixels of the hidden "RUN" label (white on
 white, character row 0, columns 29-31) there and clears cells 1 and 5 again
 (the attributes stay), so the PLC in the picture switches to RUN, and writes
 MESSAGE bottom left in the app font (tools/font6.txt). While it
-waits for a key, the BRIGHT bit of the green LED cells (row 9, columns 18-23
-and 26-31) toggles at random times (100-720 ms, each cell on its own). When
+waits for a key, the BRIGHT bit of the green LED cells (row 10, columns 17-22
+and 25-30) toggles at random times (100-720 ms, each cell on its own). When
 the key is pressed and released again, the loader jumps to START.
 A failed block (or BREAK) turns the border red.
 """
@@ -45,10 +45,10 @@ IM2_AREA = 0x3DFD                       # bank offset of the IM2 stub (0xFDFD)
 BUF_END = 0xC000                        # packed blocks are loaded just below this
 HERE = os.path.dirname(os.path.abspath(__file__))
 RUN_SRC = 0x4000 + 29                   # "RUN" label: row 0, columns 29-31
-RUN_DST = 0x4800 + (11 - 8) * 32 + 2    # over "STOP": row 11, columns 2-4
+RUN_DST = 0x4800 + (12 - 8) * 32 + 2    # over "STOP": row 12, columns 2-4
 RUN_W = 3
 NOISE_FRAMES = 100                      # 2 s of noise before RUN appears
-LED_ATTR = 0x5800 + 9 * 32 + 18         # green LEDs: row 9, columns 18-23 and 26-31
+LED_ATTR = 0x5800 + 10 * 32 + 17        # green LEDs: row 10, columns 17-22 and 25-30
 MESSAGE = [(22, 2, "Press any key to start"),   # (row, x px, text) in the app font,
            (23, 2, "ZX PLC Editor")]           # in the free area left of the wires
 
