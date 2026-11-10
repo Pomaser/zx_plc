@@ -29,8 +29,8 @@ mt_run:  db "Run",0
 mt_opt:  db "Options",0
 mt_help: db "Help",0
 
-; submenu items: command, hotkey (upper case, not shown; not a title's letter F P E V R O H,
-; which the open drop-down would take), label, 0 ; list ends with 0
+; submenu items: command, hotkey (upper case, not shown; matching the label; a title's letter
+; F P E V R O H hides that title while the menu is open), label, 0 ; list ends with 0
 ; (the last label of a list must not use descenders - it touches the frame)
 mi_file:
         db CMD_NEW,  'N',"New project",0

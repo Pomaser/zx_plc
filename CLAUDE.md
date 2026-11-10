@@ -159,9 +159,11 @@ editor and key for users.
     only when its text changes. `st_left` markers: ST_SYM/ST_SYME = inverted symbol name,
     ST_TAB = column. The simulation hints must fit left of cell SM_RCOL (26) and differ per page
     (program / watch: T Trend / trend: W Watch).
-  - Menu tables (src/menu.asm): `command, hotkey, label`. The hotkey is not shown and must not be a
-    title letter (F P E V R O H): the open drop-down takes item hotkeys first, so EDIT, R would no longer
-    reach the Run menu.
+  - Menu tables (src/menu.asm): `command, hotkey, label`. The hotkey is not shown; it must match the
+    item name (normally its first letter; the user rejected unrelated letters). The open drop-down takes
+    item hotkeys first, so an item key equal to a title letter (F P E V R O H) hides that title while
+    the menu is open (Run > Reset E, Edit > Paste P, POU > Rename R are accepted). A new item must not
+    take R in the File / Edit / View menus (EDIT, R, R starts the program).
   - The menu bar title (`menu_pou`) shows the POU name, or Symbols / Watch / Trend (`mp_alt`).
 - **Project format** (src/project.asm, defs.asm):
   - A header with "ZXPLC" and P_LEN, then a table of 8 POU slots + a hidden slot 8 (the symbol table),
