@@ -243,7 +243,10 @@ tr_draw:
         ld hl,wt_i
         inc (hl)
         jr .ll
-.hist:  ld a,(tr_cnt)           ; the history: the last tr_cnt samples
+.hist:  call tr_vline              ; the frame: label separator, zero lines
+        ld c,TR_COL0
+        call tr_dots
+        ld a,(tr_cnt)           ; the history: the last tr_cnt samples
         or a
         ret z
         ld b,a
@@ -455,6 +458,55 @@ tr_scroll:
         ld a,(tr_gx)
         sub 8
         ld (tr_gx),a
+        ld c,31                 ; the zero lines in the new column
+        ; fall through
+
+; tr_dots: C = first cell -> the dotted zero lines (the FALSE level) of the
+;      traces from cell C to the right edge
+tr_dots:
+        ld a,(tr_n)
+        or a
+        ret z
+        ld b,a
+        ld a,TR_ROW0+1          ; (the FALSE level: line 1 of the second row)
+.t:     push bc
+        push af
+        ld b,a
+        call pix_addr
+        inc h
+        ld a,32
+        sub c
+        ld b,a
+.d:     ld (hl),0x88
+        inc l
+        djnz .d
+        pop af
+        add a,2
+        pop bc
+        djnz .t
+        ret
+
+; tr_vline: the vertical line between the labels and the chart (x = 54)
+tr_vline:
+        ld a,(tr_n)
+        add a,a
+        ld b,a
+        ld a,TR_ROW0
+.r:     push bc
+        push af
+        ld b,a
+        ld c,TR_X0/8-1
+        call pix_addr
+        ld b,8
+.l:     ld a,(hl)
+        or 0x02
+        ld (hl),a
+        inc h
+        djnz .l
+        pop af
+        inc a
+        pop bc
+        djnz .r
         ret
 
 TR_NB     EQU 3
