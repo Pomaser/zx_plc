@@ -371,7 +371,9 @@ tr_lab:
         ret
 
 ; tr_name: the label of the trace at pt_row (wt_i): the symbol, else the
-;      operand; pt_row moves to the next trace
+;      operand (an FB member: the symbol of the instance; only ET / CV are
+;      drawn, so the member is clear);
+;      pt_row moves to the next trace
 tr_name:
         ld a,(wt_i)
         call wt_entry
@@ -386,20 +388,20 @@ tr_name:
         call op_format
         xor a
         ld (de),a
-        pop bc
-        pop af
-        ld hl,rd_o
-        and AR_MASK             ; (an FB member: the operand, e.g. TON0.Q)
-        cp AR_FBM
-        jr z,.p
-        call sym_name_of
-        jr nc,.p
-        ld hl,rd_o
-.p:     ld a,TR_LX
+        ld a,TR_LX
         ld (pt_x),a
         ld a,TR_X0-3
         ld (pt_xmax),a
-        call pt_puts
+        pop bc
+        pop af
+        and AR_MASK
+        cp AR_FBM
+        jr nz,.s
+        ld a,AR_FBI
+.s:     call sym_name_of
+        jr nc,.p
+.op:    ld hl,rd_o
+.p:     call pt_puts
         ld a,255
         ld (pt_xmax),a
         ld hl,pt_row

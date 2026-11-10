@@ -220,6 +220,13 @@ dm_c_fbd:  db "Valve and horn (FBD)",0
 
 ; ---- watch list: [area][index]
 dm_watch:
+        db AR_Q,0                               ; Red      (the traffic light
+        db AR_Q,1                               ; Yellow    first: the trend
+        db AR_Q,2                               ; Green     shows 8 entries)
+        db AR_FBM+0x30,FBT_TON*FB_PER_TYPE+0    ; T_Red.ET
+        db AR_FBM+0x30,FBT_TON*FB_PER_TYPE+1    ; T_RedYel.ET
+        db AR_FBM+0x30,FBT_TON*FB_PER_TYPE+2    ; T_Green.ET
+        db AR_FBM+0x30,FBT_TON*FB_PER_TYPE+3    ; T_Yellow.ET
         db AR_I,11                              ; HighLvl
         db AR_Q,8                               ; Valve
         db AR_Q,9                               ; Horn
