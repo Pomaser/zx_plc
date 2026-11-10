@@ -25,7 +25,8 @@ on tape. See README.md for the user-facing description of every editor and key.
   (`tools/zx0`, vendored C packer built by make, plus `dzx0_standard.asm`), rebuilds the IM2 stubs, runs the
   picture effect, then jumps to START). The loader must stay below 0x5DE0; mktap.py checks it.
 - `tools/mkvideo.py`: a demo video (`.scratch/zxplc_demo.mp4`, ffmpeg) of a small project typed in from
-  scratch: the SCENARIO in the script is played into `zxplc.sna` by the zxrun emulator (keys, smooth
+  scratch (~70 s: `x:N` fast-forwards the typing, `hold:N` shows results at normal speed): the SCENARIO
+  in the script is played into `zxplc.sna` by the zxrun emulator (keys, smooth
   mouse), every frame is recorded and the AY writes become the sound. `--shots DIR` only saves the
   checkpoint PNGs (to tune the scenario after UI changes), `--filter sharp/soft/hq/xbr` the pixel look
   (default soft). The application is not changed for it.

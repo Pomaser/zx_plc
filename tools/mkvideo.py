@@ -32,16 +32,18 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 #   wN         wait N frames                            go:X,Y  glide the mouse
 #   cl:L/R     click                                    shot:N  checkpoint PNG
 #   rec        start recording (everything before is a silent preparation)
+#   x:N        from now on only every N-th frame goes to the video (fast forward)
+#   hold:N     N frames at normal speed (to look at a result), then fast again
 # Mouse coordinates are screen pixels (0-255, 0-191) of the pointer tip.
 
 SCENARIO = [
     # preparation (not recorded): the mouse on (View > Mouse)
     "w60 k:CS+1 w10 k:V w10 k:M w30",
-    "rec w50",
+    "rec x:6 hold:25",
     # ---- a new project: File > New project (mouse)
     "go:8,3 w15 cl:L w30 go:30,12 w15 cl:L w40",
     "go:85,100 w20 cl:L w40",
-    "go:140,92 w20 cl:L w60 shot:new",
+    "go:140,92 w20 cl:L w60 shot:new hold:20",
     # ---- POU > New...: LAMP in LD
     "go:36,3 w15 cl:L w30 go:40,20 w15 cl:L w30",
     "t:LAMP w15 k:ENTER w30",
@@ -55,7 +57,7 @@ SCENARIO = [
     "t:TON0 w10 k:ENTER w40",
     "k:CS+0 k:CS+0 t:2s w10 k:ENTER w40",
     "go:236,36 w15 cl:L w30 cl:L w30",
-    "go:130,76 w15 cl:L w30 t:Q0.1 w10 k:ENTER w60 shot:ld",
+    "go:130,76 w15 cl:L w30 t:Q0.1 w10 k:ENTER w60 shot:ld go:200,150 hold:90",
     # ---- POU > New...: FAN in FBD
     "go:36,3 w15 cl:L w30 go:40,20 w15 cl:L w30",
     "t:FAN w15 k:ENTER w30 go:140,108 w15 cl:L w30",
@@ -70,7 +72,7 @@ SCENARIO = [
     "go:44,68 w15 cl:L w30 go:110,132 w15 cl:L w40 t:CTU1 w10 k:ENTER w40",
     "k:CS+0 k:CS+0 t:3 w10 k:ENTER w50 shot:fbd2",
     "go:20,84 w15 cl:L w30 cl:L w30 go:110,28 w15 cl:L w30 t:I0.1 w10 k:ENTER w40",
-    "go:68,68 w15 cl:L w30 cl:L w30 go:110,164 w15 cl:L w30 t:Q0.5 w10 k:ENTER w60 shot:fbd",
+    "go:68,68 w15 cl:L w30 cl:L w30 go:110,164 w15 cl:L w30 t:Q0.5 w10 k:ENTER w60 shot:fbd go:200,150 hold:90",
     # ---- MAIN in IL: the motor latch and the calls
     "go:36,3 w15 cl:L w30 go:40,12 w15 cl:L w60",
     "go:20,28 w15 cl:L w30 cl:L w30 go:200,140 w30",
@@ -88,7 +90,7 @@ SCENARIO = [
     "t:LD~CTU0.Q w10 k:ENTER w20",
     "t:ST~Q0.4 w10 k:ENTER w20",
     "t:CAL~LAMP w10 k:ENTER w20",
-    "t:CAL~FAN w10 k:ENTER w60 shot:il",
+    "t:CAL~FAN w10 k:ENTER w60 shot:il hold:90",
     # ---- symbols: Edit > Symbols
     "go:60,3 w15 cl:L w30 go:70,44 w15 cl:L w30 go:200,150 w20",
     "t:start k:SPACE t:I0.0 k:SPACE t:start~button k:ENTER w20",
@@ -100,39 +102,39 @@ SCENARIO = [
     "t:service k:SPACE t:Q0.3 k:SPACE t:service~lamp k:ENTER w20",
     "t:starts3 k:SPACE t:Q0.4 k:SPACE t:3~starts~done k:ENTER w20",
     "t:parts3 k:SPACE t:Q0.5 k:SPACE t:3~parts~counted k:ENTER w20",
-    "w50",
+    "w20 hold:90",
     # ---- back to MAIN: symbols instead of addresses (View > Symbols), and back
     "go:60,3 w15 cl:L w30 go:70,12 w15 cl:L w30 go:200,150 w60",
-    "go:80,3 w15 cl:L w30 go:90,12 w15 cl:L w30 go:200,150 w150 shot:vsym",
-    "go:80,3 w15 cl:L w30 go:90,20 w15 cl:L w30 go:200,150 w100",
+    "go:80,3 w15 cl:L w30 go:90,12 w15 cl:L w30 go:200,150 w20 shot:vsym hold:60",
+    "go:80,3 w15 cl:L w30 go:90,20 w15 cl:L w30 go:200,150 w20 hold:40",
     "go:80,3 w15 cl:L w30 go:90,12 w15 cl:L w30 go:200,150 w50",
     # ---- simulation of MAIN (IL): Run > Run, the inputs by clicks on the LEDs
     "go:115,3 w15 cl:L w30 go:125,12 w15 cl:L w100",
-    "go:6,174 w20 cl:L w50 cl:L w100 shot:sim1 w250 shot:sim2",
-    "cl:L w40 cl:L w60 cl:L w40 cl:L w100 shot:sim3",
-    "go:22,174 w20 cl:L w60 cl:L w100",
+    "go:6,174 w20 cl:L w50 cl:L w60 hold:20 w250 shot:sim2 hold:50",
+    "cl:L w40 cl:L w60 cl:L w40 cl:L w60 shot:sim3 hold:50",
+    "go:22,174 w20 cl:L w60 cl:L w60 hold:30",
     # ---- simulation of LAMP (LD)
     "go:36,3 w15 cl:L w30 go:40,12 w15 cl:L w60",
     "go:20,36 w15 cl:L w30 cl:L w60",
     "go:115,3 w15 cl:L w30 go:125,12 w15 cl:L w100",
-    "go:6,174 w20 cl:L w50 cl:L w180",
+    "go:6,174 w20 cl:L w50 cl:L w120 hold:60",
     # ---- simulation of FAN (FBD): the fan 3 s after the motor, 3 parts counted
     "go:36,3 w15 cl:L w30 go:40,12 w15 cl:L w60",
     "go:20,44 w15 cl:L w30 cl:L w60",
     "go:115,3 w15 cl:L w30 go:125,12 w15 cl:L w100",
-    "go:6,174 w20 cl:L w50 cl:L w200 shot:f1",
-    "go:38,174 w20 cl:L w30 cl:L w40 cl:L w30 cl:L w40 cl:L w30 cl:L w100 shot:f2",
+    "go:6,174 w20 cl:L w50 cl:L w180 shot:f1 hold:30",
+    "go:38,174 w20 cl:L w30 cl:L w40 cl:L w30 cl:L w40 cl:L w30 cl:L w60 shot:f2 hold:60",
     # ---- the watch page (W), operands added with ENTER on its last row
     "go:200,140 w20 k:W w60",
     "k:ENTER w30 t:Q0.0 w10 k:ENTER w40",
     "k:CS+6 w10 k:ENTER w30 t:TON2.ET w10 k:ENTER w40",
     "k:CS+6 w10 k:ENTER w30 t:CTU1.CV w10 k:ENTER w40",
-    "k:CS+6 w10 k:ENTER w30 t:I0.1 w10 k:ENTER w60 shot:w1",
+    "k:CS+6 w10 k:ENTER w30 t:I0.1 w10 k:ENTER w60 shot:w1 hold:30",
     # force Stop TRUE: the motor stops, the counter is reset; then release it
-    "w30 k:F w150 shot:w2 k:F w60 k:F w100 shot:w3",
-    "k:W w150",
+    "w30 k:F w100 shot:w2 hold:60 k:F w60 k:F w60 shot:w3",
+    "k:W w60 hold:30",
     # ---- the end: the POU list with the three POUs
-    "w50 go:36,3 w15 cl:L w30 go:40,12 w15 cl:L w30 go:200,140 w250 shot:end",
+    "w50 go:36,3 w15 cl:L w30 go:40,12 w15 cl:L w30 go:200,140 w20 shot:end hold:90",
 ]
 
 
@@ -146,11 +148,20 @@ class Recorder(Spectrum):
         self.scale = scale
         self.cache = {}
         self.rnd = random.Random(1)
+        self.speed = 1                      # every N-th frame is recorded
+        self.tick = 0
+        self.rec_frames = []                # the emulated frames in the video
 
     def frame(self):
         super().frame()
-        if self.rec and self.sink:
-            self.sink(self.rgb())
+        if not self.rec:
+            return
+        self.tick += 1
+        if self.tick >= self.speed:
+            self.tick = 0
+            self.rec_frames.append(self.frames)
+            if self.sink:
+                self.sink(self.rgb())
 
     # fast RGB of the screen with a border: (bitmap byte, attribute, flash) -> 8 pixels
     PAL = [(0, 0, 0), (0, 0, 0xD7), (0xD7, 0, 0), (0xD7, 0, 0xD7), (0, 0xD7, 0), (0, 0xD7, 0xD7),
@@ -189,12 +200,12 @@ class Recorder(Spectrum):
 
     # ---- input at a human pace
     def press(self, combo):
-        self.key(combo, hold=3 + self.rnd.randint(0, 2), gap=4 + self.rnd.randint(0, 4))
+        self.key(combo, hold=2 + self.rnd.randint(0, 1), gap=3 + self.rnd.randint(0, 2))
 
     def typ(self, text):
         for ch in text:
             Spectrum.type(self, ch)
-            self.run(self.rnd.randint(0, 3))
+            self.run(self.rnd.randint(0, 1))
 
     def glide(self, x, y):
         """moves the pointer smoothly (ease in / out) to screen pixel x, y"""
@@ -221,6 +232,12 @@ def play(z, scenario, shots=None):
                 z.rec = True
                 z.ay_log = []
                 z.rec_f0 = z.frames
+            elif cmd.startswith("x:"):
+                z.speed = int(cmd[2:])
+            elif cmd.startswith("hold:"):
+                sp, z.speed = z.speed, 1
+                z.run(int(cmd[5:]))
+                z.speed = sp
             elif cmd.startswith("w"):
                 z.run(int(cmd[1:]))
             elif cmd.startswith("k:"):
@@ -246,8 +263,9 @@ VOL = [0, 0.0105, 0.0154, 0.0216, 0.0316, 0.0461, 0.0646, 0.1073, 0.1265, 0.2049
        0.3729, 0.4925, 0.6353, 0.8056, 1.0]
 
 
-def ay_render(log, f0, frames):
-    """log: (frame, reg, value) -> 16-bit mono samples, 50 frames per second"""
+def ay_render(log, rec_frames):
+    """log: (frame, reg, value), rec_frames: the emulated frames in the video ->
+    16-bit mono samples, one video frame (1/50 s) each"""
     regs = [0] * 16
     regs[7] = 0xFF
     per_frame = RATE / 50.0
@@ -257,13 +275,13 @@ def ay_render(log, f0, frames):
     tout = [1, 1, 1]
     nc, nout, lfsr = 0.0, 1, 1
     ec, epos, ehold = 0.0, 0, False
-    ev = {}
-    for fr, r, v in log:
-        if isinstance(r, int):
-            ev.setdefault(fr - f0, []).append((r, v))
+    log = [(fr, r, v) for fr, r, v in log if isinstance(r, int)]
+    li = 0
     acc = 0.0
-    for f in range(frames):
-        for r, v in ev.get(f, []):
+    for f in rec_frames:
+        while li < len(log) and log[li][0] <= f:
+            _, r, v = log[li]
+            li += 1
             regs[r] = v
             if r == 13:
                 epos, ehold, ec = 0, False, 0.0
@@ -360,8 +378,8 @@ def main():
     play(z, SCENARIO)
     ff.stdin.close()
     ff.wait()
-    n = z.frames - z.rec_f0
-    print("recorded frames: %d (%.1f s)" % (n, n / 50))
+    n = len(z.rec_frames)
+    print("video frames: %d (%.1f s), emulated %d" % (n, n / 50, z.frames - z.rec_f0))
     if a.no_audio:
         os.replace(silent, a.out)
         return
@@ -370,7 +388,7 @@ def main():
         w.setnchannels(1)
         w.setsampwidth(2)
         w.setframerate(RATE)
-        w.writeframes(ay_render(z.ay_log, z.rec_f0, n))
+        w.writeframes(ay_render(z.ay_log, z.rec_frames))
     subprocess.check_call(["ffmpeg", "-y", "-loglevel", "error", "-i", silent, "-i", wav,
                            "-c:v", "copy", "-c:a", "aac", "-b:a", "128k", "-shortest", a.out])
     os.remove(silent)
