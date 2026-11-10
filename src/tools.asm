@@ -1482,9 +1482,137 @@ txt_wt_dup:   db "Already in the watch list",0
 txt_wt_full:  db "The watch list is full",0
 
 ; ---- tl_about / tl_keys: Help > About / Controls
+; ---- tl_about: Help > About; stars twinkle in the empty cells of the window
+;      until a key or a click (the idea of the Exolon menu, R. Cecco 1987)
+AS_N    EQU 8               ; stars at a time
+AS_PH   EQU 16              ; phases of one star (as_seq)
 tl_about:
+        ld hl,(frames)
+        ld (as_seed),hl
+        ld hl,as_slot
+        ld b,AS_N*3
+.z:     ld (hl),0
+        inc hl
+        djnz .z
         ld hl,txt_about
-        jp msg_box
+        call popup_open
+.loop:  halt
+        ld a,(frames)
+        and 1
+        call z,as_step
+        call kb_get
+        or a
+        jr z,.loop
+        xor a
+        ld (mk_cmd),a
+        jp win_close            ; (restores the cells, the stars go with them)
+
+; as_step: one phase of every star; a free slot sometimes starts a star in
+;          a random inner cell that is empty with both neighbours
+as_step:
+        ld ix,as_slot
+        ld b,AS_N
+.l:     push bc
+        ld a,(ix+2)
+        or a
+        jr nz,.run
+        call as_rnd
+        and 3
+        jr nz,.nx               ; start now and then
+        ld a,(win_rows)
+        sub 2
+        call as_rndn
+        ld hl,win_r
+        add a,(hl)
+        inc a
+        ld (ix+1),a
+        ld a,(win_cols)
+        sub 2
+        call as_rndn
+        ld hl,win_c
+        add a,(hl)
+        ld (ix+0),a             ; (the left neighbour)
+        ld b,(ix+1)
+        ld c,a
+        ld d,3
+.chk:   call as_empty
+        jr nz,.nx
+        inc c
+        dec d
+        jr nz,.chk
+        inc (ix+0)
+        ld (ix+2),AS_PH
+.run:   dec (ix+2)
+        ld e,(ix+2)
+        ld d,0
+        ld hl,as_seq
+        add hl,de
+        ld a,(hl)
+        add a,a
+        add a,a
+        add a,a
+        ld e,a
+        ld hl,as_gfx
+        add hl,de
+        ex de,hl                ; DE = the frame
+        ld b,(ix+1)
+        ld c,(ix+0)
+        call pix_addr
+        ld b,8
+.d:     ld a,(de)
+        ld (hl),a
+        inc de
+        inc h
+        djnz .d
+.nx:    pop bc
+        inc ix
+        inc ix
+        inc ix
+        djnz .l
+        ret
+
+; as_empty: B = row, C = col -> Z if the cell has no pixel (keeps BC, D)
+as_empty:
+        call pix_addr
+        ld e,8
+        xor a
+.l:     or (hl)
+        inc h
+        dec e
+        jr nz,.l
+        or a
+        ret
+
+; as_rndn: A = n -> A = random 0..n-1
+as_rndn:
+        ld c,a
+        call as_rnd
+.m:     cp c
+        ret c
+        sub c
+        jr .m
+
+; as_rnd: -> A = random (seed * 5 + 0x3619)
+as_rnd: ld hl,(as_seed)
+        ld d,h
+        ld e,l
+        add hl,hl
+        add hl,hl
+        add hl,de
+        ld de,0x3619
+        add hl,de
+        ld (as_seed),hl
+        ld a,h
+        ret
+
+as_seed: dw 0
+as_slot: ds AS_N*3          ; col, row, phase (0 = free)
+as_seq:  db 0,1,1,2,2,3,3,4,4,4,3,3,2,2,1,1     ; frame by phase (counting down)
+as_gfx:  db 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
+         db 0x00,0x00,0x00,0x10,0x00,0x00,0x00,0x00
+         db 0x00,0x00,0x10,0x38,0x10,0x00,0x00,0x00
+         db 0x00,0x10,0x10,0x7C,0x10,0x10,0x00,0x00
+         db 0x10,0x54,0x38,0xFE,0x38,0x54,0x10,0x00
 tl_keys:
         ld hl,txt_keys
         jp msg_box

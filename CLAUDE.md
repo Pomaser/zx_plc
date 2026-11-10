@@ -93,7 +93,7 @@ editor and key for users.
   - DATA 1: the popup save buffer and the clipboard (`clip_buf`, filled by `src/clip.asm`).
   - DEMO 3: `src/tools.asm` (cross references, watch / force page of the simulation, Help texts),
     `src/clip.asm` (mark / copy / cut / paste, called by the editors with `BCALL cl_cmd` / `mk_draw`),
-    `src/wexpr.asm`, `src/mouse.asm`, `src/ur4.asm`, `src/trend.asm`, `menu_cmd` / `menu_active` (menu commands, check marks) and the demo image (~3.7 KB free).
+    `src/wexpr.asm`, `src/mouse.asm`, `src/ur4.asm`, `src/trend.asm`, `menu_cmd` / `menu_active` (menu commands, check marks), the About box with twinkling stars (`tl_about`) and the demo image (~3.7 KB free).
   - FBD 6: the FBD editor (~7.5 KB free).
   - SPARE 7: undo / redo (`src/undo.asm`): the code, the history records growing up from `UM_REC`, and
     the shadow copy of the project ending at the IM2 stub. The tape load copies the project to `UM_BAK`
