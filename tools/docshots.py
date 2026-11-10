@@ -20,7 +20,7 @@ MENU = "w30 k:CS+SPACE w5 "                   # open the menu bar
 IL = "w30 " + D + "k:ENTER w40 "              # open DEMO_IL
 LD = "w30 " + D * 2 + "k:ENTER w40 "          # open DEMO_LD
 FBD = "w30 " + D * 3 + "k:ENTER w40 "         # open DEMO_FBD
-RUN = "k:CS+1 w10 k:R w10 k:U w80 "           # Run > Run
+RUN = "k:CS+1 w10 k:R w10 k:R w80 "           # Run > Run
 
 SHOTS = [
     ("pou_list", "w40"),

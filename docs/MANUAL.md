@@ -104,85 +104,84 @@ switched on when a mouse answers, otherwise "No Kempston mouse" is shown. A smal
 
 ## 3. Menus
 
-Each menu title opens a drop-down list. The first letter of a title is its hotkey (also while another
-menu is open); in an open menu the key in the tables below runs an item.
+Each menu title opens a drop-down list. The first letter of a title or item is its hotkey.
 
 ### File
 
 ![File menu](img/menu_file.png)
 
-| Item | Key | Function |
-|---|---|---|
-| New project | N | empty project with an empty MAIN (asks first) |
-| Open demo | M | loads the demo project (asks first) |
-| Load tape... | L | loads a project from tape |
-| Save tape... | S | saves the project to tape |
-| Load SD... | D | loads a project from the SD card (divMMC) |
-| Save SD... | W | saves the project to the SD card (divMMC) |
+| Item | Function |
+|---|---|
+| New project | empty project with an empty MAIN (asks first) |
+| Open demo | loads the demo project (asks first) |
+| Load tape... | loads a project from tape |
+| Save tape... | saves the project to tape |
+| Load SD... | loads a project from the SD card (divMMC) |
+| Save SD... | saves the project to the SD card (divMMC) |
 
 ### POU
 
 ![POU menu](img/menu_pou.png)
 
-| Item | Key | Function |
-|---|---|---|
-| Manage | M | the POU list |
-| New... | N | new POU: name, language, comment |
-| Rename/Comment... | C | rename the selected POU (not MAIN) and edit its comment |
-| Language... | L | change the language of an empty POU |
-| Duplicate... | U | a copy of the selected POU under a new name (also `U` in the POU list) |
-| Delete | D | delete the selected POU (not MAIN) |
+| Item | Function |
+|---|---|
+| Manage | the POU list |
+| New... | new POU: name, language, comment |
+| Rename/Comment... | rename the selected POU (not MAIN) and edit its comment |
+| Language... | change the language of an empty POU |
+| Duplicate... | a copy of the selected POU under a new name (also `U` in the POU list) |
+| Delete | delete the selected POU (not MAIN) |
 
 ### Edit
 
 ![Edit menu](img/menu_edit.png)
 
-| Item | Key | Function |
-|---|---|---|
-| Edit POU | T | open the current POU in its editor |
-| Undo | U | undo the last change (also SS+U) |
-| Redo | Y | redo the undone change (also SS+Y) |
-| Add to watch | W | add the operand at the cursor to the watch list (also SS+W) |
-| Symbols | S | the symbol editor |
-| Insert line | I | insert an empty line / row |
-| Delete line | D | delete the current line / row |
-| Mark block | M | mark the start of a block (also SS+A) |
-| Copy | C | copy the block (also SS+D) |
-| Cut | X | copy the block and delete it |
-| Paste | A | paste in front of the cursor (also SS+F) |
+| Item | Function |
+|---|---|
+| Edit POU | open the current POU in its editor |
+| Undo | undo the last change (also SS+U) |
+| Redo | redo the undone change (also SS+Y) |
+| Add to watch | add the operand at the cursor to the watch list (also SS+W) |
+| Symbols | the symbol editor |
+| Insert line | insert an empty line / row |
+| Delete line | delete the current line / row |
+| Mark block | mark the start of a block (also SS+A) |
+| Copy | copy the block (also SS+D) |
+| Cut | copy the block and delete it |
+| Paste | paste in front of the cursor (also SS+F) |
 
 ### View
 
 ![View menu](img/menu_view.png)
 
-| Item | Key | Function |
-|---|---|---|
-| Symbols | S | show operands by their symbol names |
-| Addresses | A | show operands by their addresses (default) |
-| Cross references | X | uses of the operand at the cursor (also SS+X) |
+| Item | Function |
+|---|---|
+| Symbols | show operands by their symbol names |
+| Addresses | show operands by their addresses (default) |
+| Cross references | uses of the operand at the cursor (also SS+X) |
 
 ### Run
 
 ![Run menu](img/menu_run.png)
 
-| Item | Key | Function |
-|---|---|---|
-| Run | U | compile all POUs and run (the simulation screen) |
-| Stop | T | stop the scan cycle |
-| Step | S | one scan |
-| Reset | C | clear all PLC data (inputs, outputs, memory, timers, counters, steps) |
-| Watch | W | the simulation on the watch / force page |
-| Trend | G | the simulation on the trend page (time charts) |
+| Item | Function |
+|---|---|
+| Run | compile all POUs and run (the simulation screen) |
+| Stop | stop the scan cycle |
+| Step | one scan |
+| Reset | clear all PLC data (inputs, outputs, memory, timers, counters, steps) |
+| Watch | the simulation on the watch / force page |
+| Trend | the simulation on the trend page (time charts) |
 
 ### Options
 
 ![Options menu](img/menu_options.png)
 
-| Item | Key | Function |
-|---|---|---|
-| Sound | S | key click and error tone on / off |
-| Mouse | M | Kempston mouse on / off (only when one is found) |
-| UR-4 I/O | U | real inputs and outputs through a UR-4 interface on / off (only when one is found, see [10](#10-simulation)) |
+| Item | Function |
+|---|---|
+| Sound | key click and error tone on / off |
+| Mouse | Kempston mouse on / off (only when one is found) |
+| UR-4 I/O | real inputs and outputs through a UR-4 interface on / off (only when one is found, see [10](#10-simulation)) |
 
 ### Help
 
