@@ -29,7 +29,9 @@ on tape. See README.md for the user-facing description of every editor and key.
   in the script is played into `zxplc.sna` by the zxrun emulator (keys, smooth
   mouse), every frame is recorded and the AY writes become the sound. `--shots DIR` only saves the
   checkpoint PNGs (to tune the scenario after UI changes), `--filter sharp/soft/hq/xbr` the pixel look
-  (default soft). The application is not changed for it.
+  (default soft). The video starts with the end of the tape loading of `zxplc.tap` (border stripes,
+  tape sound, loader effect) from `.scratch/reset128.sna` (a 128K at the 128 menu); `--no-intro` skips
+  it. The application is not changed for it.
 - Releases: the release number is in the file `VERSION` (no newline; Help > About includes it with
   `INCBIN`). Set it to the new number before building the files of a release.
 - `make docs`: regenerates the screenshots of `docs/MANUAL.md` (`tools/docshots.py`: one zxrun key script

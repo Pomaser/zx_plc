@@ -11,8 +11,11 @@ scaled with sharp pixels); the AY register writes are turned into sound.
 The application itself is not changed in any way.
 
 --shots DIR: no video, only a PNG at every "shot:NAME" (to tune the scenario).
+The video starts with the end of the tape loading of zxplc.tap (from a 128K reset
+snapshot, --reset) and the program starting; --no-intro leaves it out.
 """
 import argparse
+import bisect
 import math
 import os
 import random
@@ -153,8 +156,18 @@ class Recorder(Spectrum):
         self.speed = 1                      # every N-th frame is recorded
         self.tick = 0
         self.rec_frames = []                # the emulated frames in the video
+        self.tape_audio = []                # per video frame: EAR levels or None
+        self.blog = []                      # border writes in this frame (T, colour)
+        self.fborder = self.border          # the border at the start of the frame
+
+    def out(self, port, val):
+        if not port & 1:
+            self.blog.append((69888 - self.m.ticks_to_stop, val & 7))
+        super().out(port, val)
 
     def frame(self):
+        self.fborder = self.border
+        self.blog = []
         super().frame()
         if not self.rec:
             return
@@ -162,8 +175,17 @@ class Recorder(Spectrum):
         if self.tick >= self.speed:
             self.tick = 0
             self.rec_frames.append(self.frames)
+            self.tape_audio.append(self.ear_levels() if self.tape else None)
             if self.sink:
                 self.sink(self.rgb())
+
+    def ear_levels(self):
+        """the tape signal (EAR) of the last frame, one level per audio sample"""
+        t0 = (self.frames - 1) * 69888
+        if self.tape_i >= len(self.tape) and self.tape and self.tape[-1] < t0:
+            return None
+        n = RATE // 50
+        return [bisect.bisect_right(self.tape, t0 + i * 69888 // n) & 1 for i in range(n)]
 
     # fast RGB of the screen with a border: (bitmap byte, attribute, flash) -> 8 pixels
     PAL = [(0, 0, 0), (0, 0, 0xD7), (0xD7, 0, 0), (0xD7, 0, 0xD7), (0, 0xD7, 0), (0, 0xD7, 0xD7),
@@ -184,20 +206,34 @@ class Recorder(Spectrum):
             self.cache[k] = v
         return v
 
+    def borders(self):
+        """the border colour of every picture line (the loading stripes): the
+        writes to port 0xFE during the frame, 224 T per line, the display from
+        line 64"""
+        H = 192 + 2 * self.BORDER
+        cols, c, i, log = [], self.fborder, 0, self.blog
+        for y in range(H):
+            t = (y - self.BORDER + 64) * 224
+            while i < len(log) and log[i][0] <= t:
+                c = log[i][1]
+                i += 1
+            cols.append(c)
+        return cols
+
     def rgb(self):
         mem = self.m.memory
         B = self.BORDER
-        bc = bytes(self.PAL[self.border])
-        side = bc * B
-        full = bc * (256 + 2 * B)
+        bcol = self.borders()
+        pal = [bytes(p) for p in self.PAL]
         fl = (self.frames // 16) & 1
-        out = [full] * B
+        out = [pal[c] * (256 + 2 * B) for c in bcol[:B]]
+        cell = self.cell
         for y in range(192):
             base = 0x4000 | ((y & 0xC0) << 5) | ((y & 7) << 8) | ((y & 0x38) << 2)
             ab = 0x5800 + (y >> 3) * 32
-            cell = self.cell
+            side = pal[bcol[B + y]] * B
             out.append(side + b"".join(cell(mem[base + c], mem[ab + c], fl) for c in range(32)) + side)
-        out += [full] * B
+        out += [pal[c] * (256 + 2 * B) for c in bcol[B + 192:]]
         return b"".join(out)
 
     # ---- input at a human pace
@@ -276,9 +312,10 @@ VOL = [0, 0.0105, 0.0154, 0.0216, 0.0316, 0.0461, 0.0646, 0.1073, 0.1265, 0.2049
        0.3729, 0.4925, 0.6353, 0.8056, 1.0]
 
 
-def ay_render(log, rec_frames):
+def ay_render(log, rec_frames, tape=None):
     """log: (frame, reg, value), rec_frames: the emulated frames in the video ->
-    16-bit mono samples, one video frame (1/50 s) each"""
+    16-bit mono samples, one video frame (1/50 s) each; tape: per video frame
+    the EAR levels to mix in (the loading sound) or None"""
     regs = [0] * 16
     regs[7] = 0xFF
     per_frame = RATE / 50.0
@@ -291,7 +328,9 @@ def ay_render(log, rec_frames):
     log = [(fr, r, v) for fr, r, v in log if isinstance(r, int)]
     li = 0
     acc = 0.0
-    for f in rec_frames:
+    for fi, f in enumerate(rec_frames):
+        ear = tape[fi] if tape else None
+        k = 0
         while li < len(log) and log[li][0] <= f:
             _, r, v = log[li]
             li += 1
@@ -347,7 +386,11 @@ def ay_render(log, rec_frames):
                         s += VOL[lvl]
                     else:
                         s += VOL[a & 15]
-            out += struct.pack("<h", max(-32767, min(32767, int(s / 3 * 80000))))
+            v = s / 3 * 80000
+            if ear is not None and k < len(ear):
+                v += 6000 if ear[k] else -6000
+            k += 1
+            out += struct.pack("<h", max(-32767, min(32767, int(v))))
     return bytes(out)
 
 
@@ -360,6 +403,31 @@ FILTERS = {
 }
 
 
+INTRO_LOAD = 500        # frames of the tape loading shown before its end
+INTRO_WAIT = 300        # frames of the loading effect before a key is pressed
+INTRO_START = 150       # frames after the key (the program starts)
+
+
+def intro(reset, tap, scale, sink):
+    """the end of the tape loading (with its border stripes and sound), the
+    loader effect, a key, the program starting"""
+    z = Recorder(reset, scale, sink)
+    z.mouse = False
+    z.run(150)
+    z.key("ENTER")                          # Tape Loader in the 128 menu
+    z.run(20)
+    t_end = z.play_tap(tap) - 3500000       # the last edge of the tape
+    end = t_end // 69888
+    z.run(max(0, end - INTRO_LOAD - z.frames))
+    z.rec = True
+    z.ay_log = []
+    z.rec_f0 = z.frames
+    z.run(end - z.frames + INTRO_WAIT)
+    z.key("SPACE")
+    z.run(INTRO_START)
+    return z
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("-o", "--out", default=os.path.join(ROOT, ".scratch", "zxplc_demo.mp4"))
@@ -369,6 +437,10 @@ def main():
     ap.add_argument("--filter", choices=sorted(FILTERS), default="soft",
                     help="pixel look: sharp, soft (a slight blur, default), hq (hqx), xbr")
     ap.add_argument("--shots", default=None, help="only checkpoint PNGs into this folder")
+    ap.add_argument("--no-intro", action="store_true", help="without the tape loading at the start")
+    ap.add_argument("--reset", default=os.path.join(ROOT, ".scratch", "reset128.sna"),
+                    help="snapshot of a 128K just after reset (the 128 menu), for the intro")
+    ap.add_argument("--tap", default=os.path.join(ROOT, "zxplc.tap"))
     a = ap.parse_args()
 
     if a.shots:
@@ -387,12 +459,19 @@ def main():
          "-vf", FILTERS[a.filter].format(s=a.scale),
          "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18", "-preset", "medium", silent],
         stdin=subprocess.PIPE)
+    segs = []
+    if not a.no_intro:
+        if os.path.exists(a.reset) and os.path.exists(a.tap):
+            segs.append(intro(a.reset, a.tap, a.scale, ff.stdin.write))
+        else:
+            print("no intro: %s or %s missing" % (a.reset, a.tap))
     z = Recorder(a.sna, a.scale, ff.stdin.write)
     play(z, SCENARIO)
+    segs.append(z)
     ff.stdin.close()
     ff.wait()
-    n = len(z.rec_frames)
-    print("video frames: %d (%.1f s), emulated %d" % (n, n / 50, z.frames - z.rec_f0))
+    n = sum(len(s.rec_frames) for s in segs)
+    print("video frames: %d (%.1f s)" % (n, n / 50))
     if a.no_audio:
         os.replace(silent, a.out)
         return
@@ -401,7 +480,8 @@ def main():
         w.setnchannels(1)
         w.setsampwidth(2)
         w.setframerate(RATE)
-        w.writeframes(ay_render(z.ay_log, z.rec_frames))
+        for s in segs:
+            w.writeframes(ay_render(s.ay_log, s.rec_frames, s.tape_audio))
     subprocess.check_call(["ffmpeg", "-y", "-loglevel", "error", "-i", silent, "-i", wav,
                            "-c:v", "copy", "-c:a", "aac", "-b:a", "128k", "-shortest", a.out])
     os.remove(silent)
