@@ -15,6 +15,7 @@ TR_ROW0   EQU 2             ; text row of the first trace
 TR_MAX    EQU 8             ; traces
 TR_X0     EQU 56            ; first pixel of the chart
 TR_COL0   EQU TR_X0/8
+TR_LX     EQU 2             ; x of the labels
 TR_W      EQU 200           ; chart width (samples)
 TR_ROWE   EQU 20            ; the row after the page (sim.asm ROW_SEP)
 
@@ -272,7 +273,7 @@ tr_draw:
         call scr_fill_attr
         ld a,1
         ld (pt_row),a
-        xor a
+        ld a,TR_LX              ; (aligned with the labels)
         ld (pt_x),a
         ld hl,txt_tr_sig
         call pt_puts
@@ -394,7 +395,7 @@ tr_name:
         call sym_name_of
         jr nc,.p
         ld hl,rd_o
-.p:     xor a
+.p:     ld a,TR_LX
         ld (pt_x),a
         ld a,TR_X0-3
         ld (pt_xmax),a
