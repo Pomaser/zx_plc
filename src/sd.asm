@@ -10,6 +10,7 @@
 ; which dot commands use) = name / buffer, B = mode, BC = length; CF set
 ; on an error with A = the error code.
 ; ============================================================
+M_DOSVERSION EQU 0x88
 F_OPEN      EQU 0x9A
 F_CLOSE     EQU 0x9B
 F_READ      EQU 0x9D
@@ -27,29 +28,66 @@ SD_NLEN     EQU 9           ; a name in the list: 8 characters + 0
         db fn
     ENDM
 
-; ---- sd_present: NZ = a divMMC answers. Its memory (CONMEM, port 0xE3
-;      bit 7) replaces the ROM at 0x0000 for a moment: other bytes there
+; ---- sd_present: NZ = esxDOS is there: a divMMC whose memory (CONMEM,
+;      port 0xE3 bit 7, maps the EEPROM at 0x0000 for a moment) holds the
+;      text "ESXDOS", and RST 8 reaches it (sd_probe). An empty EEPROM or
+;      a disabled automap would crash on RST 8
 sd_present:
         di
-        ld hl,0
-        ld de,sd_ent
-        ld bc,8
-        ldir
         ld a,0x80
         out (0xE3),a
         ld hl,0
-        ld de,sd_ent
-        ld bc,0x0800            ; B = bytes, C = differences
+        ld bc,0x2000
+.f:     ld a,'E'
+        cpir
+        jr nz,.no               ; (no more 'E')
+        push hl
+        push bc
+        ld de,txt_sd_sig
+        ld b,5
 .c:     ld a,(de)
         cp (hl)
-        jr z,.s
-        inc c
-.s:     inc hl
+        jr nz,.m
+        inc hl
         inc de
         djnz .c
-        xor a
+.m:     pop bc
+        pop hl
+        jr z,.yes
+        ld a,b
+        or c
+        jr nz,.f
+.no:    ld c,0
+        jr .e
+.yes:   ld c,1
+.e:     xor a
         out (0xE3),a
         ei
+        ld a,c
+        or a
+        ret z
+        ; fall through: does it also answer? (no automap: a ROM error)
+
+; sd_probe: NZ = esxDOS answers RST 8 (M_DOSVERSION). Without automap
+;      (e.g. the EEPROM write enabled) RST 8 is the ROM error report: ERR_SP
+;      points at .fail for it, which the ROM returns to (it also writes
+;      ERR_NR through IY and STKEND / MEM: system variables only)
+sd_probe:
+        push iy
+        ld iy,0x5C3A
+        ld hl,(0x5C3D)          ; ERR_SP
+        push hl
+        ld hl,.fail
+        push hl
+        ld (0x5C3D),sp
+        ESX M_DOSVERSION
+        pop hl                  ; (.fail)
+        ld c,1
+        jr .e
+.fail:  ld c,0                  ; (SP as after the pop above)
+.e:     pop hl
+        ld (0x5C3D),hl
+        pop iy
         ld a,c
         or a
         ret
@@ -393,7 +431,8 @@ sd_line:
         inc de
         ret
 
-txt_sd_nodev: db "No divMMC (SD card) found",0
+txt_sd_nodev: db "No esxDOS (divMMC) found",0
+txt_sd_sig:   db "SXDOS"
 txt_sd_nameq: db "File name on the SD card:",0," ",0," ",0,0
 txt_sd_list:  db "Load from the SD card:",0
 txt_sd_loading: db "Loading from the SD card...",0,0
@@ -410,6 +449,6 @@ sd_fn:    ds 13
 sd_h:     db 0
 sd_n:     db 0
 sd_sel:   db 0
-sd_ent:   ds 32             ; a folder entry (and sd_present's ROM bytes)
+sd_ent:   ds 32             ; a folder entry
 sd_files: ds SD_MAX*SD_NLEN
 sd_txt:   ds 24+SD_MAX*SD_NLEN+1

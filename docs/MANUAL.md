@@ -216,7 +216,9 @@ converted when loaded.
 ### SD card (divMMC)
 
 **File > Save SD...** and **File > Load SD...** work with a **divMMC** interface running **esxDOS**
-(without one they report "No divMMC (SD card) found").
+(without it they report "No esxDOS (divMMC) found"). In an emulator the divMMC needs the esxDOS ROM
+in its EEPROM, write protection on (otherwise there is no automapping) and an SD card image with the
+esxDOS `SYS` folder.
 
 * **Save** asks for a file name of up to 8 characters (A-Z, 0-9, `_`, `-`) and writes `NAME.PLC` to the
   current folder of the card; an existing file is only overwritten after a question.

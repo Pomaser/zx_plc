@@ -368,6 +368,7 @@ def main():
     ap.add_argument("--mouse", action="store_true", help="attach a Kempston mouse")
     ap.add_argument("--ur4", action="store_true", help="attach a UR-4 (8255) interface; prints its PC writes")
     ap.add_argument("--divmmc", default=None, help="attach a divMMC with this EEPROM (e.g. esxDOS)")
+    ap.add_argument("--divmmc-noauto", action="store_true", help="the divMMC without automap")
     ap.add_argument("--sd", default=None, help="SD card image for the divMMC (written back at the end)")
     ap.add_argument("--boot", default=None, help="boot this snapshot first (e.g. a 128K at reset), then load sna")
     ap.add_argument("--boot-frames", type=int, default=300)
@@ -376,6 +377,7 @@ def main():
     if a.divmmc:
         from divmmc import DivMMC
         z.dm = DivMMC(z, a.divmmc, a.sd)
+        z.dm.auto = not a.divmmc_noauto
     if a.boot:
         z.run(a.boot_frames)
         if z.dm:

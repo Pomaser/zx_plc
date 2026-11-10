@@ -131,6 +131,7 @@ class DivMMC:
         self.mapped = False
         self.bank = 0                   # the RAM bank in memory while mapped
         self.cs = False                 # card 0 selected (port 0xE7 bit 0 = 0)
+        self.auto = True                # automap on (off: EEPROM write enabled)
         for a in AUTOMAP:
             spec.m.set_breakpoint(a)
         for a in list(UNMAP) + list(INSTANT):
@@ -161,6 +162,8 @@ class DivMMC:
         executes it; returns the events of that step"""
         m = self.s.m
         pc = m.pc
+        if not self.auto:
+            return m.step_over_breakpoint()
         if pc in AUTOMAP and not self.automap:
             op = m.memory[pc]           # the opcode still comes from the ROM
             self.automap = True

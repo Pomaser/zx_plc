@@ -101,8 +101,10 @@ on tape. See README.md for the user-facing description of every editor and key.
   trace (`tr_buf` + t*256, aligned) by `tr_tick`, called once per simulation loop with the page in A. A loop can take several
   frames, so it adds one sample per `tr_rate` frames passed. 200-pixel chart, scrolled by 8 pixels.
 - SD card (`src/sd.asm`, RUN bank): File > Load SD... / Save SD... call `tape_load` / `tape_save` with
-  A = CMD_LOAD_SD / CMD_SAVE_SD, which branch to `sd_load` / `sd_save`; without a divMMC (`sd_present`:
-  CONMEM changes the bytes at 0x0000) they report an error. esxDOS calls (`ESX` macro: RST 8 + function; HL and IX = name / buffer): a
+  A = CMD_LOAD_SD / CMD_SAVE_SD, which branch to `sd_load` / `sd_save`; without esxDOS they report an
+  error. `sd_present` maps the EEPROM (CONMEM) and looks for the text "ESXDOS", then `sd_probe` calls
+  M_DOSVERSION with ERR_SP pointing at its own return: without automap (EEPROM write enabled) RST 8 is
+  the 48K ROM error report, which returns there instead of crashing. zxrun: `--divmmc-noauto`. esxDOS calls (`ESX` macro: RST 8 + function; HL and IX = name / buffer): a
   file `NAME.PLC` with the project bytes. Loading lists `.PLC` files (F_OPENDIR / F_READDIR), reads into
   PROJ and joins `tape_load.chk` (the same checks, `tape_load.rest` restores the old project).
   - Test with real esxDOS 0.8.9 in zxrun (`tools/divmmc.py`: automap incl. the instant 0x3D00-0x3DFF
