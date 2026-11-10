@@ -540,8 +540,8 @@ inputs and outputs:
 | DEMO_LD | pump with self-holding, fan run-on (TOF), alert memory (P / N contacts, set / reset), blinking lamp (2 x TP) | `4`-`7` | Q0.4-Q0.6 |
 | DEMO_FBD | inlet valve with nested gates and a 2 s run-on, overflow horn (RT, SR), service counter (CTU, after 3 fills) | byte 1: `B`, then `0`-`5` | Q1.0-Q1.2 |
 
-A symbol table names all of them. The watch list contains the traffic light (Red, Yellow, Green and the ET of its four timers, shown first
-on the trend page), HighLvl, Valve, Horn, TValve.ET and Fills.CV.
+A symbol table names all of them. The watch list contains the traffic light (the ET of each of its four timers followed by its light,
+shown first on the trend page), HighLvl, Valve, Horn, TValve.ET and Fills.CV.
 
 ## 14. Reference
 
