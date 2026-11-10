@@ -42,7 +42,8 @@ on tape. See README.md for the user-facing description of every editor and key.
   page maps extra PC keys (Esc = BREAK, Tab = EDIT, symbols = SS + key; JSSpeccy listens on its own
   container, so synthetic key events go to the focused element). `.github/workflows/pages.yml` publishes
   `web/` with the `zxplc.tap` of the latest release to GitHub Pages on every release (and on changes in
-  `web/`).
+  `web/`). The github-pages environment only lets `main` deploy, so a release run just starts the
+  workflow again on `main` (`gh workflow run`).
 - `make docs`: regenerates the screenshots of `docs/MANUAL.md` (`tools/docshots.py`: one zxrun key script
   per image, `--noborder`). Update the manual and the scripts when the UI changes.
 - `python3 tools/fixjr.py main.asm`: builds and converts every out-of-range `jr` to `jp` in the source,
