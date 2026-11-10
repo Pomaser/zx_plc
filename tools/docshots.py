@@ -43,7 +43,7 @@ SHOTS = [
     ("sim_ld", LD + RUN + "k:4 w60"),
     ("sim_fbd", FBD + RUN + "k:B w5 k:0 w5 k:2 w60"),
     ("sim_watch", FBD + RUN + "k:B w5 k:0 w5 k:2 w30 k:W w40 " + D + D + "k:F w40"),
-    ("sim_trend", IL + RUN + "k:G w20 k:0 w600"),
+    ("sim_trend", IL + "k:CS+SPACE w5 k:V w5 k:S w40 " + RUN + "k:G w20 k:0 w600"),
     ("xref", IL + D + "k:SS+X w60"),
     ("clip_mark", IL + D * 2 + "k:SS+A w10 " + D * 2 + "w10"),
     ("add_watch", LD + D + "k:SS+W w40"),

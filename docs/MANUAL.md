@@ -479,7 +479,8 @@ left, highlighted while it is at the top.
 
 ![Trend page: the traffic light of the demo after TL_Start (`0`)](img/sim_trend.png)
 
-An FB member is labelled with the symbol of its instance (`T_Red` for `TON0.ET`).
+The labels follow **View > Symbols / Addresses**: with symbols, an FB member is labelled with the symbol
+of its instance (`T_Red` for `TON0.ET`); an operand without a symbol keeps its address.
 
 * The samples are taken from the start of the simulation, also while another page is shown. The newest
   is at the right edge; when the chart is full it moves to the left.

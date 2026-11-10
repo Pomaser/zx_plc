@@ -370,8 +370,8 @@ tr_lab:
         djnz .l
         ret
 
-; tr_name: the label of the trace at pt_row (wt_i): the symbol, else the
-;      operand (an FB member: the symbol of the instance; only ET / CV are
+; tr_name: the label of the trace at pt_row (wt_i): with View > Symbols the
+;      symbol (if any), else the operand (an FB member: the symbol of the instance; only ET / CV are
 ;      drawn, so the member is clear);
 ;      pt_row moves to the next trace
 tr_name:
@@ -394,6 +394,11 @@ tr_name:
         ld (pt_xmax),a
         pop bc
         pop af
+        ld b,a                  ; View > Addresses: the operand
+        ld a,(view_sym)
+        or a
+        ld a,b
+        jr z,.op
         and AR_MASK
         cp AR_FBM
         jr nz,.s
