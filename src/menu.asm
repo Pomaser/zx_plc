@@ -43,13 +43,13 @@ mi_file:
 mi_pou:
         db CMD_POU_MANAGE,'M',"Manage",0
         db CMD_POU_NEW,   'N',"New...",0
-        db CMD_POU_RENAME,'R',"Rename/Comment...",0
+        db CMD_POU_RENAME,'C',"Rename/Comment...",0
         db CMD_POU_LANG,  'L',"Language...",0
         db CMD_POU_DUP,   'U',"Duplicate...",0
         db CMD_POU_DELETE,'D',"Delete",0
         db 0
 mi_edit:
-        db CMD_EDIT,  'E',"Edit POU",0
+        db CMD_EDIT,  'T',"Edit POU",0
         db CMD_UNDO,  'U',"Undo",0
         db CMD_REDO,  'Y',"Redo",0
         db CMD_WADD,  'W',"Add to watch",0
@@ -59,7 +59,7 @@ mi_edit:
         db CMD_MARK,  'M',"Mark block",0
         db CMD_COPY,  'C',"Copy",0
         db CMD_CUT,   'X',"Cut",0
-        db CMD_PASTE, 'P',"Paste",0
+        db CMD_PASTE, 'A',"Paste",0
         db 0
 mi_view:
         db CMD_VIEW_SYM, 'S',"Symbols",0
@@ -67,10 +67,10 @@ mi_view:
         db CMD_XREF,     'X',"Cross references",0
         db 0
 mi_run:
-        db CMD_RUN,  'R',"Run",0
+        db CMD_RUN,  'U',"Run",0
         db CMD_STOP, 'T',"Stop",0
         db CMD_STEP, 'S',"Step",0
-        db CMD_RESET,'E',"Reset",0
+        db CMD_RESET,'C',"Reset",0
         db CMD_WATCH,'W',"Watch",0
         db CMD_TREND,'G',"Trend",0
         db 0
