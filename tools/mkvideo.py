@@ -403,7 +403,7 @@ FILTERS = {
 }
 
 
-INTRO_LOAD = 500        # frames of the tape loading shown before its end
+INTRO_LOAD = 200        # frames of the tape loading shown before its end
 INTRO_WAIT = 300        # frames of the loading effect before a key is pressed
 INTRO_START = 150       # frames after the key (the program starts)
 
