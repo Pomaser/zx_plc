@@ -27,13 +27,16 @@ mt_view: db "View",0
 mt_run:  db "Run",0
 mt_help: db "Help",0
 
-; submenu items: command, hotkey (upper case, not shown), label, 0 ; list ends with 0
+; submenu items: command, hotkey (upper case, not shown; not a title's letter F P E V R H,
+; which the open drop-down would take), label, 0 ; list ends with 0
 ; (the last label of a list must not use descenders - it touches the frame)
 mi_file:
         db CMD_NEW,  'N',"New project",0
         db CMD_DEMO, 'O',"Open demo",0
-        db CMD_LOAD, 'L',"Load...",0
-        db CMD_SAVE, 'S',"Save...",0
+        db CMD_LOAD, 'L',"Load tape...",0
+        db CMD_SAVE, 'S',"Save tape...",0
+        db CMD_LOAD_SD,'D',"Load SD...",0
+        db CMD_SAVE_SD,'W',"Save SD...",0
         db 0
 mi_pou:
         db CMD_POU_MANAGE,'M',"Manage",0
@@ -1032,12 +1035,16 @@ menu_cmd:
         cp CMD_REDO
         jr z,.redo
         cp CMD_ABOUT
-        jr z,.about
+        jp z,.about
         cp CMD_KEYS
-        jr z,.keys
+        jp z,.keys
         cp CMD_LOAD
         jp z,.load
+        cp CMD_LOAD_SD          ; (A tells tape / SD card)
+        jp z,.load
         cp CMD_SAVE
+        jp z,.save
+        cp CMD_SAVE_SD
         jp z,.save
         cp CMD_NEW
         jp z,.new

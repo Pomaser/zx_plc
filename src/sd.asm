@@ -1,8 +1,9 @@
 ; ============================================================
 ; sd.asm - saving / loading the project on an SD card (RUN bank)
 ; ============================================================
-; A divMMC with esxDOS: File > Save / Load first ask "tape or SD card"
-; when a divMMC is found (sd_present). The project is a file NAME.PLC in
+; A divMMC with esxDOS: File > Save SD... / Load SD... (tape_save /
+; tape_load with A = CMD_SAVE_SD / CMD_LOAD_SD; without a divMMC, found by
+; sd_present, they report an error). The project is a file NAME.PLC in
 ; the current folder of the default drive, the same bytes as the data
 ; block on tape (PROJ, P_LEN bytes). Loading lists the .PLC files.
 ; esxDOS calls: RST 8 + function byte, A = drive / handle, HL (and IX,
@@ -53,46 +54,17 @@ sd_present:
         or a
         ret
 
-; ---- sd_choose: HL = question (tape / SD card) -> A = 'T', 'S' or 0
-;      (cancelled); 'T' at once without a divMMC
-sd_choose:
-        push hl
-        call sd_present
-        pop hl
-        ld a,'T'
-        ret z
-        call popup_open
-.k:     call kb_wait
-        cp K_MOUSE              ; a click on one of the two lines
-        jr nz,.nm
-        ld a,2
-        ld b,3
-        BCALL ms_item
-        jr c,.can
-        or a
-        ld a,'T'
-        jr z,.ok
-        ld a,'S'
-        jr .ok
-.nm:    cp K_BREAK
-        jr z,.can
-        cp K_EDIT
-        jr z,.can
-        call to_upper
-        cp 'T'
-        jr z,.ok
-        cp 'S'
-        jr nz,.k
-.ok:    push af
-        call win_close
-        pop af
-        ret
-.can:   call win_close
+; sd_nodev: no divMMC: an error, A = 0
+sd_nodev:
+        ld hl,txt_sd_nodev
+        call ui_error
         xor a
         ret
 
-; ---- sd_save: File > Save on the SD card
+; ---- sd_save: File > Save SD...
 sd_save:
+        call sd_present
+        jr z,sd_nodev
         ld hl,txt_sd_nameq
         call popup_open
         ld a,(win_r)
@@ -421,12 +393,7 @@ sd_line:
         inc de
         ret
 
-txt_sd_saveq: db "Save the project to:",0," ",0
-              db "T = tape",0
-              db "S = SD card",0,0
-txt_sd_loadq: db "Load a project from:",0," ",0
-              db "T = tape",0
-              db "S = SD card",0,0
+txt_sd_nodev: db "No divMMC (SD card) found",0
 txt_sd_nameq: db "File name on the SD card:",0," ",0," ",0,0
 txt_sd_list:  db "Load from the SD card:",0
 txt_sd_loading: db "Loading from the SD card...",0,0

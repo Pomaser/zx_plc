@@ -9,11 +9,7 @@
 
 ; ---- tape_save: File > Save
 tape_save:
-        ld hl,txt_sd_saveq      ; tape or SD card (with a divMMC)
-        call sd_choose
-        or a
-        ret z
-        cp 'S'
+        cp CMD_SAVE_SD          ; File > Save SD...
         jp z,sd_save
         ld hl,txt_tp_nameq      ; tape name
         call popup_open
@@ -166,16 +162,18 @@ tp_sa_bytes:
 ;      The project is copied to BANK_SPARE first and restored when the
 ;      loading fails or is interrupted.
 tape_load:
-        ld hl,txt_new_q         ; "Discard current project?"
+        ld (tp_dev),a           ; CMD_LOAD or CMD_LOAD_SD
+        cp CMD_LOAD_SD          ; (no divMMC: an error first)
+        jr nz,.q
+        call sd_present
+        jp z,sd_nodev
+.q:     ld hl,txt_new_q         ; "Discard current project?"
         call ui_confirm
         jr z,.go
         xor a
         ret
-.go:    ld hl,txt_sd_loadq      ; tape or SD card (with a divMMC)
-        call sd_choose
-        or a
-        ret z
-        cp 'S'
+.go:    ld a,(tp_dev)
+        cp CMD_LOAD_SD
         jp z,sd_load
         ld hl,txt_tp_play
         call popup_open
@@ -408,6 +406,7 @@ tp_hdr:  db 3                   ; CODE
          dw PROJ                ; start address
          dw 32768
 tp_name: db "project",0,0,0,0
+tp_dev:  db 0                   ; tape_load: CMD_LOAD or CMD_LOAD_SD
 
 txt_tp_nameq: db "Save project as (tape name):",0," ",0," ",0,0
 txt_tp_start: db "Start the tape recorder,",0,"then press any key.",0,"(BREAK cancels)",0,0

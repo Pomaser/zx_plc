@@ -143,6 +143,8 @@ CMD_MOUSE       EQU 34          ; View > Mouse (on / off)
 CMD_REDO        EQU 35
 CMD_UR4         EQU 36          ; View > UR-4 I/O (on / off)
 CMD_TREND       EQU 37          ; Run > Trend: the simulation with the trend page
+CMD_LOAD_SD     EQU 38          ; File > Load SD... (tape_load with A = this)
+CMD_SAVE_SD     EQU 39          ; File > Save SD... (tape_save with A = this)
 
 ; ---- status bar text markers (st_left): symbol name shown inverted
 ST_SYM      EQU 1           ; start of the symbol name

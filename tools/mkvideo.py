@@ -137,7 +137,13 @@ SCENARIO = [
     "k:CS+6 w10 k:ENTER w30 t:I0.1 w10 k:ENTER w60 shot:w1 hold:30",
     # force Stop TRUE: the motor stops, the counter is reset; then release it
     "w30 k:F w100 shot:w2 hold:60 k:F w60 k:F w60 shot:w3",
-    "k:W w60 hold:30",
+    # ---- the trend page (T on the watch page): the watched signals as time charts,
+    # drawn live at normal speed: start (motor, the fan timer), three parts, stop
+    "k:T w40 x:1 w40",
+    "go:6,174 w20 cl:L w20 cl:L w170",
+    "go:38,174 w20 cl:L w20 cl:L w30 cl:L w20 cl:L w30 cl:L w20 cl:L w60",
+    "go:22,174 w20 cl:L w20 cl:L w80 shot:trend hold:60 x:5",
+    "k:G w60 hold:20",
     # ---- the end: the POU list with the three POUs
     "w50 go!:36,3 cl!:L w30 go!:40,12 cl!:L w30 go:200,140 w20 shot:end hold:120",
 ]

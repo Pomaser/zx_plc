@@ -100,9 +100,9 @@ on tape. See README.md for the user-facing description of every editor and key.
   (ET / CV scaled by PT / PV, the word before them in the instance) into one 256-byte ring buffer per
   trace (`tr_buf` + t*256, aligned) by `tr_tick`, called once per simulation loop with the page in A. A loop can take several
   frames, so it adds one sample per `tr_rate` frames passed. 200-pixel chart, scrolled by 8 pixels.
-- SD card (`src/sd.asm`, RUN bank): with a divMMC (`sd_present`: CONMEM changes the bytes at 0x0000)
-  File > Save / Load ask tape or SD card (`sd_choose`, called at the start of `tape_save` / after the
-  confirm in `tape_load`). esxDOS calls (`ESX` macro: RST 8 + function; HL and IX = name / buffer): a
+- SD card (`src/sd.asm`, RUN bank): File > Load SD... / Save SD... call `tape_load` / `tape_save` with
+  A = CMD_LOAD_SD / CMD_SAVE_SD, which branch to `sd_load` / `sd_save`; without a divMMC (`sd_present`:
+  CONMEM changes the bytes at 0x0000) they report an error. esxDOS calls (`ESX` macro: RST 8 + function; HL and IX = name / buffer): a
   file `NAME.PLC` with the project bytes. Loading lists `.PLC` files (F_OPENDIR / F_READDIR), reads into
   PROJ and joins `tape_load.chk` (the same checks, `tape_load.rest` restores the old project).
   - Test with real esxDOS 0.8.9 in zxrun (`tools/divmmc.py`: automap incl. the instant 0x3D00-0x3DFF
