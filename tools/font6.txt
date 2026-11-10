@@ -694,3 +694,40 @@
 #.#..
 .#...
 .....
+# Status bar variants of g j p q y (codes 130-134): the descender lifted into
+# line 6, since the status bar drops line 7.
+: SDg
+....
+....
+.###
+#..#
+.###
+###.
+: SDj
+.#
+..
+.#
+.#
+.#
+#.
+: SDp
+....
+....
+###.
+#..#
+###.
+#...
+: SDq
+....
+....
+.###
+#..#
+.###
+...#
+: SDy
+....
+....
+#..#
+.###
+...#
+.##.

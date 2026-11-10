@@ -11,6 +11,108 @@ XR_ROW0   EQU 3
 XR_X_LOC  EQU 56
 XR_X_KIND EQU 132
 
+; ---- menu_cmd: A = command of the menu (also for shortcut keys such as SS+U)
+;      -> A = the next screen's command or 0 (menu.asm calls it with BCALL)
+menu_cmd:
+        or a
+        ret z
+        cp CMD_UNDO
+        jr z,.undo
+        cp CMD_REDO
+        jr z,.redo
+        cp CMD_ABOUT
+        jp z,.about
+        cp CMD_KEYS
+        jp z,.keys
+        cp CMD_LOAD
+        jp z,.load
+        cp CMD_LOAD_SD          ; (A tells tape / SD card)
+        jp z,.load
+        cp CMD_SAVE
+        jp z,.save
+        cp CMD_SAVE_SD
+        jp z,.save
+        cp CMD_NEW
+        jp z,.new
+        cp CMD_DEMO
+        jp z,.demo
+        cp CMD_VIEW_SYM
+        jr z,.vsym
+        cp CMD_VIEW_ADDR
+        jr z,.vadr
+        cp CMD_SOUND
+        jr z,.snd
+        cp CMD_UR4
+        jr nz,.nur
+        BCALL ur_toggle
+        xor a
+        ret
+.nur:   cp CMD_MOUSE
+        jr nz,.nms
+        BCALL ms_toggle
+        xor a
+        ret
+.nms:   or a
+        ret
+.snd:   ld a,(snd_on)
+        xor 1
+        ld (snd_on),a
+        xor a                   ; nothing else to do
+        ret
+.redo:  call redo_do
+        ld hl,txt_no_redo
+        jr .ur
+.undo:  call undo_do
+        ld hl,txt_no_undo
+.ur:    jr nc,.ud
+        call ui_error
+        xor a
+        ret
+.ud:    ld a,(cur_pou)          ; (the POU may be gone)
+        call pou_used
+        jr nz,.uk
+        xor a
+        ld (cur_pou),a
+.uk:    ld a,CMD_REOPEN
+        or a
+        ret
+.vsym:  ld a,1
+        jr .view
+.vadr:  xor a
+.view:  ld (view_sym),a
+        ld a,CMD_REDRAW         ; the screen redraws itself
+        or a
+        ret
+.about: BCALL tl_about        ; (texts in the DEMO bank)
+        xor a
+        ret
+.keys:  BCALL tl_keys
+        xor a
+        ret
+.load:  BCALL tape_load         ; A = command (NZ) or 0 (EDIT bank)
+        ret
+.save:  BCALL tape_save         ; (EDIT bank)
+        xor a
+        ret
+.demo:  ld hl,txt_new_q
+        call ui_confirm
+        jr nz,.no
+        call proj_load_demo
+        ld a,CMD_POU_MANAGE
+        or a
+        ret
+.new:   ld hl,txt_new_q
+        call ui_confirm
+        jr nz,.no
+        BCALL ui_choose_lang
+        jr c,.no
+        call proj_new
+        ld a,CMD_POU_MANAGE
+        or a
+        ret
+.no:    xor a
+        ret
+
 ; ---- menu_active: HL = item record -> NC if the option is active now
 ;      (the check marks of the drop-down menus, called from menu.asm)
 menu_active:

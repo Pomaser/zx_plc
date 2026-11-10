@@ -2,7 +2,7 @@
 ; status.asm - bottom status bar (char row 23)
 ; ============================================================
 ; Separator line on pixel line 0, 1 px gap, text one line lower
-; (descender line is dropped). Left: st_left text (element info, key hints),
+; (descender line is dropped: g j p q y use glyphs with short descenders). Left: st_left text (element info, key hints),
 ; right: free memory or st_right. The POU name is in the menu bar (menu_pou).
 ; ============================================================
 ST_ROW  EQU 23
@@ -103,6 +103,7 @@ st_print:
         jr z,.off
         cp ST_TAB
         jr z,.tab
+        call st_desc
         call pt_putc
         jr .l
 .tab:   ld a,(pt_x)             ; move on to column x
@@ -148,6 +149,22 @@ st_print:
         ret
 
 st_x0:  db 0
+
+; st_desc: A = char -> A = its short-descender glyph for g j p q y (the
+;          status bar drops the glyph's last line); keeps BC, DE, HL
+st_desc:
+        push hl
+        push bc
+        ld hl,st_dtab
+        ld bc,5
+        cpir
+        jr nz,.n
+        ld a,CH_SDESC+4         ; BC = 4 - index
+        sub c
+.n:     pop bc
+        pop hl
+        ret
+st_dtab: db "gjpqy"
 
 ; st_lim: A = last x of the left part (4 px before the right part)
 st_lim: ld a,(st_rcol)
