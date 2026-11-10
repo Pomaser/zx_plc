@@ -145,7 +145,9 @@ SCENARIO = [
     "go:22,174 w20 cl:L w20 cl:L w80 shot:trend hold:60 x:5",
     "k:G w60 hold:20",
     # ---- the end: the POU list with the three POUs
-    "w50 go!:36,3 cl!:L w30 go!:40,12 cl!:L w30 go:200,140 w20 shot:end hold:120",
+    "w50 go!:36,3 cl!:L w30 go!:40,12 cl!:L w30 go:200,140 w20 shot:end hold:80",
+    # ---- Help > About (the release number) stays to the end
+    "go!:142,3 cl!:L w30 go!:150,20 cl!:L w40 go:220,150 w20 shot:about hold:200",
 ]
 
 
