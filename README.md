@@ -9,7 +9,9 @@ Projects can be saved to tape.
 **User manual with screenshots: [docs/MANUAL.md](docs/MANUAL.md).**
 
 Download: the [releases](https://github.com/Pomaser/zx_plc/releases) contain `zxplc.tap` (loads on a real
-ZX Spectrum 128K: Tape Loader or `LOAD ""`) and the snapshot `zxplc.sna`. `make tap` builds the tape.
+ZX Spectrum 128K: Tape Loader or `LOAD ""`) and the snapshot `zxplc.sna`. `make tap` builds the tape. The tape
+blocks are packed with ZX0, so it loads in under 4 minutes. On the loading screen the PLC switches from STOP to
+RUN when everything is loaded; then press any key.
 
 ## Demo project
 
@@ -223,7 +225,8 @@ block). An output or a wire needs a signal coming from the left (an element, pos
 cells that are then filled with wires). Placing a block needs free cells below it; DELETE on a block
 removes the whole block: the signal of its first input goes on through a wire in its place, everything
 that feeds its other inputs is removed (inputs, wires, blocks with their own inputs); afterwards the network closes up, empty rows below it are removed (columns holding only wires move out, a block
-keeps one free cell for each of its inputs). A block placed on an input inserts itself behind it: the network moves one
+keeps one free cell for each of its inputs). A network is the set of rows its blocks span (FBD has no vertical
+links); rows that are only next to each other are separate networks. A block placed on an input inserts itself behind it: the network moves one
 position to the right, the input feeds the first input of the new block and the cursor goes to the
 second input. If a block does not fit, it is not placed ("No room for the block"). Wires are
 added automatically between a new block or output and the element on its left. In the simulation inputs,

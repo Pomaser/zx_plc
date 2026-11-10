@@ -107,6 +107,8 @@ on tape. See README.md for the user-facing description of every editor and key.
   - FBD type codes (FT_*, defs.asm) reuse the LD codes for wire, timers and comment, so the shared
     record-length logic works. Bit 7 means negation in FBD and the vertical link in LD.
   - An FBD block with h inputs covers h rows. Timers have 2 rows (IN, PT).
+  - An FBD network (`fb_net_rows`, used by moving, closing up and copying) is the rows joined by blocks
+    (`fb_join`: a block from row r or above covers row r+1). Rows that are only adjacent are separate.
   - Word compare / compute (`LT_CMP` / `LT_MATH` = `FT_CMP` / `FT_MATH`, defs.asm): 10 / 12 B records with
     the operands `[A area lo hi][op][B area lo hi][D area idx]`. `ld_get` copies them to `ld_gext`,
     `ld_put` writes them back. The operator list, value prompts and expression text are `src/wexpr.asm` (DEMO bank). In LD a compare

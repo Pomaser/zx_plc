@@ -33,6 +33,12 @@ any emulator of the ZX Spectrum 128K. The program starts with the **demo project
 
 ![POU list with the demo project](img/pou_list.png)
 
+On a real ZX Spectrum 128K / +2 / +2A / +3, load `zxplc.tap` from the
+[releases](https://github.com/Pomaser/zx_plc/releases) with *Tape Loader* in the 128 menu (or `LOAD ""`). The
+tape takes under 4 minutes, because its blocks are packed with ZX0. The loading screen shows the PLC.
+When everything is loaded, its display changes from STOP to RUN, the LEDs start blinking and "Press any
+key to start" appears.
+
 To try it at once:
 
 1. Move to `DEMO_IL` with the cursor keys and press ENTER to see its program.
@@ -357,6 +363,9 @@ ENTER opens the picker. On a block input, outputs are not offered:
 * **The cursor** stands only on block inputs, blocks and outputs. It skips the cells inside a block.
 * **Outputs and wires** need a signal from the left. Inputs placed left of a block input are wired to
   it automatically.
+* **Networks:** FBD has no vertical links, so rows belong together only through blocks: a network is the
+  rows that its blocks span (an AND with 2 inputs joins 2 rows, a counter 3). Rows that are only next to
+  each other are separate networks, and moving one does not move the other.
 * **Making room:**
   * A block placed on an input inserts itself behind it: the input feeds its first input and the network
     moves right.
