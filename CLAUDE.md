@@ -24,6 +24,10 @@ on tape. See README.md for the user-facing description of every editor and key.
   for the SEIE editor), every used bank and the fixed part from the snapshot, all packed with ZX0
   (`tools/zx0`, vendored C packer built by make, plus `dzx0_standard.asm`), rebuilds the IM2 stubs, runs the
   picture effect, then jumps to START). The loader must stay below 0x5DE0; mktap.py checks it.
+- `tools/mkvideo.py`: a demo video (`.scratch/zxplc_demo.mp4`, ffmpeg) of a small project typed in from
+  scratch: the SCENARIO in the script is played into `zxplc.sna` by the zxrun emulator (keys, smooth
+  mouse), every frame is recorded and the AY writes become the sound. `--shots DIR` only saves the
+  checkpoint PNGs (to tune the scenario after UI changes). The application is not changed for it.
 - Releases: the release number is in the file `VERSION` (no newline; Help > About includes it with
   `INCBIN`). Set it to the new number before building the files of a release.
 - `make docs`: regenerates the screenshots of `docs/MANUAL.md` (`tools/docshots.py`: one zxrun key script
