@@ -13,7 +13,8 @@ permissions:
   id-token: write
   actions: write
 concurrency:
-  group: pages
+  # (a release run only starts the run on main; it must not be cancelled by it)
+  group: pages-${{ github.event_name == 'release' && 'release' || 'deploy' }}
   cancel-in-progress: true
 jobs:
   # a release runs on its tag, which may not deploy to github-pages:
