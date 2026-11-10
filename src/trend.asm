@@ -1,14 +1,15 @@
 ; ============================================================
 ; trend.asm - trend page of the simulation (DEMO bank)
 ; ============================================================
-; The BOOL entries of the watch list (up to 8, in list order) are
-; sampled every tr_rate frames into a ring buffer (one byte per sample,
-; bit t = trace t), also while another page is shown. The trend page
-; (sim page 2) draws them as time charts: a label on the left, then
-; 200 pixels of history, the newest sample on the right edge. A trace
-; takes two text rows: TRUE is the high line (beside the label), FALSE
-; the low one 9 pixels below. When
-; the chart is full it scrolls left by 8 pixels.
+; The BOOL entries of the watch list and the ET / CV members of timers
+; and counters (up to 8, in list order) are sampled every tr_rate frames,
+; also while another page is shown. A sample is a level 0-9: FALSE / TRUE
+; are 0 / 9, ET and CV are scaled by their PT / PV (9 = reached). Trace t
+; has its own ring buffer, the 256 bytes at tr_buf + t*256. The trend page
+; (sim page 2) draws them as time charts: a label on the left, then 200
+; pixels of history, the newest sample on the right edge. A trace takes
+; two text rows: level 9 is the line beside the label, level 0 (dotted)
+; 9 pixels below. When the chart is full it scrolls left by 8 pixels.
 ; ============================================================
 TR_ROW0   EQU 2             ; text row of the first trace
 TR_MAX    EQU 8             ; traces
@@ -85,17 +86,22 @@ tr_tick:
         cp e
         jr nc,.c
 .go:    call tr_sample
-        ld (tr_new),a
-.rep:   ld a,(tr_new)
-        ld c,a
-        ld hl,tr_head
-        ld e,(hl)
-        inc (hl)
-        ld d,0
-        ld hl,tr_buf
-        add hl,de
-        ld (hl),c
-        ld a,(tr_cnt)
+.rep:   ld a,(tr_head)          ; the levels into the buffers
+        ld l,a
+        inc a
+        ld (tr_head),a
+        ld h,high tr_buf
+        ld de,tr_lv
+        ld a,(tr_n)
+        or a
+        jr z,.st
+        ld b,a
+.sv:    ld a,(de)
+        ld (hl),a
+        inc de
+        inc h
+        djnz .sv
+.st:    ld a,(tr_cnt)
         cp TR_W
         jr nc,.full
         inc a
@@ -105,20 +111,9 @@ tr_tick:
         ld a,(tr_gx)
         cp TR_W
         call nc,tr_scroll
-        ld a,(tr_head)          ; the newest sample and the one before
+        ld a,(tr_head)          ; the newest sample
         dec a
-        ld l,a
-        ld h,high tr_buf
-        ld a,(hl)
-        ld (tr_cs),a
-        ld b,a
-        ld a,(tr_gx)            ; (the first column: no edge)
-        or a
-        ld a,b
-        jr z,.p
-        dec l
-        ld a,(hl)
-.p:     ld (tr_ps),a
+        ld e,a
         call tr_col
 .nx:    ld hl,tr_k
         dec (hl)
@@ -140,38 +135,120 @@ tr_vis: ld a,(tr_page)
         cp b
         ret
 
-; tr_sample: the BOOL watch entries -> A = bits, tr_n = number of traces
+; tr_sample: the levels of the traces -> tr_lv, tr_n = number of traces
 tr_sample:
         call wt_count
         ld (tr_wn),a
         xor a
         ld (wt_i),a
         ld (tr_n),a
-        ld bc,0x0100            ; B = mask, C = bits
 .l:     ld a,(tr_wn)
         ld e,a
         ld a,(wt_i)
         cp e
-        jr nc,.e
-        push bc
-        call wt_value           ; A = kind, E = value
-        pop bc
-        cp 1
-        jr nz,.n
-        ld a,e
-        or a
-        jr z,.z
-        ld a,c
-        or b
+        ret nc
+        ld a,(tr_n)
+        cp TR_MAX
+        ret nc
+        call wt_value           ; A = kind, DE = value
+        call tr_level
+        jr c,.n
         ld c,a
-.z:     ld hl,tr_n
-        inc (hl)
-        rlc b
-        jr c,.e                 ; 8 traces
+        ld a,(tr_n)
+        ld e,a
+        inc a
+        ld (tr_n),a
+        ld d,0
+        ld hl,tr_lv
+        add hl,de
+        ld (hl),c
 .n:     ld hl,wt_i
         inc (hl)
         jr .l
-.e:     ld a,c
+
+; tr_level: watch entry wt_i, A = kind, DE = value (wt_value) -> NC: A = level
+;      0-9; C: not drawn (words other than ET / CV of a timer or counter)
+tr_level:
+        ld (tr_kd),a
+        cp 1
+        jr nz,.w
+        ld a,e                  ; BOOL: 0 / 9
+        or a
+        ret z
+        ld a,9
+        ret
+.w:     cp 2
+        ret c                   ; (kind 0: nothing)
+        push de
+        ld a,(wt_i)             ; an FB member whose word is at instance + 4
+        call wt_entry           ; (ET / CV): PT / PV is the word before it
+        ld a,(hl)
+        and AR_MASK
+        cp AR_FBM
+        jr nz,.no
+        inc hl
+        ld l,(hl)
+        ld h,0
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        ld de,RT_FB+4
+        add hl,de
+        ld de,(cp_arg)
+        or a
+        sbc hl,de
+        jr nz,.no
+        ex de,hl
+        dec hl
+        ld d,(hl)
+        dec hl
+        ld e,(hl)               ; DE = preset
+        pop hl                  ; HL = value
+        ld a,(tr_kd)            ; a negative CV: 0
+        cp 3
+        jr z,.u
+        bit 7,h
+        jr nz,.zero
+.u:     ld a,d
+        or e
+        jr nz,.cmp
+        ld a,h                  ; preset 0: 9 for any value
+        or l
+        jr z,.zero
+        jr .full
+.cmp:   or a
+        sbc hl,de
+        jr nc,.full             ; reached
+        add hl,de
+.sc:    ld a,d                  ; value * 9 must fit 16 bits
+        cp 0x1C
+        jr c,.m
+        srl d
+        rr e
+        srl h
+        rr l
+        jr .sc
+.m:     ld b,h
+        ld c,l
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,bc
+        xor a                   ; A = value * 9 / preset (0-8)
+.dv:    or a
+        sbc hl,de
+        jr c,.dd
+        inc a
+        jr .dv
+.dd:    or a
+        ret
+.full:  ld a,9
+        or a
+        ret
+.zero:  xor a
+        ret
+.no:    pop de
+        scf
         ret
 
 ; ---- tr_draw: the whole trend page
@@ -238,8 +315,8 @@ tr_draw:
         cp TR_ROW0+TR_MAX*2
         jr nc,.hist
         call wt_value
-        cp 1
-        call z,tr_name
+        call tr_level
+        call nc,tr_name
         ld hl,wt_i
         inc (hl)
         jr .ll
@@ -252,56 +329,40 @@ tr_draw:
         ld b,a
         ld a,(tr_head)
         sub b
-        ld (tr_i),a
-        ld a,(tr_cnt)
-        ld b,a
+        ld e,a
 .h:     push bc
-        ld a,(tr_i)
-        ld l,a
-        ld h,0
-        ld de,tr_buf
-        add hl,de
-        ld a,(hl)
-        ld (tr_cs),a
-        ld b,a
-        ld a,(tr_gx)            ; the first column: no edge
-        or a
-        ld a,b
-        jr z,.p
-        dec l
-        ld a,(hl)
-.p:     ld (tr_ps),a
+        push de
         call tr_col
-        ld hl,tr_i
-        inc (hl)
+        pop de
+        inc e
         pop bc
         djnz .h
         ; fall through: the label colours of the newest sample
 
-; tr_lab: labels of the TRUE traces black on bright green
+; tr_lab: labels of the traces at level 9 (TRUE, ET / CV reached) black
+;      on bright green
 tr_lab:
-        ld a,(tr_head)
-        dec a
-        ld l,a
-        ld h,0
-        ld de,tr_buf
-        add hl,de
-        ld a,(hl)
-        ld (tr_cs),a
         ld a,(tr_n)
         or a
         ret z
         ld b,a
+        ld a,(tr_head)
+        dec a
+        ld l,a
+        ld h,high tr_buf
         ld c,TR_ROW0
 .l:     push bc
+        push hl
         ld b,c
         ld c,0
         ld de,TR_COL0*256+ATTR_NORMAL
-        ld hl,tr_cs
-        srl (hl)
-        jr nc,.a
+        ld a,(hl)
+        cp 9
+        jr nz,.a
         ld e,ATTR_ON
 .a:     call scr_fill_attr
+        pop hl
+        inc h
         pop bc
         inc c
         inc c
@@ -345,43 +406,47 @@ tr_name:
         inc (hl)
         ret
 
-; tr_col: draws column tr_gx (sample tr_cs, previous tr_ps), tr_gx + 1
+; tr_col: E = index of a sample -> draws it in column tr_gx (a vertical line
+;      from the level of the sample before, none in column 0), tr_gx + 1
 tr_col:
         ld a,(tr_n)
         or a
         ret z
         ld b,a
-        ld a,TR_ROW0*8          ; the high line of trace 0
+        ld d,high tr_buf        ; D = buffer of trace t
+        ld a,TR_ROW0*8+9        ; the level-0 line of trace 0
         ld (tr_py),a
 .t:     push bc
-        ld a,(tr_cs)
-        ld hl,tr_ps
-        xor (hl)
-        rra
+        ld h,d
+        ld l,e
+        ld c,(hl)               ; C = level
+        ld a,(tr_gx)
+        or a
+        ld a,c
+        jr z,.p
+        dec l
+        ld a,(hl)               ; A = level before
+.p:     cp c
+        jr nc,.o
+        ld b,a                  ; A = higher, C = lower
+        ld a,c
+        ld c,b
+.o:     sub c
+        inc a
+        ld b,a                  ; B = pixels
         ld a,(tr_py)
-        jr c,.edge
-        ld a,(tr_cs)
-        rra
-        ld a,(tr_py)
-        jr c,.hi
-        add a,9                 ; the low line
-.hi:    call tr_set
-        jr .nx
-.edge:  ld b,10                 ; a change: the vertical edge
+        sub c                   ; from the lower level up
 .e:     push bc
         push af
         call tr_set
         pop af
         pop bc
-        inc a
+        dec a
         djnz .e
-.nx:    ld hl,tr_cs
-        srl (hl)
-        ld hl,tr_ps
-        srl (hl)
         ld a,(tr_py)
         add a,16
         ld (tr_py),a
+        inc d
         pop bc
         djnz .t
         ld hl,tr_gx
@@ -516,7 +581,7 @@ txt_tr_w0:   db "Z Zoom: 4 s",0
 txt_tr_w1:   db "Z Zoom: 20 s",0
 txt_tr_w2:   db "Z Zoom: 100 s",0
 txt_tr_sig:  db "Signal",0
-txt_tr_none: db "No BOOL operands: add them on the watch page (W)",0
+txt_tr_none: db "Add BOOL, ET or CV operands on the watch page (W)",0
 
 tr_base:  db 1
 tr_head:  db 0
@@ -527,11 +592,9 @@ tr_n:     db 0
 tr_dn:    db 0
 tr_wn:    db 0
 tr_gx:    db 0
-tr_i:     db 0
-tr_cs:    db 0
 tr_k:     db 0
-tr_new:   db 0
-tr_ps:    db 0
+tr_kd:    db 0
+tr_lv:    ds TR_MAX
 tr_py:    db 0
         ALIGN 256
-tr_buf:   ds 256
+tr_buf:   ds 256*TR_MAX

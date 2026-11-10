@@ -469,9 +469,13 @@ with their symbols and live values and is saved with the project.
 
 ### Trend
 
-`G` in the simulation (or **Run > Trend**) shows the BOOL operands of the watch list as time charts, like
-a logic analyzer: up to 8 traces (the first 8 BOOL rows of the watch list), each with its symbol (or
-operand) on the left, highlighted while it is TRUE. TRUE is the upper line, FALSE the lower one.
+`G` in the simulation (or **Run > Trend**) shows the watch list as time charts, like a logic analyzer:
+up to 8 traces (the first 8 suitable rows of the watch list), each with its symbol (or operand) on the
+left, highlighted while it is at the top.
+
+* A BOOL operand: TRUE is the upper line, FALSE the lower, dotted one.
+* The elapsed time `ET` of a timer and the value `CV` of a counter: drawn between the two lines as a
+  part of the preset (`ET` / `PT`, `CV` / `PV`); the upper line means the preset is reached.
 
 ![Trend page](img/sim_trend.png)
 
@@ -479,7 +483,7 @@ operand) on the left, highlighted while it is TRUE. TRUE is the upper line, FALS
   is at the right edge; when the chart is full it moves to the left.
 * `Z` changes the time window of the chart: 4 s, 20 s (the default) or 100 s. The history starts again.
 * The inputs keep working (`0`-`7`, `R`), so a program can be tried out and its signals compared in time.
-* Words (INT, ET, CV) are not drawn; add BOOL operands on the watch page (`W`).
+* Other words (`%MW`, constants) are not drawn. Operands are added on the watch page (`W`).
 
 ## 12. Tools: undo, copy and paste, cross references, add to watch
 

@@ -94,8 +94,9 @@ on tape. See README.md for the user-facing description of every editor and key.
   title becomes `K_EDIT` with `ms_menu`. The pointer is hidden before a key is returned. Screens handle
   `K_MOUSE` with `ms_item` / `ms_grid` / `ms_crow` / `ms_pou`. zxrun: `--mouse`, `at:x,y`, `cl:L`.
 - Trend page of the simulation (`src/trend.asm`, DEMO bank; sim page 2, key G / Run > Trend): the BOOL
-  entries of the watch list (max 8) are sampled into a 256-aligned ring buffer (`tr_buf`, 1 byte per
-  sample) by `tr_tick`, called once per simulation loop with the page in A. A loop can take several
+  entries and the timer / counter ET / CV members of the watch list (max 8) are sampled as levels 0-9
+  (ET / CV scaled by PT / PV, the word before them in the instance) into one 256-byte ring buffer per
+  trace (`tr_buf` + t*256, aligned) by `tr_tick`, called once per simulation loop with the page in A. A loop can take several
   frames, so it adds one sample per `tr_rate` frames passed. 200-pixel chart, scrolled by 8 pixels.
 - UR-4 interface (8255; PA 0x1F, PB 0x3F, PC 0x5F, CWR 0x7F): `src/ur4.asm` (DEMO bank, View > UR-4 I/O,
   `ur_toggle` with a PC read-back detection), state `ur_on` (vm.asm). `sim_inputs` ORs PA / PB into RT_I,
