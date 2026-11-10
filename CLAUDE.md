@@ -34,6 +34,12 @@ on tape. See README.md for the user-facing description of every editor and key.
   it. The application is not changed for it.
 - Releases: the release number is in the file `VERSION` (no newline; Help > About includes it with
   `INCBIN`). Set it to the new number before building the files of a release.
+- `make web`: copies the tape and the loading screen into `web/` (the browser version: `web/index.html` +
+  JSSpeccy 3, vendored in `web/jsspeccy/`, GPL-3). Test it with `python3 -m http.server -d web`. The
+  page maps extra PC keys (Esc = BREAK, Tab = EDIT, symbols = SS + key; JSSpeccy listens on its own
+  container, so synthetic key events go to the focused element). `.github/workflows/pages.yml` publishes
+  `web/` with the `zxplc.tap` of the latest release to GitHub Pages on every release (and on changes in
+  `web/`).
 - `make docs`: regenerates the screenshots of `docs/MANUAL.md` (`tools/docshots.py`: one zxrun key script
   per image, `--noborder`). Update the manual and the scripts when the UI changes.
 - `python3 tools/fixjr.py main.asm`: builds and converts every out-of-range `jr` to `jp` in the source,

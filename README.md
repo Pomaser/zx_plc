@@ -6,7 +6,7 @@ A PLC programming environment for the **ZX Spectrum 128K** (also +2 / +2A / +3):
 IEC 61131-3 languages IL, LD and FBD, a compiler and a simulator, written in Z80 assembler. Programs are
 not downloaded to a real PLC; they run in the built-in simulation with live monitoring.
 
-**[User manual with screenshots](docs/MANUAL.md)** · **[Download (releases)](https://github.com/Pomaser/zx_plc/releases)**
+**[Try it in the browser](https://pomaser.github.io/zx_plc/)** · **[User manual with screenshots](docs/MANUAL.md)** · **[Download (releases)](https://github.com/Pomaser/zx_plc/releases)**
 
 ## What it does
 
@@ -56,6 +56,9 @@ not downloaded to a real PLC; they run in the built-in simulation with live moni
 
 * **Real Spectrum 128K:** load `zxplc.tap` with *Tape Loader* (or `LOAD ""`), then press a key.
 * **Emulators:** use `zxplc.sna` (e.g. Fuse).
+* **Browser:** [https://pomaser.github.io/zx_plc/](https://pomaser.github.io/zx_plc/) runs the tape of the latest release in
+  [JSSpeccy 3](https://github.com/gasman/jsspeccy3) (keyboard only; saving to tape does not work there).
+  Esc or Tab opens the menu, Ctrl is SYMBOL SHIFT.
 
 The [manual](docs/MANUAL.md) describes every screen and key.
 

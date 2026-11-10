@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZX-PLC online</title>
+<link rel="icon" href="data:,">
+<script src="jsspeccy/jsspeccy.js"></script>
+<style>
+  :root { --bg:#1c1c1c; --fg:#e8e8e8; --dim:#a0a0a0; --acc:#d7d700; --card:#2a2a2a; --line:#3a3a3a; }
+  body { margin:0; background:var(--bg); color:var(--fg);
+         font:15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width:760px; margin:0 auto; padding:16px; }
+  h1 { margin:8px 0 0; font-size:26px; }
+  h1 span { color:var(--acc); }
+  p.sub { margin:2px 0 16px; color:var(--dim); }
+  #start { display:block; width:100%; max-width:640px; margin:0 auto; aspect-ratio:4/3;
+           background:#000 url(loading.png) center/contain no-repeat; image-rendering:pixelated; border:0; cursor:pointer;
+           color:#fff; font:600 20px system-ui, sans-serif; position:relative; }
+  #start span { position:absolute; left:50%; bottom:16px; transform:translateX(-50%);
+                background:rgba(0,0,0,.75); padding:8px 18px; border:2px solid var(--acc); }
+  #jsspeccy { width:640px; max-width:100%; margin:0 auto; background:#fff; }
+  #jsspeccy canvas { max-width:100%; height:auto; }
+  .opts { text-align:center; color:var(--dim); font-size:13px; margin:8px 0 0; }
+  .opts a { color:var(--dim); }
+  h2 { font-size:18px; margin:28px 0 8px; border-bottom:1px solid var(--line); padding-bottom:4px; }
+  table { border-collapse:collapse; width:100%; }
+  td { padding:4px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  td:first-child { white-space:nowrap; width:1%; }
+  kbd { background:var(--card); border:1px solid var(--line); border-radius:3px; padding:0 5px;
+        font:13px ui-monospace, monospace; }
+  a { color:var(--acc); }
+  ul { padding-left:20px; }
+  footer { margin:32px 0 8px; color:var(--dim); font-size:13px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>ZX-<span>PLC</span></h1>
+  <p class="sub">An IEC 61131-3 PLC editor and simulator (IL, LD, FBD) for the ZX Spectrum 128K, in your browser.</p>
+
+  <button id="start" type="button"><span>&#9654; Load from tape</span></button>
+  <div id="jsspeccy" hidden></div>
+  <p class="opts">The tape loads instantly. <a href="?realtime">Load at real speed</a> (about 3.5 minutes, as on a real Spectrum, with
+    the loading stripes) &middot; <a href="?">instant</a></p>
+
+  <h2>Keys</h2>
+  <p>Press a key when the loading screen is complete. Click the emulator first so that it gets the keyboard.
+    An English keyboard layout works best.</p>
+  <table>
+    <tr><td><kbd>Esc</kbd> or <kbd>Tab</kbd></td><td>open / close the menu (BREAK / EDIT)</td></tr>
+    <tr><td><kbd>Shift</kbd></td><td>CAPS SHIFT</td></tr>
+    <tr><td><kbd>Ctrl</kbd></td><td>SYMBOL SHIFT (SS); e.g. <kbd>Ctrl</kbd>+<kbd>U</kbd> undo,
+      <kbd>Ctrl</kbd>+<kbd>Y</kbd> redo</td></tr>
+    <tr><td>Arrows, <kbd>Backspace</kbd>, <kbd>Enter</kbd></td><td>cursor keys, DELETE, ENTER</td></tr>
+    <tr><td><kbd>%</kbd> <kbd>!</kbd> <kbd>$</kbd> <kbd>(</kbd> <kbd>)</kbd> &hellip;</td>
+      <td>typed as on a PC keyboard (sent as SS + the Spectrum key); operands are e.g. <code>%IX0.0</code></td></tr>
+    <tr><td>letters</td><td>hotkeys of the menus and elements</td></tr>
+  </table>
+  <p>Try it: <b>Run &gt; Run</b> runs the demo project; in the simulation the keys <kbd>0</kbd>&ndash;<kbd>7</kbd>
+    toggle the inputs. Projects can be loaded from a <code>.tap</code> with the emulator&rsquo;s open button,
+    but saving to tape does not work in the browser. The Kempston mouse and the UR-4 interface are not emulated
+    here.</p>
+
+  <h2>More</h2>
+  <ul>
+    <li><a href="https://github.com/Pomaser/zx_plc">Source code on GitHub</a></li>
+    <li><a href="https://github.com/Pomaser/zx_plc/blob/main/docs/MANUAL.md">User manual</a></li>
+    <li><a href="https://github.com/Pomaser/zx_plc/releases/latest">Latest release</a>: the tape for a real
+      Spectrum or another emulator, and a demo video</li>
+  </ul>
+
+  <footer>Emulator: <a href="https://github.com/gasman/jsspeccy3">JSSpeccy 3</a> by Matt Westcott (GPL-3.0).</footer>
+</main>
+
+<script>
+// Extra keys on top of the JSSpeccy keyboard map: a character is sent as SS + its Spectrum key (JSSpeccy
+// sends Shift+5 as CS+5, so "%" would be the left arrow), Esc is BREAK (CS+SPACE), Tab is EDIT (CS+1).
+// The synthetic events go to the element that has the focus (JSSpeccy listens on its own container);
+// this listener runs first (window, capture).
+(function () {
+  const SS = { '!':49, '@':50, '#':51, '$':52, '%':53, '&':54, "'":55, '(':56, ')':57, '_':48, '^':72,
+               '<':82, '>':84, '"':80, ':':90, ';':79, '?':67, '/':86, '*':66, '+':75, '-':74, '=':76,
+               ',':78, '.':77 };
+  const CS = { 'Escape':32, 'Tab':49 };
+  const held = {};                       // physical keyCode -> [modifier, key] sent for it
+  function send(type, code, to) {
+    const ev = new Event(type, { bubbles: true, cancelable: true });
+    Object.defineProperty(ev, 'keyCode', { value: code });
+    Object.defineProperty(ev, 'key', { value: '' });
+    ev.zxSynth = true;
+    (to || document).dispatchEvent(ev);
+  }
+  window.addEventListener('keydown', e => {
+    if (e.zxSynth || e.metaKey || e.altKey) return;
+    let mod, key;
+    if (e.key in CS) { mod = 16; key = CS[e.key]; }
+    else if (e.key in SS && !e.ctrlKey) { mod = 17; key = SS[e.key]; }
+    else return;
+    e.stopImmediatePropagation(); e.preventDefault();
+    if (held[e.keyCode]) return;         // autorepeat: the Spectrum repeats by itself
+    const to = e.target;
+    if (e.shiftKey && mod === 17) send('keyup', 16, to);   // no CAPS SHIFT with the symbol
+    send('keydown', mod, to); send('keydown', key, to);
+    held[e.keyCode] = [mod, key, to];
+  }, true);
+  window.addEventListener('keyup', e => {
+    if (e.zxSynth) return;
+    const h = held[e.keyCode];
+    if (!h) return;
+    e.stopImmediatePropagation(); e.preventDefault();
+    delete held[e.keyCode];
+    send('keyup', h[1], h[2]); send('keyup', h[0], h[2]);
+    if (e.shiftKey && h[0] === 17) send('keydown', 16, h[2]);
+  }, true);
+})();
+
+document.getElementById('start').addEventListener('click', () => {
+  const realtime = new URLSearchParams(location.search).has('realtime');
+  const btn = document.getElementById('start'), box = document.getElementById('jsspeccy');
+  btn.remove(); box.hidden = false;
+  window.emu = JSSpeccy(box, {
+    machine: 128, zoom: 2, autoStart: true, autoLoadTapes: true,
+    tapeTrapsEnabled: !realtime, openUrl: 'zxplc.tap'
+  });
+});
+</script>
+</body>
+</html>

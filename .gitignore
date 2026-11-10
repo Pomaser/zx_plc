@@ -8,3 +8,4 @@ __pycache__/
 *.tap
 tools/zx0/zx0
 tools/zx0/dzx0
+web/loading.png

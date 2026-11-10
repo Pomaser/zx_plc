@@ -39,6 +39,10 @@ tape takes under 4 minutes, because its blocks are packed with ZX0. The loading 
 When everything is loaded, its display changes from STOP to RUN, the LEDs start blinking and "Press any
 key to start" appears.
 
+Without a Spectrum, [the browser version](https://pomaser.github.io/zx_plc/) loads the same tape in the
+JSSpeccy emulator (keyboard only: Esc or Tab opens the menu, Ctrl is SYMBOL SHIFT; saving to tape does not
+work there).
+
 To try it at once:
 
 1. Move to `DEMO_IL` with the cursor keys and press ENTER to see its program.

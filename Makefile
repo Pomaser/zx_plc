@@ -44,6 +44,12 @@ tools/zx0/dzx0: tools/zx0/dzx0.c
 
 tap: zxplc.tap
 
+# the browser version (web/, JSSpeccy): test it with `make web` and
+# `python3 -m http.server -d web`; GitHub Pages builds it from the latest release
+web: zxplc.tap
+	cp zxplc.tap web/zxplc.tap
+	cp img/zxplc_load.png web/loading.png
+
 # screenshots for docs/MANUAL.md (docs/img/*.png)
 docs: zxplc.sna
 	$(PYTHON) tools/docshots.py
@@ -52,6 +58,6 @@ run-test: zxplc_test1.sna
 	fuse zxplc_test1.sna &
 
 clean:
-	rm -f *.sna *.sym *.lst *.tap .test.out $(ZX0) tools/zx0/dzx0
+	rm -f *.sna *.sym *.lst *.tap .test.out web/zxplc.tap web/loading.png $(ZX0) tools/zx0/dzx0
 
-.PHONY: all test docs tap run run-test clean
+.PHONY: all test docs tap web run run-test clean
