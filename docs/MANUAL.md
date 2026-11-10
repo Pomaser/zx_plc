@@ -463,6 +463,8 @@ interface answers, otherwise "No UR-4 interface" is shown. It is off after the s
 * The status bar shows `UR-4 RUN` / `UR-4 STOP` while the interface is on.
 * When switched off, all ports are set back to inputs, as after a reset.
 * A Kempston joystick interface also answers on port 31; do not connect both.
+* The interface itself (ports, control words, connectors) is described in Czech in
+  [manual_ur-4.md](manual_ur-4.md).
 
 ## 11. Watch and force table
 
