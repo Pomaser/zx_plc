@@ -34,47 +34,49 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 #   rec        start recording (everything before is a silent preparation)
 #   x:N        from now on only every N-th frame goes to the video (fast forward)
 #   hold:N     N frames at normal speed (to look at a result), then fast again
+#   go!:X,Y cl!:L  the same as go / cl, but at normal speed with a short stop on
+#              the target: for menus and pickers, so that the choice is visible
 # Mouse coordinates are screen pixels (0-255, 0-191) of the pointer tip.
 
 SCENARIO = [
     # preparation (not recorded): the mouse on (View > Mouse)
     "w60 k:CS+1 w10 k:V w10 k:M w30",
-    "rec x:6 hold:25",
+    "rec x:5 hold:25",
     # ---- a new project: File > New project (mouse)
-    "go:8,3 w15 cl:L w30 go:30,12 w15 cl:L w40",
+    "go!:8,3 cl!:L w30 go!:30,12 cl!:L w40",
     "go:85,100 w20 cl:L w40",
     "go:140,92 w20 cl:L w60 shot:new hold:20",
     # ---- POU > New...: LAMP in LD
-    "go:36,3 w15 cl:L w30 go:40,20 w15 cl:L w30",
+    "go!:36,3 cl!:L w30 go!:40,20 cl!:L w30",
     "t:LAMP w15 k:ENTER w30",
-    "go:140,100 w15 cl:L w30",
+    "go!:140,100 cl!:L w30",
     "t:running~lamp w15 k:ENTER w60",
     "go:20,36 w15 cl:L w20 cl:L w60",
     "go:20,36 w15 cl:L w30",
-    "go:130,52 w15 cl:L w30",
+    "go!:130,52 cl!:L w30",
     "t:Q0.0 w10 k:ENTER w40",
-    "go:44,36 w15 cl:L w30 go:130,100 w15 cl:L w30",
+    "go:44,36 w15 cl:L w30 go!:130,100 cl!:L w30",
     "t:TON0 w10 k:ENTER w40",
     "k:CS+0 k:CS+0 t:2s w10 k:ENTER w40",
     "go:236,36 w15 cl:L w30 cl:L w30",
-    "go:130,76 w15 cl:L w30 t:Q0.1 w10 k:ENTER w60 shot:ld go:200,150 hold:90",
+    "go!:130,76 cl!:L w30 t:Q0.1 w10 k:ENTER w60 shot:ld go:200,150 hold:120",
     # ---- POU > New...: FAN in FBD
-    "go:36,3 w15 cl:L w30 go:40,20 w15 cl:L w30",
-    "t:FAN w15 k:ENTER w30 go:140,108 w15 cl:L w30",
+    "go!:36,3 cl!:L w30 go!:40,20 cl!:L w30",
+    "t:FAN w15 k:ENTER w30 go!:140,108 cl!:L w30",
     "t:cooling~fan w15 k:ENTER w60",
     "go:20,44 w15 cl:L w20 cl:L w60",
     "go:20,36 w15 cl:L w30",
-    "go:110,20 w15 cl:L w30 t:Q0.0 w10 k:ENTER w40",
-    "go:44,36 w15 cl:L w30 go:110,108 w15 cl:L w40 shot:fbd0",
+    "go!:110,20 cl!:L w30 t:Q0.0 w10 k:ENTER w40",
+    "go:44,36 w15 cl:L w30 go!:110,108 cl!:L w40 shot:fbd0",
     "t:TON2 w10 k:ENTER w40 k:CS+0 k:CS+0 t:3s w10 k:ENTER w40",
-    "go:68,36 w15 cl:L w30 go:110,164 w15 cl:L w30 t:Q0.2 w10 k:ENTER w50 shot:fbd1",
-    "go:20,68 w15 cl:L w30 cl:L w30 go:110,20 w15 cl:L w30 t:I0.2 w10 k:ENTER w40",
-    "go:44,68 w15 cl:L w30 go:110,132 w15 cl:L w40 t:CTU1 w10 k:ENTER w40",
+    "go:68,36 w15 cl:L w30 go!:110,164 cl!:L w30 t:Q0.2 w10 k:ENTER w50 shot:fbd1",
+    "go:20,68 w15 cl:L w30 cl:L w30 go!:110,20 cl!:L w30 t:I0.2 w10 k:ENTER w40",
+    "go:44,68 w15 cl:L w30 go!:110,132 cl!:L w40 t:CTU1 w10 k:ENTER w40",
     "k:CS+0 k:CS+0 t:3 w10 k:ENTER w50 shot:fbd2",
-    "go:20,84 w15 cl:L w30 cl:L w30 go:110,28 w15 cl:L w30 t:I0.1 w10 k:ENTER w40",
-    "go:68,68 w15 cl:L w30 cl:L w30 go:110,164 w15 cl:L w30 t:Q0.5 w10 k:ENTER w60 shot:fbd go:200,150 hold:90",
+    "go:20,84 w15 cl:L w30 cl:L w30 go!:110,28 cl!:L w30 t:I0.1 w10 k:ENTER w40",
+    "go:68,68 w15 cl:L w30 cl:L w30 go!:110,164 cl!:L w30 t:Q0.5 w10 k:ENTER w60 shot:fbd go:200,150 hold:120",
     # ---- MAIN in IL: the motor latch and the calls
-    "go:36,3 w15 cl:L w30 go:40,12 w15 cl:L w60",
+    "go!:36,3 cl!:L w30 go!:40,12 cl!:L w60",
     "go:20,28 w15 cl:L w30 cl:L w30 go:200,140 w30",
     "t://~Motor~start/stop w10 k:ENTER w20",
     "t:LD~I0.0 w10 k:ENTER w20",
@@ -90,9 +92,9 @@ SCENARIO = [
     "t:LD~CTU0.Q w10 k:ENTER w20",
     "t:ST~Q0.4 w10 k:ENTER w20",
     "t:CAL~LAMP w10 k:ENTER w20",
-    "t:CAL~FAN w10 k:ENTER w60 shot:il hold:90",
+    "t:CAL~FAN w10 k:ENTER w60 shot:il hold:120",
     # ---- symbols: Edit > Symbols
-    "go:60,3 w15 cl:L w30 go:70,44 w15 cl:L w30 go:200,150 w20",
+    "go!:60,3 cl!:L w30 go!:70,44 cl!:L w30 go:200,150 w20",
     "t:start k:SPACE t:I0.0 k:SPACE t:start~button k:ENTER w20",
     "t:stop k:SPACE t:I0.1 k:SPACE t:stop~button k:ENTER w20",
     "t:sensor k:SPACE t:I0.2 k:SPACE t:part~sensor k:ENTER w20",
@@ -102,26 +104,26 @@ SCENARIO = [
     "t:service k:SPACE t:Q0.3 k:SPACE t:service~lamp k:ENTER w20",
     "t:starts3 k:SPACE t:Q0.4 k:SPACE t:3~starts~done k:ENTER w20",
     "t:parts3 k:SPACE t:Q0.5 k:SPACE t:3~parts~counted k:ENTER w20",
-    "w20 hold:90",
+    "w20 hold:120",
     # ---- back to MAIN: symbols instead of addresses (View > Symbols), and back
-    "go:60,3 w15 cl:L w30 go:70,12 w15 cl:L w30 go:200,150 w60",
-    "go:80,3 w15 cl:L w30 go:90,12 w15 cl:L w30 go:200,150 w20 shot:vsym hold:60",
-    "go:80,3 w15 cl:L w30 go:90,20 w15 cl:L w30 go:200,150 w20 hold:40",
-    "go:80,3 w15 cl:L w30 go:90,12 w15 cl:L w30 go:200,150 w50",
+    "go!:60,3 cl!:L w30 go!:70,12 cl!:L w30 go:200,150 w60",
+    "go!:80,3 cl!:L w30 go!:90,12 cl!:L w30 go:200,150 w20 shot:vsym hold:60",
+    "go!:80,3 cl!:L w30 go!:90,20 cl!:L w30 go:200,150 w20 hold:40",
+    "go!:80,3 cl!:L w30 go!:90,12 cl!:L w30 go:200,150 w50",
     # ---- simulation of MAIN (IL): Run > Run, the inputs by clicks on the LEDs
-    "go:115,3 w15 cl:L w30 go:125,12 w15 cl:L w100",
+    "go!:115,3 cl!:L w30 go!:125,12 cl!:L w100",
     "go:6,174 w20 cl:L w50 cl:L w60 hold:20 w250 shot:sim2 hold:50",
     "cl:L w40 cl:L w60 cl:L w40 cl:L w60 shot:sim3 hold:50",
     "go:22,174 w20 cl:L w60 cl:L w60 hold:30",
     # ---- simulation of LAMP (LD)
-    "go:36,3 w15 cl:L w30 go:40,12 w15 cl:L w60",
+    "go!:36,3 cl!:L w30 go!:40,12 cl!:L w60",
     "go:20,36 w15 cl:L w30 cl:L w60",
-    "go:115,3 w15 cl:L w30 go:125,12 w15 cl:L w100",
+    "go!:115,3 cl!:L w30 go!:125,12 cl!:L w100",
     "go:6,174 w20 cl:L w50 cl:L w120 hold:60",
     # ---- simulation of FAN (FBD): the fan 3 s after the motor, 3 parts counted
-    "go:36,3 w15 cl:L w30 go:40,12 w15 cl:L w60",
+    "go!:36,3 cl!:L w30 go!:40,12 cl!:L w60",
     "go:20,44 w15 cl:L w30 cl:L w60",
-    "go:115,3 w15 cl:L w30 go:125,12 w15 cl:L w100",
+    "go!:115,3 cl!:L w30 go!:125,12 cl!:L w100",
     "go:6,174 w20 cl:L w50 cl:L w180 shot:f1 hold:30",
     "go:38,174 w20 cl:L w30 cl:L w40 cl:L w30 cl:L w40 cl:L w30 cl:L w60 shot:f2 hold:60",
     # ---- the watch page (W), operands added with ENTER on its last row
@@ -134,7 +136,7 @@ SCENARIO = [
     "w30 k:F w100 shot:w2 hold:60 k:F w60 k:F w60 shot:w3",
     "k:W w60 hold:30",
     # ---- the end: the POU list with the three POUs
-    "w50 go:36,3 w15 cl:L w30 go:40,12 w15 cl:L w30 go:200,140 w20 shot:end hold:90",
+    "w50 go!:36,3 cl!:L w30 go!:40,12 cl!:L w30 go:200,140 w20 shot:end hold:120",
 ]
 
 
@@ -207,11 +209,12 @@ class Recorder(Spectrum):
             Spectrum.type(self, ch)
             self.run(self.rnd.randint(0, 1))
 
-    def glide(self, x, y):
-        """moves the pointer smoothly (ease in / out) to screen pixel x, y"""
+    def glide(self, x, y, px=6):
+        """moves the pointer smoothly (ease in / out) to screen pixel x, y,
+        about px pixels per frame"""
         x0, y0 = self.px, self.py
         dist = math.hypot(x - x0, y - y0)
-        n = max(4, int(dist / 6))
+        n = max(4, int(dist / px))
         for i in range(1, n + 1):
             t = i / n
             e = t * t * (3 - 2 * t)
@@ -244,6 +247,16 @@ def play(z, scenario, shots=None):
                 z.press(cmd[2:])
             elif cmd.startswith("t:"):
                 z.typ(cmd[2:].replace("~", " "))
+            elif cmd.startswith("go!:"):
+                sp, z.speed = z.speed, 1
+                x, y = map(int, cmd[4:].split(","))
+                z.glide(x, y, 8)
+                z.run(15)
+                z.speed = sp
+            elif cmd.startswith("cl!:"):
+                sp, z.speed = z.speed, 1
+                z.click(cmd[4:], hold=5, gap=5)
+                z.speed = sp
             elif cmd.startswith("go:"):
                 x, y = map(int, cmd[3:].split(","))
                 z.glide(x, y)
