@@ -24,6 +24,8 @@ on tape. See README.md for the user-facing description of every editor and key.
   for the SEIE editor), every used bank and the fixed part from the snapshot, all packed with ZX0
   (`tools/zx0`, vendored C packer built by make, plus `dzx0_standard.asm`), rebuilds the IM2 stubs, runs the
   picture effect, then jumps to START). The loader must stay below 0x5DE0; mktap.py checks it.
+- Releases: the release number is in the file `VERSION` (no newline; Help > About includes it with
+  `INCBIN`). Set it to the new number before building the files of a release.
 - `make docs`: regenerates the screenshots of `docs/MANUAL.md` (`tools/docshots.py`: one zxrun key script
   per image, `--noborder`). Update the manual and the scripts when the UI changes.
 - `python3 tools/fixjr.py main.asm`: builds and converts every out-of-range `jr` to `jp` in the source,

@@ -1359,7 +1359,9 @@ tl_keys:
         jp msg_box
 
 txt_about:
-        db "ZX-PLC  version 0.1",0
+        db "ZX-PLC  version "
+        INCBIN "VERSION"        ; the release number (file VERSION, no newline)
+        db 0
         db "PLC editor and simulator",0
         db "IEC 61131-3: IL, LD, FBD",0
         db "for ZX Spectrum 128K",0
