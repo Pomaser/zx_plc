@@ -460,6 +460,7 @@ with their symbols and live values and is saved with the project.
 * UP / DOWN select a row.
 * ENTER edits the operand of a row. The last row adds one; an empty text removes the row.
 * DELETE removes a row.
+* `T` switches to the trend page, `W` back to the program.
 * `F` forces the selected operand:
   * a BOOL goes forced TRUE, then forced FALSE, then not forced;
   * an INT (`%MW`) asks for a value, and `F` again releases it.
@@ -484,6 +485,7 @@ of its instance (`T_Red` for `TON0.ET`); an operand without a symbol keeps its a
 
 * The samples are taken from the start of the simulation, also while another page is shown. The newest
   is at the right edge; when the chart is full it moves to the left.
+* `W` switches to the watch page, `G` back to the program.
 * `Z` changes the time window of the chart: 4 s, 20 s (the default) or 100 s. The history starts again.
 * The inputs keep working (`0`-`7`, `R`), so a program can be tried out and its signals compared in time.
 * Other words (`%MW`, constants) are not drawn. Operands are added on the watch page (`W`).

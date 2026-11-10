@@ -196,7 +196,13 @@ scr_run:
         inc b
         cp 'G'                  ; G: program / trend page
         jr z,.pg
-        cp 'Z'                  ; Z: time base of the trend
+        cp 'T'                  ; T on the watch page: the trend (else stop)
+        jr nz,.nt
+        ld a,(sm_page)
+        dec a
+        ld a,'T'
+        jr z,.pg
+.nt:    cp 'Z'                  ; Z: time base of the trend
         jr nz,.nw
         ld a,(sm_page)
         cp b
@@ -927,7 +933,7 @@ txt_sm_run:   db "RUN",0
               db "UR-4 "
 txt_sm_stop:  db "STOP",0
 txt_sm_true:  db "TRUE",0
-txt_wt_hint:  db "ENTER Edit  F Force  DEL Delete  W Program",0
+txt_wt_hint:  db "ENTER Edit  F Force  T Trend  W Program",0
 txt_tr_hint:  db "0-7 In  R Run  Z Zoom  G Program  W Watch",0
 txt_sm_hint:  db "0-7 In  SS+n Set  B Byte  R Run  S Step  E Res",0
 txt_sm_nomon: db "No IL or LD POU to monitor.",0
