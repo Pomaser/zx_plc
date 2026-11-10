@@ -189,8 +189,10 @@ DEMO_END:
         ASSERT DEMO_END <= IM2_JP
         IM2STUB
 
-; unused banks get the interrupt table too
-        MMU 3, 7, BANKED
+; ---- SPARE bank: undo / redo history (and the tape load's copy)
+        MMU 3, BANK_SPARE, BANKED
+        INCLUDE "src/undo.asm"
+        DISPLAY "UNDO:  history + copy: ",/D,UM_TOP-UM_REC
         IM2STUB
 
         MMU 3, BANK_EDIT, BANKED     ; bank paged in when the snapshot starts

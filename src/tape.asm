@@ -169,11 +169,10 @@ tape_load:
         call popup_open
         ld a,BANK_SPARE         ; keep a copy of the project
         ld hl,PROJ
-        ld de,BANKED
+        ld de,UM_BAK
         ld bc,PROJ_END-PROJ
         call bank_copy
-        xor a                   ; (the undo copy is gone)
-        ld (um_valid),a
+        BCALL um_reset          ; (the undo history is gone)
 .hdr:   ld ix,tp_lhdr           ; wait for a header of a project file
         ld de,17
         xor a
@@ -249,7 +248,7 @@ tape_load:
 .brk:   ld hl,err_tp_brk
 .rest:  push hl                 ; the old project back
         ld a,BANK_SPARE
-        ld hl,BANKED
+        ld hl,UM_BAK
         ld de,PROJ
         ld bc,PROJ_END-PROJ
         call bank_copy

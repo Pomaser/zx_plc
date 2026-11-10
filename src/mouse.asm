@@ -241,8 +241,15 @@ ms_xor: ld hl,ms_arrow
         djnz .l
         ret
 
-ms_arrow:
-        db 0x80,0xC0,0xE0,0xF0,0xF8,0xE0,0xB0,0x18
+ms_arrow:                       ; the pointer, 8x8 (1 = pixel)
+        db %10000000
+        db %11000000
+        db %11100000
+        db %11110000
+        db %11111000
+        db %11100000
+        db %10110000
+        db %00011000
 
 txt_ms_none: db "No Kempston mouse",0
 

@@ -28,7 +28,7 @@ on tape. See README.md for the user-facing description of every editor and key.
   per image, `--noborder`). Update the manual and the scripts when the UI changes.
 - `python3 tools/fixjr.py main.asm`: builds and converts every out-of-range `jr` to `jp` in the source,
   then prints the remaining errors. Run it after edits that make code longer.
-- `python3 tools/xref.py --check "pou:R,app:E,il_edit:E,sym_edit:E,ld_edit:E,sim:E,demo:E,il_comp:R,vm:R,ld_comp:R,fbd_comp:R,tape:R,tests:E,fbd_edit:F,tools:D,clip:D,wexpr:D,mouse:D"`:
+- `python3 tools/xref.py --check "pou:R,app:E,il_edit:E,sym_edit:E,ld_edit:E,sim:E,demo:E,il_comp:R,vm:R,ld_comp:R,fbd_comp:R,tape:R,tests:E,fbd_edit:F,tools:D,clip:D,wexpr:D,mouse:D,undo:S"`:
   reports labels referenced across paged banks without `BCALL`. Unlisted modules are core. The
   `run_tests` / `demo_build` hits in main.asm are expected. Extend the map when a module moves.
 - Headless emulator: `.scratch/venv/bin/python tools/zxrun.py zxplc.sna -f 30 -s "<script>"`
@@ -59,7 +59,9 @@ on tape. See README.md for the user-facing description of every editor and key.
   - DEMO 3: `src/tools.asm` (cross references, watch / force page of the simulation), `src/clip.asm`
     (mark / copy / cut / paste, called by the editors with `BCALL cl_cmd` / `mk_draw`) and the demo image.
   - FBD 6: the FBD editor.
-  - SPARE 7: the project copy while loading from tape.
+  - SPARE 7: undo / redo (`src/undo.asm`): the code, the history records growing up from `UM_REC`, and
+    the shadow copy of the project ending at the IM2 stub. The tape load copies the project to `UM_BAK`
+    (= `UM_REC`) and calls `um_reset`.
 
   Every paged bank carries the IM2 table + `JP isr` (`IM2STUB`); I = 0xFE.
 - **Cross-bank calls:** use `BCALL label` (macro in `src/defs.asm`, `bcall_` in `src/bank.asm`).
@@ -137,6 +139,9 @@ on tape. See README.md for the user-facing description of every editor and key.
   headers.
 - Undo: every change of the project must call `undo_save` (core) first; `pou_insert`, `pou_delete`,
   `ld_put`, `ld_ins_row` / `ld_del_row`, `pou_add`, POU rename / language / comment and `proj_new` do.
-  A new in-place write needs it too. The snapshot is in BANK_SPARE (also used by the tape load).
+  A new in-place write needs it too. `kb_get` sets `um_arm` on every key / click, so one step = the
+  changes after one key. `um_save` keeps a shadow copy; at the next step, undo or redo `um_fin` turns
+  the difference shadow -> project into a record (header byte runs + body prefix / suffix diff, both
+  sides, so the same record serves undo and redo). The oldest records are dropped when the bank is full.
 - The tape routines (`tp_sa_bytes` / `tp_ld_bytes`) are cycle-exact copies of the ROM. Do not add
   instructions inside their timing loops.

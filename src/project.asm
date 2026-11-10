@@ -50,8 +50,7 @@ proj_load_demo:
         ret
 
 ; ---- undo_save: before a change of the project: the first change after a
-;      key copies the project to BANK_SPARE (one undo step per key);
-;      keeps all registers
+;      key starts a new undo step (undo.asm, bank 7); keeps all registers
 undo_save:
         push af
         ld a,(um_arm)
@@ -59,42 +58,19 @@ undo_save:
         jr z,.e
         xor a
         ld (um_arm),a
-        push bc
-        push de
-        push hl
-        ld bc,(PROJ+P_LEN)
-        ld (um_len),bc
-        ld a,BANK_SPARE
-        ld hl,PROJ
-        ld de,BANKED
-        call bank_copy
-        ld a,1
-        ld (um_valid),a
-        pop hl
-        pop de
-        pop bc
+        BCALL um_save
 .e:     pop af
         ret
 
-; ---- undo_do: the project before the last change back; C = nothing to undo
+; ---- undo_do / redo_do: one step back / forward; C = nothing to do
 undo_do:
-        ld a,(um_valid)
-        or a
-        scf
-        ret z
-        ld a,BANK_SPARE
-        ld hl,BANKED
-        ld de,PROJ
-        ld bc,(um_len)
-        call bank_copy
-        xor a
-        ld (um_valid),a
-        ld (um_arm),a
+        BCALL um_undo
+        ret
+redo_do:
+        BCALL um_redo
         ret
 
 um_arm:   db 0
-um_valid: db 0              ; (cleared by a tape load, which uses BANK_SPARE)
-um_len:   dw 0
 
 ; ---- bank_copy: A = bank paged in at 0xC000 during the copy, HL -> DE,
 ;      BC bytes (BC = 0: nothing); the caller's bank is restored

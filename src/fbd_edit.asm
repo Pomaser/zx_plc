@@ -101,6 +101,8 @@ fb_editor:
         jp z,.xrk
         cp K_UNDO
         jp z,.undk
+        cp K_REDO
+        jp z,.redk
         cp K_MARK               ; SS+A / SS+D / SS+F: mark, copy, paste
         jr c,.kc
         cp K_PASTE+1
@@ -616,7 +618,9 @@ fb_editor:
 .noroom:
         ld a,(fb_wsh)           ; the network was moved for a compare /
         or a                    ; compute block: back as it was
-        call nz,undo_do
+        jr z,.nr0
+        BCALL um_back           ; (no redo of it)
+.nr0:
         ld hl,err_fb_room
         call ui_error
         jp .redraw
@@ -738,7 +742,10 @@ fb_editor:
 .xrk:   ld a,CMD_XREF           ; SS+X: cross references through the menu path
         ld (mk_cmd),a
         jp .menu
+.redk:  ld a,CMD_REDO           ; SS+Y: redo through the menu path
+        jr .undc
 .undk:  ld a,CMD_UNDO           ; SS+U: undo through the menu path
+.undc:
         ld (mk_cmd),a
         jp .menu
 .menu:  call menu_key

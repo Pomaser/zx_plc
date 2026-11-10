@@ -66,6 +66,8 @@ scr_sym:
         jp z,.xrk
         cp K_UNDO
         jp z,.undk
+        cp K_REDO
+        jp z,.redk
         cp K_BREAK
         jp z,.menu
         cp K_EDIT
@@ -339,7 +341,10 @@ scr_sym:
 .xrk:   ld a,CMD_XREF           ; SS+X: cross references through the menu path
         ld (mk_cmd),a
         jp .menu
+.redk:  ld a,CMD_REDO           ; SS+Y: redo through the menu path
+        jr .undc
 .undk:  ld a,CMD_UNDO           ; SS+U: undo through the menu path
+.undc:
         ld (mk_cmd),a
         jp .menu
 .menu:  call sy_commit

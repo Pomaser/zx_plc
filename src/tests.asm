@@ -105,6 +105,7 @@ run_tests:
         call ld_tests
         call fbd_tests
         call clip_tests
+        call undo_tests
     ENDIF
         ; ---- result
         ld bc,0x0000
@@ -505,6 +506,127 @@ vm_tests:
         ret
 
 ; NC -> pass
+    ENDIF
+    IF TPART==2
+; ---- undo / redo over several steps
+undo_tests:
+        BCALL um_reset
+        call t_sum
+        ld (t_us),hl            ; C0
+        ld bc,10                ; step 1: 10 bytes in MAIN
+        call t_ustep
+        ld (t_us+2),hl
+        ld bc,3                 ; step 2: 3 bytes
+        call t_ustep
+        ld (t_us+4),hl
+        call t_arm              ; step 3: 5 bytes out
+        xor a
+        ld de,0
+        ld bc,5
+        call pou_delete
+        call undo_do            ; back: C2, C1, C0, then nothing
+        ld hl,(t_us+4)
+        call t_usum
+        call undo_do
+        ld hl,(t_us+2)
+        call t_usum
+        call undo_do
+        ld hl,(t_us)
+        call t_usum
+        call undo_do
+        ccf
+        call t_nc
+        call redo_do            ; forward: C1, C2
+        ld hl,(t_us+2)
+        call t_usum
+        call redo_do
+        ld hl,(t_us+4)
+        call t_usum
+        ld bc,1                 ; a new change: no redo, undo -> C2
+        call t_ustep
+        call redo_do
+        ccf
+        call t_nc
+        call undo_do
+        ld hl,(t_us+4)
+        call t_usum
+        call t_sum              ; overflow: 2 x 10 steps of 1000 bytes
+        ld (t_us),hl
+        ld b,10
+.ov:    push bc
+        ld bc,1000
+        call t_ustep
+        ld (t_us+2),hl
+        call t_arm
+        xor a
+        ld de,0
+        ld bc,1000
+        call pou_delete
+        pop bc
+        djnz .ov
+        call undo_do            ; the newest steps are kept
+        ld hl,(t_us+2)
+        call t_usum
+        call undo_do
+        ld hl,(t_us)
+        call t_usum
+        ld b,0                  ; the oldest are gone: < 18 more steps
+.uc:    push bc
+        call undo_do
+        pop bc
+        jr c,.ue
+        inc b
+        jr .uc
+.ue:    ld a,b
+        cp 18
+        ccf
+        jp t_nc
+; t_ustep: a new step, BC bytes (0x77) inserted at the start of MAIN -> HL = sum
+t_ustep:
+        call t_arm
+        xor a
+        ld de,0
+        push bc
+        call pou_insert
+        pop bc
+.f:     ld (hl),0x77
+        inc hl
+        dec bc
+        ld a,b
+        or c
+        jr nz,.f
+        jr t_sum
+t_arm:  ld a,1
+        ld (um_arm),a
+        ret
+; t_usum: the undo / redo went (NC) and the project sum is HL
+t_usum: push hl
+        call t_nc
+        call t_sum
+        pop de
+        or a
+        sbc hl,de
+        jp t_check
+; t_sum: HL = the sum of the project bytes (with its length)
+t_sum:  ld de,PROJ
+        ld bc,(PROJ+P_LEN)
+        ld hl,0
+.l:     ld a,(de)
+        add a,l
+        ld l,a
+        adc a,h
+        sub l
+        ld h,a
+        add hl,hl               ; (order matters)
+        inc de
+        dec bc
+        ld a,b
+        or c
+        jr nz,.l
+        ld de,(PROJ+P_LEN)
+        add hl,de
+        ret
+t_us:   ds 6
     ENDIF
 t_nc:   ld a,0
         jr nc,.ok

@@ -1375,7 +1375,7 @@ txt_keys:
         db "ENTER",PT_TAB,"confirm",0
         db "DELETE",PT_TAB,"delete (CS+0)",0
         db "Letters",PT_TAB,"hotkeys",0
-        db "SS+U",PT_TAB,"undo",0
+        db "SS+U  SS+Y",PT_TAB,"undo  redo",0
         db "SS+X",PT_TAB,"cross references",0
         db "SS+W",PT_TAB,"add to watch",0
         db "SS+A D F",PT_TAB,"mark  copy  paste",0

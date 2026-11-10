@@ -46,6 +46,7 @@ mi_pou:
 mi_edit:
         db CMD_EDIT,  'E',"Edit POU",0
         db CMD_UNDO,  'U',"Undo",0
+        db CMD_REDO,  'Y',"Redo",0
         db CMD_WADD,  'W',"Add to watch",0
         db CMD_SYMBOLS,'S',"Symbols",0
         db CMD_IL_INS,'I',"Insert line",0
@@ -979,6 +980,7 @@ pt_width_full:
         ret
 
 txt_no_undo: db "Nothing to undo",0
+txt_no_redo: db "Nothing to redo",0
 mb_text: dw 0
 mb_x:    db 0
 
@@ -1005,6 +1007,8 @@ menu_cmd:
         ret z
         cp CMD_UNDO
         jr z,.undo
+        cp CMD_REDO
+        jr z,.redo
         cp CMD_ABOUT
         jr z,.about
         cp CMD_KEYS
@@ -1014,7 +1018,7 @@ menu_cmd:
         cp CMD_SAVE
         jr z,.save
         cp CMD_NEW
-        jr z,.new
+        jp z,.new
         cp CMD_DEMO
         jr z,.demo
         cp CMD_VIEW_SYM
@@ -1035,9 +1039,12 @@ menu_cmd:
         ld (snd_on),a
         xor a                   ; nothing else to do
         ret
+.redo:  call redo_do
+        ld hl,txt_no_redo
+        jr .ur
 .undo:  call undo_do
-        jr nc,.ud
         ld hl,txt_no_undo
+.ur:    jr nc,.ud
         call ui_error
         xor a
         ret

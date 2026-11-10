@@ -140,6 +140,7 @@ CMD_PASTE       EQU 31
 CMD_CUT         EQU 32
 CMD_POU_DUP     EQU 33          ; POU > Duplicate... (executed by the POU screen)
 CMD_MOUSE       EQU 34          ; View > Mouse (on / off)
+CMD_REDO        EQU 35
 
 ; ---- status bar text markers (st_left): symbol name shown inverted
 ST_SYM      EQU 1           ; start of the symbol name
@@ -159,6 +160,7 @@ K_WATCH     EQU 16          ; SS + W: add to the watch list
 K_MARK      EQU 17          ; SS + A: mark the start of a block
 K_COPY      EQU 18          ; SS + D: copy the block
 K_PASTE     EQU 19          ; SS + F: paste
+K_REDO      EQU 21          ; SS + Y: redo the undone change
 K_MOUSE     EQU 20          ; a mouse click (ms_cx / ms_cy / ms_btn, mouse.asm)
 K_EDIT      EQU 7
 K_LEFT      EQU 8

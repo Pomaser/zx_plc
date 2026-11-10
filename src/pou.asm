@@ -41,6 +41,8 @@ scr_pou:
         jr z,.edit
         cp K_UNDO
         jr z,.undk
+        cp K_REDO
+        jp z,.redk
         cp K_XREF
         jr z,.xrk
         cp K_BREAK
@@ -92,7 +94,10 @@ scr_pou:
 .xrk:   ld a,CMD_XREF           ; SS+X: calls of this POU
         ld (mk_cmd),a
         jr .menu
+.redk:  ld a,CMD_REDO           ; SS+Y: redo through the menu path
+        jr .undc
 .undk:  ld a,CMD_UNDO           ; SS+U: undo through the menu path
+.undc:
         ld (mk_cmd),a
 .menu:  call menu_key
 .cmd:   jp z,.key

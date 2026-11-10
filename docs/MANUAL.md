@@ -69,6 +69,7 @@ The cursor keys are CAPS SHIFT + 5 / 6 / 7 / 8, DELETE is CAPS SHIFT + 0. Combin
 | DELETE | delete |
 | letters | hotkeys of menu titles, items and elements |
 | SS + U | undo the last change |
+| SS + Y | redo the undone change |
 | SS + X | cross references of the operand at the cursor |
 | SS + W | add the operand at the cursor to the watch list |
 | SS + I | LD: insert an element in front of the cursor |
@@ -133,6 +134,7 @@ Each menu title opens a drop-down list. The first letter of a title or item is i
 |---|---|
 | Edit POU | open the current POU in its editor |
 | Undo | undo the last change (also SS+U) |
+| Redo | redo the undone change (also SS+Y) |
 | Add to watch | add the operand at the cursor to the watch list (also SS+W) |
 | Symbols | the symbol editor |
 | Insert line | insert an empty line / row |
@@ -441,7 +443,10 @@ with their symbols and live values and is saved with the project.
 ## 12. Tools: undo, copy and paste, cross references, add to watch
 
 **Undo (SS+U, Edit > Undo)** returns the project to its state before the last key that changed it, for
-example a deleted line, element or POU. It keeps one step.
+example a deleted line, element or POU. Pressed again, it goes further back, step by step.
+**Redo (SS+Y, Edit > Redo)** brings an undone step back. A new change ends the steps that can be
+redone. The history holds hundreds of small steps (fewer in a big project; the oldest go first) and
+is cleared when a project is loaded from tape.
 
 ![Nothing to undo](img/undo_none.png)
 

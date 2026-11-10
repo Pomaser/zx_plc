@@ -36,7 +36,7 @@ not downloaded to a real PLC; they run in the built-in simulation with live moni
   lists, all editors and on the simulator's LEDs.
 * **Comfort of a modern IDE:**
   * mark / copy / cut / paste, also between POUs;
-  * undo, duplicate a POU;
+  * undo and redo over many steps, duplicate a POU;
   * cross references with a jump to each use;
   * Run puts the cursor on the line or element of a compile error.
 * **A real compiler:** IL, LD and FBD are compiled to bytecode for a small virtual machine. LD and FBD go

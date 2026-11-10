@@ -165,11 +165,17 @@ kb_get:
         jr z,.k
         BCALL ms_hide
 .k:     pop af
-        ret
+        jr .arm
 .none:  ld a,(ms_on)            ; no key: the mouse (A = K_MOUSE or 0)
         or a
         ret z
         BCALL ms_poll
+.arm:   or a                    ; a key or click: the next change of the
+        ret z                   ; project starts a new undo step
+        push af
+        ld a,1
+        ld (um_arm),a
+        pop af
         ret
 
 ; ---- kb_wait: waits for a queued key, A = code
@@ -177,9 +183,7 @@ kb_wait:
         call kb_get
         or a
         jr z,.w
-        push af                 ; a key: the next change may be undone
-        ld a,1
-        ld (um_arm),a
+        push af
         xor a
         ld (mk_cmd),a
         pop af
@@ -231,6 +235,6 @@ kt_sym:
         db 0,K_WATCH,0,'<','>'
         db '!','@','#','$','%'
         db '_',')','(',0x27,'&'
-        db '"',';',K_INS,K_UNDO,0
+        db '"',';',K_INS,K_UNDO,K_REDO
         db K_SSENTER,'=','+','-','^'
         db ' ',0,'.',',','*'
