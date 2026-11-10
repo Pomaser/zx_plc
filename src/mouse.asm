@@ -2,7 +2,7 @@
 ; mouse.asm - Kempston mouse (DEMO bank)
 ; ============================================================
 ; Ports: buttons 0xFADF (active low: bit 0 right, bit 1 left), X 0xFBDF,
-; Y 0xFFDF (8-bit counters, Y grows upward). View > Mouse switches it on
+; Y 0xFFDF (8-bit counters, Y grows upward). Options > Mouse switches it on
 ; (ms_toggle; only when a mouse is detected). kb_get (core) calls ms_poll
 ; once per frame while it waits: the pointer follows the mouse (an 8x8
 ; arrow, XOR) and a button press returns K_MOUSE with the position in
@@ -15,7 +15,7 @@ MS_PBTN EQU 0xFADF
 MS_PX   EQU 0xFBDF
 MS_PY   EQU 0xFFDF
 
-; ---- ms_toggle: View > Mouse
+; ---- ms_toggle: Options > Mouse
 ms_toggle:
         ld a,(ms_on)
         or a

@@ -62,7 +62,9 @@ ms_cy     EQU ms_on+12
 ms_btn    EQU ms_on+13
 ms_menu   EQU ms_on+14        ;   0xFF, or the menu title clicked
 ur_on     EQU ms_on+15        ; UR-4 interface (ur4.asm): 1 = on
-RT_END    EQU ms_on+16
+menu_x    EQU ms_on+16        ; menu.asm: x of each title (MENU_N)
+menu_w    EQU menu_x+MENU_N   ;   width of each title (must follow menu_x)
+RT_END    EQU menu_w+MENU_N
         ASSERT RT_END <= PROJ
 
 VM_MB     EQU 1

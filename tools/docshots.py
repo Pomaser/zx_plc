@@ -29,6 +29,7 @@ SHOTS = [
     ("menu_edit", MENU + "k:E w20"),
     ("menu_view", MENU + "k:V w20"),
     ("menu_run", MENU + "k:R w20"),
+    ("menu_options", MENU + "k:O w20"),
     ("menu_help", MENU + "k:H w20"),
     ("pou_new", MENU + "k:P w5 k:N w20 t:MOTOR w10"),
     ("pou_lang", MENU + "k:P w5 k:N w20 t:MOTOR w10 k:ENTER w30"),

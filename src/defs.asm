@@ -139,9 +139,9 @@ CMD_COPY        EQU 30          ;   in the order of K_MARK..K_PASTE
 CMD_PASTE       EQU 31
 CMD_CUT         EQU 32
 CMD_POU_DUP     EQU 33          ; POU > Duplicate... (executed by the POU screen)
-CMD_MOUSE       EQU 34          ; View > Mouse (on / off)
+CMD_MOUSE       EQU 34          ; Options > Mouse (on / off)
 CMD_REDO        EQU 35
-CMD_UR4         EQU 36          ; View > UR-4 I/O (on / off)
+CMD_UR4         EQU 36          ; Options > UR-4 I/O (on / off)
 CMD_TREND       EQU 37          ; Run > Trend: the simulation with the trend page
 CMD_LOAD_SD     EQU 38          ; File > Load SD... (tape_load with A = this)
 CMD_SAVE_SD     EQU 39          ; File > Save SD... (tape_save with A = this)

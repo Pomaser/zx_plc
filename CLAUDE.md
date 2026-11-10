@@ -79,7 +79,7 @@ editor and key for users.
 ## Memory architecture (128K)
 - **Fixed memory:**
   - 0x5B00 TEST_RES; the stack below 0x5E00.
-  - Core code at 0x5E00. The build prints the free space: only 3 B are left (v0.11). New code goes into
+  - Core code at 0x5E00. The build prints the free space: about 30 B are left. New code goes into
     the banks; the menu tables and texts (src/menu.asm) are core too, so a new menu item first needs
     something moved out of the core.
   - RT runtime data at 0x8A00. These are EQUs in `src/vm.asm`: I/Q (2 bytes each, %IX0.0-1.7)/M/MW, FB instances, scratch bits,
@@ -93,7 +93,7 @@ editor and key for users.
   - DATA 1: the popup save buffer and the clipboard (`clip_buf`, filled by `src/clip.asm`).
   - DEMO 3: `src/tools.asm` (cross references, watch / force page of the simulation, Help texts),
     `src/clip.asm` (mark / copy / cut / paste, called by the editors with `BCALL cl_cmd` / `mk_draw`),
-    `src/wexpr.asm`, `src/mouse.asm`, `src/ur4.asm`, `src/trend.asm` and the demo image (~3.7 KB free).
+    `src/wexpr.asm`, `src/mouse.asm`, `src/ur4.asm`, `src/trend.asm`, `menu_active` (menu check marks) and the demo image (~3.7 KB free).
   - FBD 6: the FBD editor (~7.5 KB free).
   - SPARE 7: undo / redo (`src/undo.asm`): the code, the history records growing up from `UM_REC`, and
     the shadow copy of the project ending at the IM2 stub. The tape load copies the project to `UM_BAK`
@@ -137,7 +137,7 @@ editor and key for users.
     image 64 MB, MBR + FAT16: `mkfs.fat --offset 2048`, `mcopy -i sd.img@@1M -s SYS BIN TMP ::/`; for
     Fuse convert it with `raw2hdf`). Fuse automaps only with divMMC write protection on and does not
     keep the EEPROM between runs (only in SZX snapshots, chunk `DMMC`).
-- UR-4 interface (8255; PA 0x1F, PB 0x3F, PC 0x5F, CWR 0x7F): `src/ur4.asm` (DEMO bank, View > UR-4 I/O,
+- UR-4 interface (8255; PA 0x1F, PB 0x3F, PC 0x5F, CWR 0x7F): `src/ur4.asm` (DEMO bank, Options > UR-4 I/O,
   `ur_toggle` with a PC read-back detection), state `ur_on` (vm.asm). `sim_inputs` ORs PA / PB into RT_I,
   `ur_out` (sim.asm) writes %QX0 to PC in RUN, 0 otherwise. zxrun: `--ur4`, `ur:AA,BB`.
 - `bank_copy` (core) copies with another bank paged in. Core routines that page a bank (`win_open` /
@@ -160,7 +160,7 @@ editor and key for users.
     ST_TAB = column. The simulation hints must fit left of cell SM_RCOL (26) and differ per page
     (program / watch: T Trend / trend: W Watch).
   - Menu tables (src/menu.asm): `command, hotkey, label`. The hotkey is not shown and must not be a
-    title letter (F P E V R H): the open drop-down takes item hotkeys first, so EDIT, R would no longer
+    title letter (F P E V R O H): the open drop-down takes item hotkeys first, so EDIT, R would no longer
     reach the Run menu.
   - The menu bar title (`menu_pou`) shows the POU name, or Symbols / Watch / Trend (`mp_alt`).
 - **Project format** (src/project.asm, defs.asm):

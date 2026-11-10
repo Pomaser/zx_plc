@@ -1,7 +1,7 @@
 ; ============================================================
 ; ur4.asm - UR-4 interface (TESLA, 8255): physical I/O (DEMO bank)
 ; ============================================================
-; Ports: PA 0x1F, PB 0x3F, PC 0x5F, control word 0x7F. View > UR-4 I/O
+; Ports: PA 0x1F, PB 0x3F, PC 0x5F, control word 0x7F. Options > UR-4 I/O
 ; switches it on (ur_toggle; only when the interface answers). Then the
 ; simulation ORs PA into %IX0 and PB into %IX1 (sim_inputs) and writes
 ; %QX0 to PC while it runs (ur_out in sim.asm; 0 in STOP and outside).
@@ -14,7 +14,7 @@ UR_CWR  EQU 0x7F
 UR_CFG  EQU 0x92                ; PA in, PB in, PC out (mode 0)
 UR_INS  EQU 0x9B                ; all in (the state after a reset)
 
-; ---- ur_toggle: View > UR-4 I/O
+; ---- ur_toggle: Options > UR-4 I/O
 ur_toggle:
         ld a,(ur_on)
         or a

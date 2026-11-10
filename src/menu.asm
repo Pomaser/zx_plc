@@ -6,7 +6,7 @@
 ; A drop-down / popup window is a cell aligned box; the cells it
 ; covers are saved to win_save and restored when it closes.
 ; ============================================================
-MENU_N      EQU 6           ; number of top items
+MENU_N      EQU 7           ; number of top items
 MENU_X0     EQU 3           ; x of the first title (its inversion starts at x=0)
 MENU_GAP    EQU 7           ; gap between titles
 ATTR_MENU   EQU 0x38        ; black ink, white paper
@@ -19,20 +19,22 @@ menu_top:
         dw mt_edit, mi_edit
         dw mt_view, mi_view
         dw mt_run,  mi_run
+        dw mt_opt,  mi_opt
         dw mt_help, mi_help
 mt_file: db "File",0
 mt_pou:  db "POU",0
 mt_edit: db "Edit",0
 mt_view: db "View",0
 mt_run:  db "Run",0
+mt_opt:  db "Options",0
 mt_help: db "Help",0
 
-; submenu items: command, hotkey (upper case, not shown; not a title's letter F P E V R H,
+; submenu items: command, hotkey (upper case, not shown; not a title's letter F P E V R O H,
 ; which the open drop-down would take), label, 0 ; list ends with 0
 ; (the last label of a list must not use descenders - it touches the frame)
 mi_file:
         db CMD_NEW,  'N',"New project",0
-        db CMD_DEMO, 'O',"Open demo",0
+        db CMD_DEMO, 'M',"Open demo",0
         db CMD_LOAD, 'L',"Load tape...",0
         db CMD_SAVE, 'S',"Save tape...",0
         db CMD_LOAD_SD,'D',"Load SD...",0
@@ -63,9 +65,6 @@ mi_view:
         db CMD_VIEW_SYM, 'S',"Symbols",0
         db CMD_VIEW_ADDR,'A',"Addresses",0
         db CMD_XREF,     'X',"Cross references",0
-        db CMD_SOUND,    'O',"Sound",0
-        db CMD_MOUSE,    'M',"Mouse",0
-        db CMD_UR4,      'U',"UR-4 I/O",0
         db 0
 mi_run:
         db CMD_RUN,  'R',"Run",0
@@ -74,6 +73,11 @@ mi_run:
         db CMD_RESET,'E',"Reset",0
         db CMD_WATCH,'W',"Watch",0
         db CMD_TREND,'G',"Trend",0
+        db 0
+mi_opt:
+        db CMD_SOUND,'S',"Sound",0
+        db CMD_MOUSE,'M',"Mouse",0
+        db CMD_UR4,  'U',"UR-4 I/O",0
         db 0
 mi_help:
         db CMD_KEYS, 'C',"Controls",0
@@ -107,8 +111,6 @@ menu_init:
         djnz .l
         ret
 
-menu_x: ds MENU_N           ; title x
-menu_w: ds MENU_N           ; title width (must follow menu_x)
 
 ; ---- menu_draw_bar: draws the bar on row 0
 menu_draw_bar:
@@ -369,7 +371,7 @@ menu_open_drop:
         ld (pt_x),a
         call pt_puts
         ex (sp),hl              ; HL = record, (sp) = next record
-        call menu_active
+        BCALL menu_active
         jr c,.nchk
         ld a,(pt_x)             ; active option: check mark after the label
         add a,2
@@ -396,34 +398,6 @@ menu_checkable:
         cp CMD_MOUSE
         ret z
         scf
-        ret
-
-; ---- menu_active: HL = item record -> NC if the option is active now
-menu_active:
-        ld a,(hl)
-        cp CMD_SOUND
-        jr z,.snd
-        cp CMD_MOUSE
-        jr z,.ms
-        cp CMD_UR4
-        jr z,.ur
-        cp CMD_VIEW_SYM
-        jr z,.sym
-        cp CMD_VIEW_ADDR
-        scf
-        ret nz
-        ld a,(view_sym)         ; Addresses active when symbols are off
-        cp 1                    ; C if 0
-        ccf
-        ret
-.snd:   ld a,(snd_on)
-        jr .is1
-.ms:    ld a,(ms_on)
-        jr .is1
-.ur:    ld a,(ur_on)
-        jr .is1
-.sym:   ld a,(view_sym)
-.is1:   cp 1                    ; NC if 1
         ret
 
 ; ---- menu_inv_item: inverts row of item drop_sel in the open drop-down
@@ -734,6 +708,18 @@ win_open_px0:
         jp nz,.row
         ; frame
         call win_geom           ; B=row0 C=x0 D=width L=last row
+        push bc                 ; the used lines of the last row: its inner
+        push de                 ; cells were skipped above (not whole cells)
+        push hl
+        ld b,l
+        ld a,(win_bot)
+        ld l,a
+        ld h,0
+        ld e,PX_CLR
+        call px_span
+        pop hl
+        pop de
+        pop bc
         ld a,(win_top)
         or a
         jr z,.notop

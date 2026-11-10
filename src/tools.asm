@@ -11,6 +11,35 @@ XR_ROW0   EQU 3
 XR_X_LOC  EQU 56
 XR_X_KIND EQU 132
 
+; ---- menu_active: HL = item record -> NC if the option is active now
+;      (the check marks of the drop-down menus, called from menu.asm)
+menu_active:
+        ld a,(hl)
+        cp CMD_SOUND
+        jr z,.snd
+        cp CMD_MOUSE
+        jr z,.ms
+        cp CMD_UR4
+        jr z,.ur
+        cp CMD_VIEW_SYM
+        jr z,.sym
+        cp CMD_VIEW_ADDR
+        scf
+        ret nz
+        ld a,(view_sym)         ; Addresses active when symbols are off
+        cp 1                    ; C if 0
+        ccf
+        ret
+.snd:   ld a,(snd_on)
+        jr .is1
+.ms:    ld a,(ms_on)
+        jr .is1
+.ur:    ld a,(ur_on)
+        jr .is1
+.sym:   ld a,(view_sym)
+.is1:   cp 1                    ; NC if 1
+        ret
+
 ; ---- tl_run: editor tool for the operand at the cursor (A = area,
 ;      C = index): tl_cmd = CMD_WADD adds it to the watch list, else the
 ;      cross references; A = command for the screen (CMD_REOPEN / CMD_EDIT)

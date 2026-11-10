@@ -85,10 +85,10 @@ The cursor keys are CAPS SHIFT + 5 / 6 / 7 / 8, DELETE is CAPS SHIFT + 0. Combin
 
 ![Help > Controls](img/help_controls.png)
 
-The AY chip plays a soft click for every key and a short warning tone on errors (View > Sound switches
+The AY chip plays a soft click for every key and a short warning tone on errors (Options > Sound switches
 them off).
 
-**Kempston mouse.** View > Mouse switches a Kempston mouse on (it is off after the start). It is only
+**Kempston mouse.** Options > Mouse switches a Kempston mouse on (it is off after the start). It is only
 switched on when a mouse answers, otherwise "No Kempston mouse" is shown. A small arrow follows the mouse:
 
 * a click on a menu title opens the menu, a click on an item runs it, a click elsewhere closes it;
@@ -159,9 +159,6 @@ Each menu title opens a drop-down list. The first letter of a title or item is i
 | Symbols | show operands by their symbol names |
 | Addresses | show operands by their addresses (default) |
 | Cross references | uses of the operand at the cursor (also SS+X) |
-| Sound | key click and error tone on / off |
-| Mouse | Kempston mouse on / off (only when one is found) |
-| UR-4 I/O | real inputs and outputs through a UR-4 interface on / off (only when one is found, see [10](#10-simulation)) |
 
 ### Run
 
@@ -175,6 +172,16 @@ Each menu title opens a drop-down list. The first letter of a title or item is i
 | Reset | clear all PLC data (inputs, outputs, memory, timers, counters, steps) |
 | Watch | the simulation on the watch / force page |
 | Trend | the simulation on the trend page (time charts) |
+
+### Options
+
+![Options menu](img/menu_options.png)
+
+| Item | Function |
+|---|---|
+| Sound | key click and error tone on / off |
+| Mouse | Kempston mouse on / off (only when one is found) |
+| UR-4 I/O | real inputs and outputs through a UR-4 interface on / off (only when one is found, see [10](#10-simulation)) |
 
 ### Help
 
@@ -449,7 +456,7 @@ the faulty line or element; the message is shown in the status bar.
 ### Real inputs and outputs: the UR-4 interface
 
 The simulation can read and drive real hardware through a **UR-4** interface (TESLA Kolín, an 8255
-chip with three 8-bit ports). **View > UR-4 I/O** switches it on; it is only switched on when the
+chip with three 8-bit ports). **Options > UR-4 I/O** switches it on; it is only switched on when the
 interface answers, otherwise "No UR-4 interface" is shown. It is off after the start.
 
 | UR-4 port | Address | PLC | Direction |

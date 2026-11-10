@@ -149,6 +149,6 @@ snd_terr:
         db 2, 0xE0,0x02
         db 0
 
-snd_on: db 1                    ; View > Sound
+snd_on: db 1                    ; Options > Sound
 snd_a:  dw 0                    ; channel A effect pointer (0 = idle)
 snd_b:  dw 0                    ; channel B
