@@ -121,7 +121,9 @@ document.getElementById('start').addEventListener('click', () => {
   btn.remove(); box.hidden = false;
   window.emu = JSSpeccy(box, {
     machine: 128, zoom: 2, autoStart: true, autoLoadTapes: true,
-    tapeTrapsEnabled: !realtime, openUrl: 'zxplc.tap'
+    // (a query against the browser cache: a new release shows at once; JSSpeccy needs
+    // the URL to end in .tap)
+    tapeTrapsEnabled: !realtime, openUrl: 'zxplc.tap?' + Date.now() + '.tap'
   });
 });
 </script>
