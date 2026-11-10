@@ -15,6 +15,9 @@ SY_X_COMM EQU 120           ; cells 15-31
 
 scr_sym:
         call screen_begin
+        ld a,1                  ; "Symbols" instead of the POU name
+        ld (mp_alt),a
+        call menu_pou
         ; the IL editor state is borrowed while the symbol editor runs
         ld hl,(il_cur)
         ld (sy_scur),hl

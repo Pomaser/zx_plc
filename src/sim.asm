@@ -331,6 +331,10 @@ sim_cmd:
 
 ; ---- sim_hint: key hints of the page in the status bar
 sim_hint:
+        ld a,(sm_page)          ; the menu bar: "Watch" or the POU name
+        add a,a
+        ld (mp_alt),a
+        call menu_pou
         ld hl,txt_sm_hint
         ld a,(sm_page)
         or a

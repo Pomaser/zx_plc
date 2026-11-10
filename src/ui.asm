@@ -6,6 +6,8 @@
 screen_begin:
         ld hl,0
         ld (st_left),hl
+        xor a                   ; the POU name in the menu bar
+        ld (mp_alt),a
         ld a,ST_RCOL
         ld (st_rcol),a
         ld a,ATTR_NORMAL

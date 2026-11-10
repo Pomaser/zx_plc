@@ -158,7 +158,16 @@ menu_draw_bar:
 MP_COL  EQU 22              ; first cell of the name area (behind the titles)
 menu_pou:
         ld de,st_buf
-        ld a,(cur_pou)
+        ld a,(mp_alt)           ; a screen title instead of the POU
+        or a
+        jr z,.pou
+        ld hl,txt_mp_sym
+        dec a
+        jr z,.alt
+        ld hl,txt_mp_wt
+.alt:   call put_str
+        jr .end
+.pou:   ld a,(cur_pou)
         call pou_entry
         call name_unpad
         ld hl,txt_st_open
@@ -169,7 +178,7 @@ menu_pou:
         ld a,')'
         ld (de),a
         inc de
-        xor a
+.end:   xor a
         ld (de),a
         ld hl,st_buf
         ld de,mp_last
@@ -205,6 +214,9 @@ menu_pou:
         ret
 
 mp_last: ds 16
+mp_alt:  db 0               ; 1: "Symbols", 2: "Watch" instead of the POU name
+txt_mp_sym: db "Symbols",0
+txt_mp_wt:  db "Watch",0
 
 ; A = item -> HL = title string, A = x (preserves BC)
 menu_title_xy:
