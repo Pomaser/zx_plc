@@ -11,7 +11,7 @@
 ; two text rows: level 9 is the line beside the label, level 0 (dotted)
 ; 9 pixels below. When the chart is full it scrolls left by 8 pixels.
 ; ============================================================
-TR_ROW0   EQU 2             ; text row of the first trace
+TR_ROW0   EQU 3             ; text row of the first trace (row 2 free under the header)
 TR_MAX    EQU 8             ; traces
 TR_X0     EQU 56            ; first pixel of the chart
 TR_COL0   EQU TR_X0/8
