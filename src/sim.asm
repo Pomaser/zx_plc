@@ -933,8 +933,8 @@ txt_sm_run:   db "RUN",0
               db "UR-4 "
 txt_sm_stop:  db "STOP",0
 txt_sm_true:  db "TRUE",0
-txt_wt_hint:  db "ENTER Edit  F Force  T Trend  W Program",0
-txt_tr_hint:  db "0-7 In  R Run  Z Zoom  G Program  W Watch",0
+txt_wt_hint:  db "ENTER Edit  F Force  DEL Delete  T Trend",0
+txt_tr_hint:  db "0-7 In  R Run  Z Zoom  W Watch",0
 txt_sm_hint:  db "0-7 In  SS+n Set  B Byte  R Run  S Step  E Res",0
 txt_sm_nomon: db "No IL or LD POU to monitor.",0
 
