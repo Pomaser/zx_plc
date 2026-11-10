@@ -142,6 +142,7 @@ CMD_POU_DUP     EQU 33          ; POU > Duplicate... (executed by the POU screen
 CMD_MOUSE       EQU 34          ; View > Mouse (on / off)
 CMD_REDO        EQU 35
 CMD_UR4         EQU 36          ; View > UR-4 I/O (on / off)
+CMD_TREND       EQU 37          ; Run > Trend: the simulation with the trend page
 
 ; ---- status bar text markers (st_left): symbol name shown inverted
 ST_SYM      EQU 1           ; start of the symbol name

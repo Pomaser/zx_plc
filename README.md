@@ -21,7 +21,7 @@ not downloaded to a real PLC; they run in the built-in simulation with live moni
 * **Simulation:**
   * a scan every 50th of a second, 16 inputs and 16 outputs on an LED panel;
   * live colouring of the program in all three languages;
-  * a watch / force table, step and reset.
+  * a watch / force table, a trend page (time charts of the watched BOOL signals), step and reset.
 * **Symbols:** names and comments for every address, used everywhere instead of addresses.
 * **A demo project** (traffic light in IL, pump and fan in LD, valve and horn in FBD) opens at the start.
 

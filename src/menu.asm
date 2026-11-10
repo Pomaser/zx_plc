@@ -70,6 +70,7 @@ mi_run:
         db CMD_STEP, 'S',"Step",0
         db CMD_RESET,'E',"Reset",0
         db CMD_WATCH,'W',"Watch",0
+        db CMD_TREND,'G',"Trend",0
         db 0
 mi_help:
         db CMD_KEYS, 'C',"Controls",0
@@ -165,6 +166,9 @@ menu_pou:
         dec a
         jr z,.alt
         ld hl,txt_mp_wt
+        dec a
+        jr z,.alt
+        ld hl,txt_mp_tr
 .alt:   call put_str
         jr .end
 .pou:   ld a,(cur_pou)
@@ -217,6 +221,7 @@ mp_last: ds 16
 mp_alt:  db 0               ; 1: "Symbols", 2: "Watch" instead of the POU name
 txt_mp_sym: db "Symbols",0
 txt_mp_wt:  db "Watch",0
+txt_mp_tr:  db "Trend",0
 
 ; A = item -> HL = title string, A = x (preserves BC)
 menu_title_xy:

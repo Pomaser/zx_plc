@@ -156,8 +156,14 @@ wx_ask: ld (wx_q),hl
         ld a,(win_bx)
         add a,8
         ld c,a
-        ld hl,WD_TEXT
-        ld de,0x1401            ; 20 chars, upper case
+        ld hl,(wx_q)            ; 20 chars, upper case; the short
+        ld de,txt_wx_qd         ; D question has room for 12
+        or a
+        sbc hl,de
+        ld de,0x1401
+        jr nz,.w
+        ld d,0x0C
+.w:     ld hl,WD_TEXT
         call ui_input
         push af
         call win_close

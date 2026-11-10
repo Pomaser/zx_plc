@@ -172,6 +172,7 @@ Each menu title opens a drop-down list. The first letter of a title or item is i
 | Step | one scan |
 | Reset | clear all PLC data (inputs, outputs, memory, timers, counters, steps) |
 | Watch | the simulation on the watch / force page |
+| Trend | the simulation on the trend page (time charts) |
 
 ### Help
 
@@ -426,6 +427,7 @@ the faulty line or element; the message is shown in the status bar.
 | `S` | one scan (step) |
 | `E` | reset all data |
 | `W` | program / watch page |
+| `G` | program / trend page |
 | UP / DOWN | scroll the listing |
 
 ### Real inputs and outputs: the UR-4 interface
@@ -464,6 +466,20 @@ with their symbols and live values and is saved with the project.
 * Forced values are marked `F`. They hold for the program and for the outputs until the simulation screen
   is left.
 * Time values (ET) and counter values (CV) can be watched, but not forced.
+
+### Trend
+
+`G` in the simulation (or **Run > Trend**) shows the BOOL operands of the watch list as time charts, like
+a logic analyzer: up to 8 traces (the first 8 BOOL rows of the watch list), each with its symbol (or
+operand) on the left, highlighted while it is TRUE. TRUE is the upper line, FALSE the lower one.
+
+![Trend page](img/sim_trend.png)
+
+* The samples are taken from the start of the simulation, also while another page is shown. The newest
+  is at the right edge; when the chart is full it moves to the left.
+* `Z` changes the time window of the chart: 4 s, 20 s (the default) or 100 s. The history starts again.
+* The inputs keep working (`0`-`7`, `R`), so a program can be tried out and its signals compared in time.
+* Words (INT, ET, CV) are not drawn; add BOOL operands on the watch page (`W`).
 
 ## 12. Tools: undo, copy and paste, cross references, add to watch
 

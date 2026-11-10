@@ -1035,7 +1035,7 @@ wt_edit:
         add a,8
         ld c,a
         ld hl,rd_o
-        ld de,0x1401            ; 20 chars, upper case
+        ld de,0x0C01            ; 12 chars (fits the popup), upper case
         call ui_input
         push af
         call win_close

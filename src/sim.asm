@@ -53,6 +53,7 @@ scr_run:
         ld bc,WT_MAX*5
         xor a
         call memset
+        BCALL tr_reset          ; empty trend history
         xor a
         ld (sm_page),a
         ld (sim_tog),a
@@ -98,6 +99,8 @@ scr_run:
         jr z,.nr2
         BCALL ms_hide
 .nr2:   call sim_update
+        ld a,(sm_page)          ; trend samples (drawn on page 2)
+        BCALL tr_tick
         call ur_out
         call sim_state
         call kb_get
@@ -105,9 +108,9 @@ scr_run:
         jr z,.loop
         ld b,a                  ; watch page: its keys
         ld a,(sm_page)
-        or a
+        dec a
         ld a,b
-        jr z,.np
+        jr nz,.np
         cp K_UP
         jr z,.wk
         cp K_DOWN
@@ -187,11 +190,26 @@ scr_run:
         jp .loop
 .letter:
         call to_upper
+        ld b,1
         cp 'W'                  ; W: program / watch page
+        jr z,.pg
+        inc b
+        cp 'G'                  ; G: program / trend page
+        jr z,.pg
+        cp 'Z'                  ; Z: time base of the trend
         jr nz,.nw
         ld a,(sm_page)
-        xor 1
-        ld (sm_page),a
+        cp b
+        jp nz,.loop
+        BCALL tr_zoom
+        call sim_draw_list
+        jp .loop
+.pg:    ld a,(sm_page)
+        cp b
+        ld a,b
+        jr nz,.pg2
+        xor a
+.pg2:   ld (sm_page),a
         call sim_hint
         call sim_draw_list
         jp .loop
@@ -253,6 +271,8 @@ scr_run:
         jr z,.mc
         cp CMD_WATCH
         jr z,.mc
+        cp CMD_TREND
+        jr z,.mc
         cp CMD_REDRAW
         jr nz,.exit
         call sim_draw_list
@@ -290,9 +310,13 @@ scr_run:
 
 ; ---- sim_cmd: A = CMD_RUN, CMD_STOP, CMD_STEP, CMD_RESET
 sim_cmd:
+        ld b,1
         cp CMD_WATCH            ; the watch page
+        jr z,.pg
+        inc b
+        cp CMD_TREND            ; the trend page
         jr nz,.nw
-        ld a,1
+.pg:    ld a,b
         ld (sm_page),a
         call sim_hint
         jp sim_draw_list
@@ -331,15 +355,20 @@ sim_cmd:
 
 ; ---- sim_hint: key hints of the page in the status bar
 sim_hint:
-        ld a,(sm_page)          ; the menu bar: "Watch" or the POU name
-        add a,a
-        ld (mp_alt),a
+        ld a,(sm_page)          ; the menu bar: "Watch" / "Trend" (mp_alt
+        or a                    ; 2 / 3) or the POU name
+        jr z,.m
+        inc a
+.m:     ld (mp_alt),a
         call menu_pou
         ld hl,txt_sm_hint
         ld a,(sm_page)
         or a
         jr z,.s
         ld hl,txt_wt_hint
+        dec a
+        jr z,.s
+        ld hl,txt_tr_hint
 .s:     ld (st_left),hl
         jp status_left
 
@@ -582,10 +611,14 @@ sim_digits:
 
 ; ---- sim_draw_list: listing rows 1-19 + monitor descriptors
 sim_draw_list:
-        ld a,(sm_page)          ; watch page
+        ld a,(sm_page)          ; watch / trend page
         or a
         jr z,.prog
+        dec a
+        jr nz,.tr
         BCALL wt_draw
+        ret
+.tr:    BCALL tr_draw
         ret
 .prog:  ld a,(sm_mon)
         cp 2
@@ -712,6 +745,8 @@ sim_update:
         ld a,(sm_page)
         or a
         jr z,.prog
+        dec a                   ; (the trend draws in tr_tick)
+        jr nz,.leds
         BCALL wt_update
         jr .leds
 .prog:  ld a,(sm_mon)
@@ -893,6 +928,7 @@ txt_sm_run:   db "RUN",0
 txt_sm_stop:  db "STOP",0
 txt_sm_true:  db "TRUE",0
 txt_wt_hint:  db "ENTER Edit  F Force  DEL Delete  W Program",0
+txt_tr_hint:  db "0-7 In  R Run  Z Zoom  G Program  W Watch",0
 txt_sm_hint:  db "0-7 In  SS+n Set  B Byte  R Run  S Step  E Res",0
 txt_sm_nomon: db "No IL or LD POU to monitor.",0
 

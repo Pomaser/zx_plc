@@ -51,7 +51,9 @@ cmd_target:
         ret z
         cp CMD_POU_DUP
         jr z,.pou
-        cp CMD_WATCH            ; Run > Watch: the RUN screen
+        cp CMD_WATCH            ; Run > Watch / Trend: the RUN screen
+        jr z,.run
+        cp CMD_TREND
         jr z,.run
         cp CMD_POU_MANAGE
         ret c
@@ -132,7 +134,16 @@ CORE_END:
         INCLUDE "src/il_edit.asm"
         INCLUDE "src/sym_edit.asm"
         INCLUDE "src/ld_edit.asm"
+    IFNDEF TEST
+    IFNDEF MKDEMO
+        DEFINE WITH_SIM
+    ENDIF
+    ENDIF
+    IFDEF WITH_SIM
         INCLUDE "src/sim.asm"
+    ELSE                            ; (the test and demo builds need the room)
+scr_run: ret
+    ENDIF
     IFDEF TEST
         INCLUDE "src/tests.asm"     ; tests use the editors' buffers directly
     ENDIF
@@ -179,6 +190,7 @@ FBD_END:
         INCLUDE "src/wexpr.asm"     ; word compare / arithmetic (LD, FBD)
         INCLUDE "src/mouse.asm"     ; Kempston mouse
         INCLUDE "src/ur4.asm"       ; UR-4 interface (physical I/O)
+        INCLUDE "src/trend.asm"     ; trend page of the simulation
 demo_img:
     IFNDEF MKDEMO
         INCBIN "src/demo_proj.bin"
