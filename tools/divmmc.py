@@ -146,10 +146,14 @@ class DivMMC:
             self.mapped = True
         elif not on and self.mapped:
             self.ram[self.bank][:] = mem[0x2000:0x4000]
+            if self.ctl & 0x80 and not self.auto:   # CONMEM, write enabled:
+                self.eeprom[:] = mem[0:0x2000]       # flashing the EEPROM
             self.mapped = False
             self.s.set_rom()
 
     def control(self, val):
+        if self.mapped and self.ctl & 0x80 and not self.auto and not val & 0x80:
+            self.eeprom[:] = self.s.m.memory[0:0x2000]
         if self.mapped and (val & 15) != self.bank:
             self.ram[self.bank][:] = self.s.m.memory[0x2000:0x4000]
             self.bank = val & 15
