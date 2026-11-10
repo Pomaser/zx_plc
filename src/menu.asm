@@ -34,7 +34,7 @@ mt_help: db "Help",0
 ; (the last label of a list must not use descenders - it touches the frame)
 mi_file:
         db CMD_NEW,  'N',"New project",0
-        db CMD_DEMO, 'M',"Open demo",0
+        db CMD_DEMO, 'O',"Open demo",0
         db CMD_LOAD, 'L',"Load tape...",0
         db CMD_SAVE, 'S',"Save tape...",0
         db CMD_LOAD_SD,'D',"Load SD...",0
