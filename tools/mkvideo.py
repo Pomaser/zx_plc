@@ -43,7 +43,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 SCENARIO = [
     # preparation (not recorded): the mouse on (View > Mouse)
-    "w60 k:CS+1 w10 k:O w10 k:M w30",
+    "w60 k:CS+1 w10 k:H w10 k:O w10 k:M w30",
     "rec x:5 hold:25",
     # ---- a new project: File > New project (mouse)
     "go!:8,3 cl!:L w30 go!:30,12 cl!:L w40",
