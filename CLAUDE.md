@@ -3,8 +3,10 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ZX-PLC is a PLC editor and simulator (IEC 61131-3: IL, LD, FBD) for the ZX Spectrum 128K. It is written
-in Z80 assembler for sjasmplus. Programs only run in the built-in simulation; projects are saved and loaded
-on tape. See README.md for the user-facing description of every editor and key.
+in Z80 assembler for sjasmplus. Programs only run in the built-in simulation (optionally with real I/O
+through a UR-4 interface); projects are saved and loaded on tape or on an SD card (divMMC with esxDOS).
+There is also a browser version (GitHub Pages, JSSpeccy). README.md and docs/MANUAL.md describe every
+editor and key for users.
 
 ## Conventions
 - Code comments, README, commit messages and all other git texts are in English.
@@ -26,16 +28,23 @@ on tape. See README.md for the user-facing description of every editor and key.
   for the SEIE editor), every used bank and the fixed part from the snapshot, all packed with ZX0
   (`tools/zx0`, vendored C packer built by make, plus `dzx0_standard.asm`), rebuilds the IM2 stubs, runs the
   picture effect, then jumps to START). The loader must stay below 0x5DE0; mktap.py checks it.
-- `tools/mkvideo.py`: a demo video (`.scratch/zxplc_demo.mp4`, ffmpeg) of a small project typed in from
-  scratch (~2 min: `x:N` fast-forwards the typing, `hold:N` shows results at normal speed): the SCENARIO
-  in the script is played into `zxplc.sna` by the zxrun emulator (keys, smooth
-  mouse), every frame is recorded and the AY writes become the sound. `--shots DIR` only saves the
+- `tools/mkvideo.py`: a demo video (`.scratch/zxplc_demo.mp4`, ffmpeg, ~2:20) of a small project typed in
+  from scratch, then symbols, the simulation in IL / LD / FBD, watch and force, the trend page (drawn
+  live with `x:1`) and Help > About at the end. `x:N` fast-forwards (every N-th frame), `hold:N` shows
+  results at normal speed, `go!:` / `cl!:` move and click slowly in menus. The SCENARIO in the script is
+  played into `zxplc.sna` by the zxrun emulator (keys, smooth mouse), every frame is recorded and the AY
+  writes become the sound. `--shots DIR` only saves the
   checkpoint PNGs (to tune the scenario after UI changes), `--filter sharp/soft/hq/xbr` the pixel look
   (default soft). The video starts with the end of the tape loading of `zxplc.tap` (border stripes,
   tape sound, loader effect) from `.scratch/reset128.sna` (a 128K at the 128 menu); `--no-intro` skips
   it. The application is not changed for it.
-- Releases: the release number is in the file `VERSION` (no newline; Help > About includes it with
-  `INCBIN`). Set it to the new number before building the files of a release.
+- Releases (`gh release create vX.Y`, assets `zxplc.tap`, `zxplc.sna`, and `zxplc_demo.mp4` when the UI
+  changed): the release number is in the file `VERSION` (no newline; Help > About includes it with
+  `INCBIN`). Steps: set `VERSION`; `make`, `make tap`, `make test`; load the tape in zxrun from
+  `.scratch/reset128.sna` (`k:ENTER`, `play:zxplc.tap`, ~16000 frames) and check About; regenerate
+  `docs/img/help_about.png` (`tools/docshots.py help_about`); render the video (its last frame is the
+  About box); commit "Version X.Y", push, release with notes ("Changes since ..."). The release starts
+  the Pages deployment (see `make web`); check that the web tape equals the new one.
 - `make web`: copies the tape and the loading screen into `web/` (the browser version: `web/index.html` +
   JSSpeccy 3, vendored in `web/jsspeccy/`, GPL-3; its `palette` in jsspeccy.js is patched to the
   standard 0xD7 / 0xFF colours of zxrun instead of its own orange red / purple blue). Test it with `python3 -m http.server -d web`. The
@@ -44,7 +53,8 @@ on tape. See README.md for the user-facing description of every editor and key.
   container, so synthetic key events go to the focused element). `.github/workflows/pages.yml` publishes
   `web/` with the `zxplc.tap` of the latest release to GitHub Pages on every release (and on changes in
   `web/`). The github-pages environment only lets `main` deploy, so a release run just starts the
-  workflow again on `main` (`gh workflow run`).
+  workflow again on `main` (`gh workflow run`; separate concurrency groups, so it is not cancelled).
+  The page loads `zxplc.tap?<time>.tap` (past the browser cache; JSSpeccy needs the `.tap` ending).
 - `make docs`: regenerates the screenshots of `docs/MANUAL.md` (`tools/docshots.py`: one zxrun key script
   per image, `--noborder`). Update the manual and the scripts when the UI changes.
 - `python3 tools/fixjr.py main.asm`: builds and converts every out-of-range `jr` to `jp` in the source,
@@ -62,24 +72,29 @@ on tape. See README.md for the user-facing description of every editor and key.
   - `play:file.tap`: play a tape into EAR.
 
   Options: `--tap out.tap` decodes what the program saved to tape, `--ay` logs AY writes,
-  `--peek addr:len` dumps memory. `Spectrum.bank_bytes(bank, addr, n)` reads paged banks from Python.
+  `--peek addr:len` dumps memory, `--mouse` / `--ur4` / `--divmmc` attach those interfaces (see below).
+  `Spectrum.bank_bytes(bank, addr, n)` reads paged banks from Python.
   Full redraws take 15–20 frames, so wait long enough before a screenshot.
 
 ## Memory architecture (128K)
 - **Fixed memory:**
   - 0x5B00 TEST_RES; the stack below 0x5E00.
-  - Core code at 0x5E00. The build prints the free space; it is small, keep the core lean.
+  - Core code at 0x5E00. The build prints the free space: only 3 B are left (v0.11). New code goes into
+    the banks; the menu tables and texts (src/menu.asm) are core too, so a new menu item first needs
+    something moved out of the core.
   - RT runtime data at 0x8A00. These are EQUs in `src/vm.asm`: I/Q (2 bytes each, %IX0.0-1.7)/M/MW, FB instances, scratch bits,
     step flags, and the shared buffers `popup_buf`, `st_buf`, `rec_buf`, `il_out`, `cp_text`
     (FMT_BUF).
   - The project at 0x9000-0xBFFF (12 KB).
 - **Paged banks at 0xC000.** `main.asm` decides which module goes where:
-  - EDIT 0: IL, LD and symbol editors, simulation screen, tests.
-  - RUN 4: compilers, VM, bytecode at 0xF000, POU list, tape. It is uncontended, which tape timing needs.
+  - EDIT 0: IL, LD and symbol editors, simulation screen, tests (~2.8 KB free).
+  - RUN 4: compilers, VM, bytecode at 0xF000, POU list, tape, SD card (`src/sd.asm`). It is uncontended,
+    which tape timing needs (~3.6 KB free).
   - DATA 1: the popup save buffer and the clipboard (`clip_buf`, filled by `src/clip.asm`).
-  - DEMO 3: `src/tools.asm` (cross references, watch / force page of the simulation), `src/clip.asm`
-    (mark / copy / cut / paste, called by the editors with `BCALL cl_cmd` / `mk_draw`) and the demo image.
-  - FBD 6: the FBD editor.
+  - DEMO 3: `src/tools.asm` (cross references, watch / force page of the simulation, Help texts),
+    `src/clip.asm` (mark / copy / cut / paste, called by the editors with `BCALL cl_cmd` / `mk_draw`),
+    `src/wexpr.asm`, `src/mouse.asm`, `src/ur4.asm`, `src/trend.asm` and the demo image (~3.7 KB free).
+  - FBD 6: the FBD editor (~7.5 KB free).
   - SPARE 7: undo / redo (`src/undo.asm`): the code, the history records growing up from `UM_REC`, and
     the shadow copy of the project ending at the IM2 stub. The tape load copies the project to `UM_BAK`
     (= `UM_REC`) and calls `um_reset`.
@@ -100,18 +115,28 @@ on tape. See README.md for the user-facing description of every editor and key.
   (ET / CV scaled by PT / PV, the word before them in the instance) into one 256-byte ring buffer per
   trace (`tr_buf` + t*256, aligned) by `tr_tick`, called once per simulation loop with the page in A. A loop can take several
   frames, so it adds one sample per `tr_rate` frames passed. 200-pixel chart, scrolled by 8 pixels.
-- SD card (`src/sd.asm`, RUN bank): File > Load SD... / Save SD... call `tape_load` / `tape_save` with
-  A = CMD_LOAD_SD / CMD_SAVE_SD, which branch to `sd_load` / `sd_save`; without esxDOS they report an
-  error. `sd_present` maps the EEPROM (CONMEM) and looks for the text "ESXDOS", then `sd_probe` calls
-  M_DOSVERSION with ERR_SP pointing at its own return: without automap (EEPROM write enabled) RST 8 is
-  the 48K ROM error report, which returns there instead of crashing. zxrun: `--divmmc-noauto`. esxDOS calls (`ESX` macro: RST 8 + function; HL and IX = name / buffer): a
-  file `NAME.PLC` with the project bytes. Loading lists `.PLC` files (F_OPENDIR / F_READDIR), reads into
-  PROJ and joins `tape_load.chk` (the same checks, `tape_load.rest` restores the old project).
-  - Test with real esxDOS 0.8.9 in zxrun (`tools/divmmc.py`: automap incl. the instant 0x3D00-0x3DFF
-    area esxDOS returns through, port 0xE3 RAM banks, an SDHC card in SPI mode on an image file):
-    `--divmmc ESXMMC.BIN --sd sd.img --boot .scratch/reset128.sna --boot-frames 300` boots esxDOS, then
-    loads the program snapshot. esxDOS is not in the repo: `.scratch/esx/` (esxdos.org, esxdos089.zip;
-    image: 64 MB, MBR + FAT16, `mcopy -i sd.img@@1M -s SYS BIN TMP ::/`).
+- SD card (`src/sd.asm`, RUN bank):
+  - File > Load SD... / Save SD... call `tape_load` / `tape_save` with A = CMD_LOAD_SD / CMD_SAVE_SD,
+    which branch to `sd_load` / `sd_save`.
+  - esxDOS calls: `ESX` macro (RST 8 + function byte; HL and IX = name / buffer, A = drive `'*'` or
+    handle, CF + A = error code). The file is `NAME.PLC` in the current folder with the project bytes
+    (as the tape data block). Loading lists `.PLC` files (F_OPENDIR "." / F_READDIR: [attr][name 0]...),
+    reads into PROJ and joins `tape_load.chk` (the same checks; `tape_load.rest` restores the old
+    project from UM_BAK).
+  - Detection before any RST 8 (a divMMC without esxDOS or without automap would crash): `sd_present`
+    maps the EEPROM (CONMEM) and looks for the text "ESXDOS", then `sd_probe` calls M_DOSVERSION with
+    ERR_SP pointing at its own return: without automap (EEPROM write enabled) RST 8 is the 48K ROM
+    error report, which returns there. Otherwise "No esxDOS (divMMC) found". The program always runs
+    with the 48K ROM paged (BANK_ROM48), which esxDOS's RST 8 entry expects.
+  - Tested with real esxDOS 0.8.9 in zxrun (`tools/divmmc.py`: delayed automap at 0x0000 / 0x0008 /
+    0x0038 / 0x0066 / 0x04C6 / 0x0562, the instant 0x3D00-0x3DFF area esxDOS returns from ROM calls
+    through, unmap at 0x1FF8-0x1FFF, port 0xE3 RAM banks and EEPROM flashing, an SDHC card in SPI mode
+    on an image file): `--divmmc ESXMMC.BIN --sd sd.img --boot .scratch/reset128.sna --boot-frames 300`
+    boots esxDOS (it ends in 48K BASIC), then loads the program snapshot; `--divmmc-noauto` = write
+    enabled (no automap). esxDOS is not in the repo: `.scratch/esx/` (esxdos.org, esxdos089.zip; card
+    image 64 MB, MBR + FAT16: `mkfs.fat --offset 2048`, `mcopy -i sd.img@@1M -s SYS BIN TMP ::/`; for
+    Fuse convert it with `raw2hdf`). Fuse automaps only with divMMC write protection on and does not
+    keep the EEPROM between runs (only in SZX snapshots, chunk `DMMC`).
 - UR-4 interface (8255; PA 0x1F, PB 0x3F, PC 0x5F, CWR 0x7F): `src/ur4.asm` (DEMO bank, View > UR-4 I/O,
   `ur_toggle` with a PC read-back detection), state `ur_on` (vm.asm). `sim_inputs` ORs PA / PB into RT_I,
   `ur_out` (sim.asm) writes %QX0 to PC in RUN, 0 otherwise. zxrun: `--ur4`, `ur:AA,BB`.
@@ -132,7 +157,12 @@ on tape. See README.md for the user-facing description of every editor and key.
   - The status bar has two parts: `status_left` with the `st_left` text, and `status_right` (from cell
     `st_rcol`, reset by `screen_begin`; the simulation moves it right for its key hints). Each redraws
     only when its text changes. `st_left` markers: ST_SYM/ST_SYME = inverted symbol name,
-    ST_TAB = column.
+    ST_TAB = column. The simulation hints must fit left of cell SM_RCOL (26) and differ per page
+    (program / watch: T Trend / trend: W Watch).
+  - Menu tables (src/menu.asm): `command, hotkey, label`. The hotkey is not shown and must not be a
+    title letter (F P E V R H): the open drop-down takes item hotkeys first, so EDIT, R would no longer
+    reach the Run menu.
+  - The menu bar title (`menu_pou`) shows the POU name, or Symbols / Watch / Trend (`mp_alt`).
 - **Project format** (src/project.asm, defs.asm):
   - A header with "ZXPLC" and P_LEN, then a table of 8 POU slots + a hidden slot 8 (the symbol table),
     32 B each: name, language, length, comment, plus a hidden slot 9 (watch list, PROJ_VER 2;
@@ -167,7 +197,8 @@ on tape. See README.md for the user-facing description of every editor and key.
   - The VM (src/vm.asm) runs one scan per frame. Only MAIN runs; it calls the other POUs.
   - `vm_store` keeps only one bit set per step byte (S0-S7).
 - **Demo project:** `src/demo.asm` is only assembled with `-DMKDEMO`. It builds the project with the normal
-  editor routines. `tools/mkdemo.py` runs that snapshot and saves the project memory to `src/demo_proj.bin`
+  editor routines; its watch list starts with the traffic light (each timer ET followed by its light),
+  shown first on the trend page. `tools/mkdemo.py` runs that snapshot and saves the project memory to `src/demo_proj.bin`
   (committed), which the normal build includes into bank 3. Edit the demo in `src/demo.asm`, never the
   .bin.
 

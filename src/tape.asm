@@ -1,5 +1,5 @@
 ; ============================================================
-; tape.asm - saving / loading the project to / from tape (EDIT bank)
+; tape.asm - saving / loading the project to / from tape (RUN bank)
 ; ============================================================
 ; A standard Spectrum tape file: header block (flag 0x00, type 3 = CODE,
 ; name, length, start 0x9000) and data block (flag 0xFF) with the project
