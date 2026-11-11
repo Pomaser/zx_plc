@@ -1,0 +1,188 @@
+diff --git a/generator/core.ts.in b/generator/core.ts.in
+index 81a8347..771e4fc 100644
+--- a/generator/core.ts.in
++++ b/generator/core.ts.in
+@@ -218,6 +218,11 @@ let borderColour:u8 = 0;
+ let speakerState:u8 = 0;
+ let selectedAYRegister:u8 = 0;
+ let floatingBusValue:u8 = 0xff;
++/* Kempston mouse (ZX-PLC): counters and buttons (active low: bit 0 right, bit 1 left) */
++let mouseEnabled:bool = false;
++let mouseX:u8 = 128;
++let mouseY:u8 = 96;
++let mouseButtons:u8 = 0xff;
+ let currentTapeTime:u32 = 0;  // time at which tape pulse pointer was last updated
+ let tapePulseReadIndex:u16 = 0;  // index into the tape pulses buffer for the current pulse
+ let tapePulseWriteIndex:u16 = 0;
+@@ -482,6 +487,15 @@ export function readPort(addr:u16):u8 {
+             result |= tapeLevel;
+         } else if ((addr & 0xc002) == 0xc000) {
+             result = readAYRegister(selectedAYRegister);
++        } else if (mouseEnabled && (addr & 0x05ff) == 0x00df) {
++            /* kempston mouse buttons (0xFADF) */
++            result = mouseButtons;
++        } else if (mouseEnabled && (addr & 0x05ff) == 0x01df) {
++            /* kempston mouse X (0xFBDF) */
++            result = mouseX;
++        } else if (mouseEnabled && (addr & 0x05ff) == 0x05df) {
++            /* kempston mouse Y (0xFFDF) */
++            result = mouseY;
+         } else if (!(addr & 0x00e0)) {
+             /* kempston joystick */
+             result = 0;
+@@ -730,6 +744,12 @@ function updateTapePulses(targetTime:u32): void {
+     }
+ }
+ 
++export function setMouse(x:u8, y:u8, buttons:u8):void {
++    mouseEnabled = true;
++    mouseX = x;
++    mouseY = y;
++    mouseButtons = buttons;
++}
+ export function keyDown(row:u8, mask:u8):void {
+     keyStates[row] = keyStates[row] & ~mask;
+ }
+diff --git a/runtime/jsspeccy.js b/runtime/jsspeccy.js
+index 7550d53..12bf077 100644
+--- a/runtime/jsspeccy.js
++++ b/runtime/jsspeccy.js
+@@ -40,6 +40,7 @@ class Emulator extends EventEmitter {
+         this.tapeAutoLoadMode = opts.tapeAutoLoadMode || 'default';  // or usr0
+         this.tapeIsPlaying = false;
+         this.tapeTrapsEnabled = ('tapeTrapsEnabled' in opts) ? opts.tapeTrapsEnabled : true;
++        this.sendMouse = opts.kempstonMouse ? this.setupKempstonMouse() : null;
+ 
+         this.msPerFrame = 20;
+ 
+@@ -58,6 +59,7 @@ class Emulator extends EventEmitter {
+                     this.loadRoms().then(() => {
+                         this.setMachine(opts.machine || 128);
+                         this.setTapeTraps(this.tapeTrapsEnabled);
++                        if (this.sendMouse) this.sendMouse();
+                         if (opts.openUrl) {
+                             this.openUrlList(opts.openUrl).catch(err => {
+                                 alert(err);
+@@ -397,6 +399,58 @@ class Emulator extends EventEmitter {
+         this.pause();
+         this.worker.terminate();
+     }
++
++    /* Kempston mouse (ZX-PLC): a click on the canvas captures the mouse (pointer lock), the
++    movement goes into the X / Y counters in Spectrum pixels, Esc releases it. Returns the
++    function that sends the state to the core. */
++    setupKempstonMouse() {
++        const canvas = this.canvas;
++        let x = 128, y = 96, buttons = 0xff, fx = 0, fy = 0;
++        const send = () => {
++            this.worker.postMessage({message: 'setMouse', x: x, y: y, buttons: buttons});
++        };
++        const locked = () => document.pointerLockElement === canvas;
++        const bit = (e) => (e.button == 0) ? 2 : (e.button == 2) ? 1 : 0;
++        canvas.addEventListener('mousedown', (e) => {
++            e.preventDefault();
++            if (!locked()) {
++                canvas.requestPointerLock();  // the first click only captures the mouse
++                return;
++            }
++            if (bit(e)) {
++                buttons &= ~bit(e);
++                send();
++            }
++        });
++        document.addEventListener('mouseup', (e) => {
++            if (locked() && bit(e) && !(buttons & bit(e))) {
++                buttons |= bit(e);
++                send();
++            }
++        });
++        document.addEventListener('mousemove', (e) => {
++            if (!locked()) return;
++            const scale = canvas.width / canvas.clientWidth;  // CSS pixels -> Spectrum pixels
++            fx += e.movementX * scale;
++            fy -= e.movementY * scale;  // the Kempston Y counter grows upwards
++            const dx = Math.trunc(fx), dy = Math.trunc(fy);
++            if (dx || dy) {
++                fx -= dx;
++                fy -= dy;
++                x = (x + dx) & 0xff;
++                y = (y + dy) & 0xff;
++                send();
++            }
++        });
++        canvas.addEventListener('contextmenu', (e) => e.preventDefault());
++        document.addEventListener('pointerlockchange', () => {
++            if (!locked() && buttons != 0xff) {
++                buttons = 0xff;
++                send();
++            }
++        });
++        return send;
++    }
+ }
+ 
+ window.JSSpeccy = (container, opts) => {
+@@ -420,6 +474,7 @@ window.JSSpeccy = (container, opts) => {
+         tapeTrapsEnabled: ('tapeTrapsEnabled' in opts) ? opts.tapeTrapsEnabled : true,
+         keyboardEnabled: keyboardEnabled,
+         keyboardMap: opts.keyboardMap || 'standard',
++        kempstonMouse: opts.kempstonMouse || false,
+     });
+     const ui = new UIController(container, emu, {
+         zoom: opts.zoom || 1,
+diff --git a/runtime/render.js b/runtime/render.js
+index 96af860..919b79d 100644
+--- a/runtime/render.js
++++ b/runtime/render.js
+@@ -10,23 +10,23 @@ export class CanvasRenderer {
+         this.flashPhase = 0;
+ 
+         this.palette = new Uint32Array([
+-            /* RGBA dark */
++            /* RGBA dark (standard 0xD7 levels, ZX-PLC) */
+             0x000000ff,
+-            0x2030c0ff,
+-            0xc04010ff,
+-            0xc040c0ff,
+-            0x40b010ff,
+-            0x50c0b0ff,
+-            0xe0c010ff,
+-            0xc0c0c0ff,
++            0x0000d7ff,
++            0xd70000ff,
++            0xd700d7ff,
++            0x00d700ff,
++            0x00d7d7ff,
++            0xd7d700ff,
++            0xd7d7d7ff,
+             /* RGBA bright */
+             0x000000ff,
+-            0x3040ffff,
+-            0xff4030ff,
+-            0xff70f0ff,
+-            0x50e010ff,
+-            0x50e0ffff,
+-            0xffe850ff,
++            0x0000ffff,
++            0xff0000ff,
++            0xff00ffff,
++            0x00ff00ff,
++            0x00ffffff,
++            0xffff00ff,
+             0xffffffff
+         ]);
+ 
+diff --git a/runtime/worker.js b/runtime/worker.js
+index 0d2cba5..234b3d1 100644
+--- a/runtime/worker.js
++++ b/runtime/worker.js
+@@ -192,6 +192,9 @@ onmessage = (e) => {
+         case 'keyDown':
+             core.keyDown(e.data.row, e.data.mask);
+             break;
++        case 'setMouse':
++            if (core) core.setMouse(e.data.x, e.data.y, e.data.buttons);
++            break;
+         case 'keyUp':
+             core.keyUp(e.data.row, e.data.mask);
+             break;

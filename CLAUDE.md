@@ -46,8 +46,9 @@ editor and key for users.
   About box); commit "Version X.Y", push, release with notes ("Changes since ..."). The release starts
   the Pages deployment (see `make web`); check that the web tape equals the new one.
 - `make web`: copies the tape and the loading screen into `web/` (the browser version: `web/index.html` +
-  JSSpeccy 3, vendored in `web/jsspeccy/`, GPL-3; its `palette` in jsspeccy.js is patched to the
-  standard 0xD7 / 0xFF colours of zxrun instead of its own orange red / purple blue). Test it with `python3 -m http.server -d web`. The
+  JSSpeccy 3, vendored in `web/jsspeccy/`, GPL-3, rebuilt from source with `web/jsspeccy/zxplc.patch`:
+  a Kempston mouse in the wasm core + pointer lock in the UI (option `kempstonMouse`), and the standard
+  0xD7 / 0xFF palette of zxrun; `web/jsspeccy/README.md` has the build steps). Test it with `python3 -m http.server -d web`. The
   emulator runs with `sandbox`, its File / Machine menus and Open file / Start tape buttons hidden. The
   page maps extra PC keys (Esc = BREAK, Tab = EDIT, symbols = SS + key; JSSpeccy listens on its own
   container, so synthetic key events go to the focused element). `.github/workflows/pages.yml` publishes
