@@ -59,8 +59,7 @@ not downloaded to a real PLC; they run in the built-in simulation with live moni
 * **Emulators:** use `zxplc.sna` (e.g. Fuse).
 * **Browser:** [https://pomaser.github.io/zx_plc/](https://pomaser.github.io/zx_plc/) runs the tape of the latest release in
   [JSSpeccy 3](https://github.com/gasman/jsspeccy3) with a Kempston mouse added (saving to tape does not
-  work there). Esc or Tab opens the menu, Ctrl is SYMBOL SHIFT; Options > Mouse and a click on the
-  emulator capture the mouse.
+  work there). Esc or Tab opens the menu, Ctrl is SYMBOL SHIFT; Options > Mouse switches the mouse on.
 
 The [manual](docs/MANUAL.md) describes every screen and key.
 

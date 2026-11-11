@@ -44,7 +44,7 @@ index 81a8347..771e4fc 100644
      keyStates[row] = keyStates[row] & ~mask;
  }
 diff --git a/runtime/jsspeccy.js b/runtime/jsspeccy.js
-index 7550d53..12bf077 100644
+index 7550d53..1741821 100644
 --- a/runtime/jsspeccy.js
 +++ b/runtime/jsspeccy.js
 @@ -40,6 +40,7 @@ class Emulator extends EventEmitter {
@@ -63,66 +63,58 @@ index 7550d53..12bf077 100644
                          if (opts.openUrl) {
                              this.openUrlList(opts.openUrl).catch(err => {
                                  alert(err);
-@@ -397,6 +399,58 @@ class Emulator extends EventEmitter {
+@@ -397,6 +399,50 @@ class Emulator extends EventEmitter {
          this.pause();
          this.worker.terminate();
      }
 +
-+    /* Kempston mouse (ZX-PLC): a click on the canvas captures the mouse (pointer lock), the
-+    movement goes into the X / Y counters in Spectrum pixels, Esc releases it. Returns the
-+    function that sends the state to the core. */
++    /* Kempston mouse (ZX-PLC): the PC pointer is hidden over the canvas and the Spectrum
++    pointer follows it (no pointer lock, so Esc stays a normal key). The counters are the
++    pointer position on the Spectrum screen (0-255, 0-191, Y counter upwards); they move
++    towards it by at most 40 pixels per frame, as a program reads 8-bit signed deltas.
++    Returns the function that sends the state to the core. */
 +    setupKempstonMouse() {
 +        const canvas = this.canvas;
-+        let x = 128, y = 96, buttons = 0xff, fx = 0, fy = 0;
++        canvas.style.cursor = 'none';
++        let tx = 128, ty = 96, x = 128, y = 96, buttons = 0xff;
 +        const send = () => {
-+            this.worker.postMessage({message: 'setMouse', x: x, y: y, buttons: buttons});
++            this.worker.postMessage({message: 'setMouse', x: x & 0xff, y: (191 - y) & 0xff, buttons: buttons});
 +        };
-+        const locked = () => document.pointerLockElement === canvas;
++        const step = (from, to) => Math.max(-40, Math.min(40, to - from));
++        setInterval(() => {
++            if (x != tx || y != ty) {
++                x += step(x, tx);
++                y += step(y, ty);
++                send();
++            }
++        }, 20);
++        canvas.addEventListener('mousemove', (e) => {
++            const r = canvas.getBoundingClientRect();
++            const sx = (e.clientX - r.left) * canvas.width / r.width - 32;   // border: 32 / 24 pixels
++            const sy = (e.clientY - r.top) * canvas.height / r.height - 24;
++            tx = Math.max(0, Math.min(255, Math.floor(sx)));
++            ty = Math.max(0, Math.min(191, Math.floor(sy)));
++        });
 +        const bit = (e) => (e.button == 0) ? 2 : (e.button == 2) ? 1 : 0;
 +        canvas.addEventListener('mousedown', (e) => {
-+            e.preventDefault();
-+            if (!locked()) {
-+                canvas.requestPointerLock();  // the first click only captures the mouse
-+                return;
-+            }
 +            if (bit(e)) {
 +                buttons &= ~bit(e);
 +                send();
 +            }
 +        });
 +        document.addEventListener('mouseup', (e) => {
-+            if (locked() && bit(e) && !(buttons & bit(e))) {
++            if (bit(e) && !(buttons & bit(e))) {
 +                buttons |= bit(e);
 +                send();
 +            }
 +        });
-+        document.addEventListener('mousemove', (e) => {
-+            if (!locked()) return;
-+            const scale = canvas.width / canvas.clientWidth;  // CSS pixels -> Spectrum pixels
-+            fx += e.movementX * scale;
-+            fy -= e.movementY * scale;  // the Kempston Y counter grows upwards
-+            const dx = Math.trunc(fx), dy = Math.trunc(fy);
-+            if (dx || dy) {
-+                fx -= dx;
-+                fy -= dy;
-+                x = (x + dx) & 0xff;
-+                y = (y + dy) & 0xff;
-+                send();
-+            }
-+        });
 +        canvas.addEventListener('contextmenu', (e) => e.preventDefault());
-+        document.addEventListener('pointerlockchange', () => {
-+            if (!locked() && buttons != 0xff) {
-+                buttons = 0xff;
-+                send();
-+            }
-+        });
 +        return send;
 +    }
  }
  
  window.JSSpeccy = (container, opts) => {
-@@ -420,6 +474,7 @@ window.JSSpeccy = (container, opts) => {
+@@ -420,6 +466,7 @@ window.JSSpeccy = (container, opts) => {
          tapeTrapsEnabled: ('tapeTrapsEnabled' in opts) ? opts.tapeTrapsEnabled : true,
          keyboardEnabled: keyboardEnabled,
          keyboardMap: opts.keyboardMap || 'standard',

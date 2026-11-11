@@ -5,7 +5,8 @@
 
 * **Kempston mouse** (option `kempstonMouse: true`):
   * ports 0xFADF buttons (active low: bit 0 right, bit 1 left), 0xFBDF X, 0xFFDF Y;
-  * a click on the screen captures the mouse (pointer lock), Esc releases it.
+  * no pointer lock: over the screen the PC pointer is hidden and the Spectrum pointer follows it
+    (the counters move towards it by at most 40 pixels per frame).
 * **Palette:** the standard colours (0xD7 / 0xFF) instead of JSSpeccy's own.
 
 ## Rebuilding

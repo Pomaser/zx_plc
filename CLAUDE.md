@@ -47,7 +47,8 @@ editor and key for users.
   the Pages deployment (see `make web`); check that the web tape equals the new one.
 - `make web`: copies the tape and the loading screen into `web/` (the browser version: `web/index.html` +
   JSSpeccy 3, vendored in `web/jsspeccy/`, GPL-3, rebuilt from source with `web/jsspeccy/zxplc.patch`:
-  a Kempston mouse in the wasm core + pointer lock in the UI (option `kempstonMouse`), and the standard
+  a Kempston mouse in the wasm core + the PC pointer position mapped to the counters (option
+  `kempstonMouse`, no pointer lock: Esc stays BREAK), and the standard
   0xD7 / 0xFF palette of zxrun; `web/jsspeccy/README.md` has the build steps). Test it with `python3 -m http.server -d web`. The
   emulator runs with `sandbox`, its File / Machine menus and Open file / Start tape buttons hidden. The
   page maps extra PC keys (Esc = BREAK, Tab = EDIT, symbols = SS + key; JSSpeccy listens on its own
