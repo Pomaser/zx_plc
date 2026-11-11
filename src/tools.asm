@@ -192,6 +192,8 @@ xr_valid:
         ret z
         cp AR_SM
         ret z
+        cp AR_SW
+        ret z
         scf
         ret
 
@@ -1411,6 +1413,8 @@ wt_add_op:
         cp AR_SX
         jr z,.ok
         cp AR_SM
+        jr z,.ok
+        cp AR_SW
         jr z,.ok
         cp AR_FBM
         jr z,.ok

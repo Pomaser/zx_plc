@@ -79,12 +79,14 @@ editor and key for users.
 ## Memory architecture (128K)
 - **Fixed memory:**
   - 0x5B00 TEST_RES; the stack below 0x5E00.
-  - Core code at 0x5E00. The build prints the free space: about 170 B are left. New code goes into
+  - Core code at 0x5E00. The build prints the free space: about 115 B are left. New code goes into
     the banks; the menu tables and texts (src/menu.asm) are core too (the command dispatcher
     `menu_cmd` is in the DEMO bank, tools.asm).
   - RT runtime data at 0x8A00. These are EQUs in `src/vm.asm`: I/Q (2 bytes each, %IX0.0-1.7)/M/MW, FB instances, scratch bits,
     step flags, and the shared buffers `popup_buf`, `st_buf`, `rec_buf`, `il_out`, `cp_text`
     (FMT_BUF).
+    The RT area is full (RT_END = PROJ); new runtime data goes into the core (e.g. `RT_SW`, the
+    scan time words %SW0-2 = last / max / min, in shared.asm, written by `vm_sw_upd`).
   - The project at 0x9000-0xBFFF (12 KB).
 - **Paged banks at 0xC000.** `main.asm` decides which module goes where:
   - EDIT 0: IL, LD and symbol editors, simulation screen, tests (~2.8 KB free).

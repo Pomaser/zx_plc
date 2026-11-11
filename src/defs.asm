@@ -202,6 +202,8 @@ AR_FBM      EQU 10          ; FB member, area bits 4-6 = member
 AR_POU      EQU 11          ; POU, index = slot
 AR_SM       EQU 13          ; (12 = AR_LBL in IL records) system flag %SMn (read only), index 0-7
 N_SM        EQU 8
+AR_SW       EQU 14          ; system word %SWn (read only, TIME): 0 last, 1 max, 2 min scan time
+N_SW        EQU 3
 AR_MASK     EQU 0x0F
 
 N_IN        EQU 8

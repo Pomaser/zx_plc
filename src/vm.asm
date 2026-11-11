@@ -114,6 +114,10 @@ vm_reset:
         ld (vm_first),a
         xor a
         ld (vm_smc),a
+        ld hl,RT_SW
+        ld bc,N_SW*2
+        call memset
+        xor a
         ld hl,RT
         ld bc,RT_DATA_LEN
         jp memset
@@ -123,6 +127,7 @@ vm_reset:
 ;      first scan after a reset only.
 vm_scan:
         call vm_sm_upd
+        call vm_sw_upd
         call vm_force
         call vm_scan0
         push af
@@ -184,6 +189,27 @@ vm_sm_upd:
 .mod:   sub d
         jr nc,.mod
         add a,d
+        ret
+
+; vm_sw_upd: %SW0 = vm_dt (the time since the last scan), %SW1 its maximum,
+;      %SW2 its minimum since Reset
+vm_sw_upd:
+        ld hl,(vm_dt)
+        ld (RT_SW),hl
+        ex de,hl                ; DE = last
+        ld hl,(RT_SW+2)
+        or a
+        sbc hl,de
+        jr nc,.nmax
+        ld (RT_SW+2),de
+.nmax:  ld hl,(RT_SW+4)
+        ld a,h
+        or l
+        jr z,.min               ; 0: not set yet
+        sbc hl,de               ; (C clear from "or l")
+        ret c
+        ret z
+.min:   ld (RT_SW+4),de
         ret
 
 ; ---- vm_force: applies the forced values (RT_FRC): [kind][addr][x][y]

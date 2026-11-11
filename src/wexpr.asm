@@ -336,6 +336,8 @@ wx_operand:
         and AR_MASK
         cp AR_MW
         jr z,.ok
+        cp AR_SW
+        jr z,.ok
         cp AR_FBM
         jr z,.ok
         cp AR_K16

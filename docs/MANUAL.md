@@ -244,6 +244,7 @@ esxDOS `SYS` folder.
 | Step flags | `%SX0.2` | `S0.2` | 0.0 - 7.7 (8 bytes) |
 | INT words | `%MW3` | `MW3` | 0 - 15 |
 | System flags (read only) | `%SM6` | `SM6` | 0 - 7 |
+| System words (read only, TIME) | `%SW0` | `SW0` | 0 - 2 |
 | Constants | `TRUE`, `FALSE`, `-123`, `T#1s500ms`, `T#2m` | | |
 | FB instances | `TON0`-`TON3`, `TOF0`-`TOF3`, `TP0`-`TP3`, `CTU0`-`CTU3`, `CTD0`-`CTD3`, `RT0`-`RT3`, `RF0`-`RF3`, `SR0`-`SR3`, `RS0`-`RS3` | | |
 | FB members | `TON0.Q`, `TON0.ET`, `CTU1.CV`, `RT2.CLK` ... | | |
@@ -262,6 +263,17 @@ esxDOS `SYS` folder.
   | `SM5` | 2 Hz clock |
   | `SM6` | 1 Hz clock |
   | `SM7` | 0.5 Hz clock |
+
+* **System words** hold the scan cycle time, as TIME values (20 ms steps):
+
+  | Word | Meaning |
+  |---|---|
+  | `SW0` | the last scan cycle (the time since the scan before) |
+  | `SW1` | the longest cycle since Reset |
+  | `SW2` | the shortest cycle since Reset |
+
+  Add them to the watch list to see how fast the simulation runs (the screen updates take part of the
+  time), or compare them, e.g. `LD %SW0` / `GT T#100ms`.
 
 * **Step flags**: in each step byte `S0`-`S7` only one bit can be TRUE. Setting a step clears the other
   steps of its byte, which makes step sequences easy (see DEMO_IL).

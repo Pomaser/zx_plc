@@ -429,6 +429,8 @@ sy_norm_addr:
         jr z,.ok
         cp AR_SM
         jr z,.ok
+        cp AR_SW
+        jr z,.ok
         cp AR_FBI
         ret nz
 .ok:    ld (sy_narea),a
@@ -656,6 +658,8 @@ sy_commit:
         cp AR_SX
         jr z,.aok
         cp AR_SM
+        jr z,.aok
+        cp AR_SW
         jr z,.aok
         cp AR_FBI
         jp nz,.badaddr

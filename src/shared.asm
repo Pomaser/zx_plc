@@ -71,6 +71,8 @@ cp_operand_core:
         and AR_MASK
         cp AR_SM
         jr z,.smb
+        cp AR_SW
+        jr z,.sw
         cp AR_I
         jr z,.i
         cp AR_Q
@@ -121,11 +123,15 @@ cp_operand_core:
         ld a,e
         and 7
         jr .bitn
-.mw:    ld a,(cp_oidx)
+.sw:    ld a,1                  ; scan time words (read only, TIME)
+        ld (cp_istime),a
+        ld de,RT_SW
+        jr .mw1
+.mw:    ld de,RT_MW
+.mw1:   ld a,(cp_oidx)
         add a,a
         ld l,a
         ld h,0
-        ld de,RT_MW
         add hl,de
         ld (cp_arg),hl
         ld a,VM_MW
@@ -220,6 +226,8 @@ cp_ohl:   dw 0
 cp_oarea: db 0
 cp_oidx:  db 0
 cp_istime: db 0           ; 1 = last operand is a TIME value
+RT_SW:    ds N_SW*2       ; system words %SW0-2: last / max / min scan time (ticks;
+                          ; vm.asm; no room left in the RT area)
 cp_after: dw 0
 cp_carea: db 0
 cp_cidx:  db 0

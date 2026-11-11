@@ -343,6 +343,7 @@ il_cases:
         db "st",0,"i0.0",0,0
         db "st",0,"sm1",0,0
         db "ld",0,"sm6",0,"LD",9,"%SM6",0
+        db "st",0,"sw0",0,0
         db "st",0,"mw3",0,"ST",9,"%MW3",0
         db "s",0,"q0.7",0,"S",9,"%QX0.7",0
         db "r",0,"mw1",0,0
@@ -1297,6 +1298,8 @@ op_cases:
         db "i1.7",0,"%IX1.7",0
         db "sm3",0,"%SM3",0
         db "%SM0",0,"%SM0",0
+        db "sw2",0,"%SW2",0
+        db "%SW0",0,"%SW0",0
         db "%QX1.0",0,"%QX1.0",0
         db "MAIN",0,"MAIN",0
         db "MOTOR",0,"MOTOR",0
@@ -1304,6 +1307,7 @@ op_cases:
         db "%IX0.8",0,0
         db "%IX2.0",0,0
         db "%SM8",0,0
+        db "%SW3",0,0
         db "Q2.1",0,0
         db "M8.0",0,0
         db "M5",0,0

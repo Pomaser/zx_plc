@@ -2,6 +2,7 @@
 ; operand.asm - IEC 61131-3 operand parser and formatter
 ; ============================================================
 ; Accepts:  %IXb.n %Ib.n Ib.n | %QXb.n %Qb.n Qb.n (b = 0-1) | %MXb.n %Mb.n Mb.n (b = 0-7) | %MWn MWn | %SMn SMn
+;           %SWn SWn (scan time words, n = 0-2)
 ;           %SXb.n %Sb.n Sb.n (step flags, b = 0-7)
 ;           TRUE FALSE | integer -32768..32767 | T#..  TIME#.. (units m, s, ms)
 ;           TON0..TON3, TOF, TP, CTU, CTD, RT (R_TRIG), RF (F_TRIG), SR, RS (+ .member)
@@ -84,6 +85,8 @@ op_parse:
         jp .ioaddr
 .short_s:
         ld a,(hl)
+        cp 'W'                  ; SWn: system word
+        jr z,.dsw
         cp 'M'                  ; SMn: system flag
         jr nz,.ss1
         inc hl
@@ -102,7 +105,7 @@ op_parse:
         inc hl
         ld b,AR_I
         cp 'I'
-        jr z,.diq
+        jp z,.diq
         ld b,AR_Q
         cp 'Q'
         jr z,.diq
@@ -120,7 +123,13 @@ op_parse:
 .dmw:   inc hl
         jp .mw
 .dsx:   ld a,(hl)
-        cp 'M'
+        cp 'W'
+        jr nz,.dsm
+.dsw:   inc hl                  ; system word n (0-2)
+        ld b,AR_SW
+        ld e,N_SW
+        jp .idxnum
+.dsm:   cp 'M'
         jr nz,.dsx1
         inc hl
 .smaddr:                        ; system flag n (0-7)
@@ -579,16 +588,20 @@ op_format:
         ld (op_style),a
         ld a,(op_area)
         and AR_MASK
-        cp AR_SM+1
+        cp AR_SW+1
         jr c,.ok
         xor a
 .ok:    ld hl,.tab
         jp jump_table
 .tab:   dw .f_none,.f_i,.f_q,.f_m,.f_mw,.f_s,.f_kb,.f_k16,.f_kt,.f_fbi,.f_fbm,.f_pou,.f_none,.f_sm
+        dw .f_sw
 
+.f_sw:  ld hl,s_iec_sw          ; %SWn / SWn
+        ld bc,s_sh_sw
+        jr .f_smc
 .f_sm:  ld hl,s_iec_sm          ; %SMn / SMn
         ld bc,s_sh_sm
-        call .style
+.f_smc: call .style
         call put_str
         ld a,(op_idx)
         add a,'0'
@@ -791,12 +804,14 @@ s_iec_m:  db "%MX",0
 s_iec_mw: db "%MW",0
 s_iec_s:  db "%SX",0
 s_iec_sm: db "%SM",0
+s_iec_sw: db "%SW",0
 s_sh_i:   db "I",0
 s_sh_q:   db "Q",0
 s_sh_m:   db "M",0
 s_sh_mw:  db "MW",0
 s_sh_s:   db "S",0
 s_sh_sm:  db "SM",0
+s_sh_sw:  db "SW",0
 
 ; FB type names, 7-byte records
 FBT_TON    EQU 0
