@@ -232,11 +232,17 @@ dm_watch:
         db AR_Q,9                               ; Horn
         db AR_FBM+0x30,FBT_TOF*FB_PER_TYPE+1    ; TValve.ET
         db AR_FBM+0x40,FBT_CTU*FB_PER_TYPE+0    ; Fills.CV
+        db AR_SW,0                              ; ScanLast (scan cycle time)
+        db AR_SW,1                              ; ScanMax
+        db AR_SW,2                              ; ScanMin
 DM_WLEN EQU $-dm_watch
 
 ; ---- symbols: area, index, name, comment
 dm_syms:
         db AR_I,0,"TL_Start",0,"Traffic light start",0
+        db AR_SW,0,"ScanLast",0,"Last scan cycle time",0
+        db AR_SW,1,"ScanMax",0,"Longest scan cycle",0
+        db AR_SW,2,"ScanMin",0,"Shortest scan cycle",0
         db AR_I,1,"TL_Stop",0,"Traffic light stop",0
         db AR_I,4,"Start",0,"Pump start button",0
         db AR_I,5,"Stop",0,"Pump stop button (NC)",0

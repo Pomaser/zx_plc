@@ -204,7 +204,8 @@ editor and key for users.
   - `vm_store` keeps only one bit set per step byte (S0-S7).
 - **Demo project:** `src/demo.asm` is only assembled with `-DMKDEMO`. It builds the project with the normal
   editor routines; its watch list starts with the traffic light (each timer ET followed by its light),
-  shown first on the trend page. `tools/mkdemo.py` runs that snapshot and saves the project memory to `src/demo_proj.bin`
+  shown first on the trend page, and ends with the scan time words %SW0-2 (symbols ScanLast / ScanMax /
+  ScanMin). `tools/mkdemo.py` runs that snapshot and saves the project memory to `src/demo_proj.bin`
   (committed), which the normal build includes into bank 3. Edit the demo in `src/demo.asm`, never the
   .bin.
 
