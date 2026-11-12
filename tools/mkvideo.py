@@ -200,7 +200,7 @@ class Recorder(Spectrum):
            (0xD7, 0xD7, 0), (0xD7, 0xD7, 0xD7)]
     PALB = [(0, 0, 0), (0, 0, 0xFF), (0xFF, 0, 0), (0xFF, 0, 0xFF), (0, 0xFF, 0), (0, 0xFF, 0xFF),
             (0xFF, 0xFF, 0), (0xFF, 0xFF, 0xFF)]
-    BORDER = 16
+    BORDER = 24
 
     def cell(self, b, at, fl):
         k = (b, at, fl)
@@ -215,33 +215,53 @@ class Recorder(Spectrum):
         return v
 
     def borders(self):
-        """the border colour of every picture line (the loading stripes): the
-        writes to port 0xFE during the frame, 224 T per line, the display from
-        line 64"""
-        H = 192 + 2 * self.BORDER
-        cols, c, i, log = [], self.fborder, 0, self.blog
+        """the border of every picture line: a colour, or the RGB bytes of the
+        whole line when the colour changes inside it (the loading stripes, the
+        About scroller); from the writes to port 0xFE during the frame, with the
+        128K timing: 228 T per line, the paper from T 14361, 2 pixels per T"""
+        B = self.BORDER
+        W, H = 256 + 2 * B, 192 + 2 * B
+        pal = [bytes(p) for p in self.PAL]
+        rows, c, i, log = [], self.fborder, 0, self.blog
         for y in range(H):
-            t = (y - self.BORDER + 64) * 224
-            while i < len(log) and log[i][0] <= t:
+            t0 = 14361 + (y - B) * 228 - B // 2
+            t1 = t0 + W // 2
+            while i < len(log) and log[i][0] <= t0:
                 c = log[i][1]
                 i += 1
-            cols.append(c)
-        return cols
+            if i < len(log) and log[i][0] < t1:
+                row, x = [], 0
+                while i < len(log) and log[i][0] < t1:
+                    xe = (log[i][0] - t0) * 2
+                    row.append(pal[c] * (xe - x))
+                    x, c = xe, log[i][1]
+                    i += 1
+                row.append(pal[c] * (W - x))
+                rows.append(b"".join(row))
+            else:
+                rows.append(c)
+        return rows
 
     def rgb(self):
         mem = self.m.memory
         B = self.BORDER
-        bcol = self.borders()
+        W = 256 + 2 * B
+        brow = self.borders()
         pal = [bytes(p) for p in self.PAL]
         fl = (self.frames // 16) & 1
-        out = [pal[c] * (256 + 2 * B) for c in bcol[:B]]
+        line = lambda r: pal[r] * W if isinstance(r, int) else r
+        out = [line(r) for r in brow[:B]]
         cell = self.cell
         for y in range(192):
             base = 0x4000 | ((y & 0xC0) << 5) | ((y & 7) << 8) | ((y & 0x38) << 2)
             ab = 0x5800 + (y >> 3) * 32
-            side = pal[bcol[B + y]] * B
-            out.append(side + b"".join(cell(mem[base + c], mem[ab + c], fl) for c in range(32)) + side)
-        out += [pal[c] * (256 + 2 * B) for c in bcol[B + 192:]]
+            r = brow[B + y]
+            if isinstance(r, int):
+                left = right = pal[r] * B
+            else:
+                left, right = r[:3 * B], r[-3 * B:]
+            out.append(left + b"".join(cell(mem[base + c], mem[ab + c], fl) for c in range(32)) + right)
+        out += [line(r) for r in brow[B + 192:]]
         return b"".join(out)
 
     # ---- input at a human pace

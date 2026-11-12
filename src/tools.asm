@@ -1485,9 +1485,9 @@ txt_wt_added: db "Added to watch: ",0
 txt_wt_dup:   db "Already in the watch list",0
 txt_wt_full:  db "The watch list is full",0
 
-; ---- tl_about / tl_keys: Help > About / Controls
 ; ---- tl_about: Help > About; stars twinkle in the empty cells of the window
-;      until a key or a click (the idea of the Exolon menu, R. Cecco 1987)
+;      (the idea of the Exolon menu, R. Cecco 1987) and a text scrolls through
+;      the top border, until a key or a click
 AS_N    EQU 8               ; stars at a time
 AS_PH   EQU 16              ; phases of one star (as_seq)
 tl_about:
@@ -1498,18 +1498,268 @@ tl_about:
 .z:     ld (hl),0
         inc hl
         djnz .z
+        call bd_init
         ld hl,txt_about
         call popup_open
+        ld hl,(IM2_JP+1)        ; a short ISR of constant length while the
+        ld (ab_isr0),hl         ; border is drawn (keys and sound are run
+        ld hl,ab_isr            ; by the loop, after the border)
+        di
+        ld (IM2_JP+1),hl
+        ei
 .loop:  halt
+        call bd_draw            ; (right after the interrupt)
+        call kb_isr
+        call snd_isr
+        ld a,(frames)
+        and 1
+        call nz,bd_step         ; (8 px every 2nd frame)
         ld a,(frames)
         and 1
         call z,as_step
         call kb_get
         or a
         jr z,.loop
+        di
+        ld hl,(ab_isr0)
+        ld (IM2_JP+1),hl
+        ei
         xor a
         ld (mk_cmd),a
         jp win_close            ; (restores the cells, the stars go with them)
+
+ab_isr: push hl
+        ld hl,(frames)
+        inc hl
+        ld (frames),hl
+        pop hl
+        ei
+        reti
+ab_isr0: dw 0
+
+; ---- the border scroller: a 3x5 font, each font pixel a cell of 12 T (one
+;      OUT, 24 screen pixels) x 4 lines in the top border. bd_code holds one
+;      routine per font row: 13 cells + white, padded to 228 T (a 128K line)
+;      and RET; bd_tab chains them through RET (SP = bd_tab), 4 lines a row.
+;      Each frame bd_fill patches the OUT opcodes for the visible columns;
+;      the start moves by 4 T steps in between (bd_entry into the NOP sled).
+BD_CELLS EQU 13
+BD_ROWS  EQU 5
+BD_LPR   EQU 4              ; lines per font row
+BD_INK   EQU 0              ; text colour (border white = 7)
+BD_DLY   EQU 349            ; delay loops to the first line (26 T each)
+BD_FINE  EQU 5              ; + NOPs (4 T each)
+BD_RLEN  EQU (BD_CELLS+1)*2+5
+
+bd_draw:
+        ld bc,BD_DLY
+.w:     dec bc
+        ld a,b
+        or c
+        jr nz,.w
+        ds BD_FINE,0
+        ld hl,(bd_entry)
+        jp (hl)
+.sled:  nop                     ; entry +0: 8 T later, +1: 4 T, +2: 0 T
+        nop
+        ld (bd_sp),sp
+        ld sp,bd_tab
+        ld bc,0xFFFE            ; (port: A0 = 0, the ULA only)
+        ld de,BD_INK*256+7      ; D = text, E = white
+        ret                     ; -> the first line
+bd_end: ld sp,(bd_sp)
+        ret
+
+; bd_step: moves the text by 4 T (8 px); after 3 steps by one cell
+bd_step:
+        ld a,(bd_sub)
+        inc a
+        cp 3
+        jr c,.s
+        ld hl,(bd_pos)
+        inc hl
+        ld de,(bd_n)
+        or a
+        sbc hl,de
+        add hl,de
+        jr c,.p
+        ld hl,0
+.p:     ld (bd_pos),hl
+        call bd_fill
+        xor a
+.s:     ld (bd_sub),a
+        ld hl,bd_draw.sled
+        add a,l
+        ld l,a
+        jr nc,.e
+        inc h
+.e:     ld (bd_entry),hl
+        ret
+
+; bd_fill: the OUT opcodes of the visible columns (bd_pos ..): OUT (C),D
+;          for a set font pixel, OUT (C),E for an empty one
+bd_fill:
+        ld hl,(bd_pos)
+        ld de,bd_cols
+        add hl,de               ; HL = the first column
+        ld de,bd_code+1         ; DE = the opcode of the cell in row 0
+        ld b,BD_CELLS
+.k:     push bc
+        push hl
+        ld c,(hl)               ; bit r = font row r
+        ld h,d
+        ld l,e
+        ld b,BD_ROWS
+.r:     ld a,0x59               ; OUT (C),E
+        rr c
+        jr nc,.w
+        ld a,0x51               ; OUT (C),D
+.w:     ld (hl),a
+        ld a,l
+        add a,BD_RLEN
+        ld l,a
+        jr nc,.n
+        inc h
+.n:     djnz .r
+        pop hl
+        inc hl
+        inc de
+        inc de
+        pop bc
+        djnz .k
+        ret
+
+; bd_init: the message -> font columns (3 + 1 gap per letter), the first
+;          BD_CELLS columns repeated at the end (no wrap inside the window)
+bd_init:
+        ld hl,bd_msg
+        ld de,bd_cols
+.c:     ld a,(hl)
+        or a
+        jr z,.e
+        inc hl
+        push hl
+        ld hl,bd_chars
+        ld bc,BD_NCH
+        cpir
+        jr nz,.sp
+        ld a,BD_NCH-1
+        sub c
+        ld l,a
+        ld h,0
+        ld c,l
+        ld b,h
+        add hl,hl
+        add hl,bc               ; * 3
+        ld bc,bd_font
+        add hl,bc
+        ldi
+        ldi
+        ldi
+        jr .g
+.sp:    xor a                   ; space (or an unknown char)
+        ld (de),a
+        inc de
+        ld (de),a
+        inc de
+        ld (de),a
+        inc de
+.g:     xor a                   ; the gap
+        ld (de),a
+        inc de
+        pop hl
+        jr .c
+.e:     push de
+        ex de,hl
+        ld de,bd_cols
+        or a
+        sbc hl,de
+        ld (bd_n),hl
+        pop de
+        ld hl,bd_cols
+        ld bc,BD_CELLS
+        ldir
+        ld hl,0
+        ld (bd_pos),hl
+        xor a
+        ld (bd_sub),a
+        ld hl,bd_draw.sled
+        ld (bd_entry),hl
+        jp bd_fill
+
+bd_code:
+        REPT BD_ROWS
+        REPT BD_CELLS+1
+        out (c),e
+        ENDR
+        ex (sp),hl              ; 19 + 19 + 12 + RET 10: the line is 228 T
+        ex (sp),hl              ; (SP points into bd_tab; no interrupt here)
+        jr $+2
+        ret
+        ENDR
+bd_tab:
+BD_R    DEFL 0
+        REPT BD_ROWS
+        REPT BD_LPR
+        dw bd_code+BD_R*BD_RLEN
+        ENDR
+BD_R    DEFL BD_R+1
+        ENDR
+        dw bd_end
+
+bd_msg: db "ZX-PLC   VERSION "
+        INCBIN "VERSION"
+        db "   PLC EDITOR AND SIMULATOR FOR ZX SPECTRUM 128K   IEC 61131-3: IL, LD, FBD   ",0
+BD_MLEN EQU $-bd_msg-1
+bd_chars: db "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-.:,"
+BD_NCH  EQU $-bd_chars
+bd_font:
+        db 0x1E,0x05,0x1E   ; A
+        db 0x1F,0x15,0x0A   ; B
+        db 0x0E,0x11,0x11   ; C
+        db 0x1F,0x11,0x0E   ; D
+        db 0x1F,0x15,0x11   ; E
+        db 0x1F,0x05,0x01   ; F
+        db 0x0E,0x11,0x1D   ; G
+        db 0x1F,0x04,0x1F   ; H
+        db 0x11,0x1F,0x11   ; I
+        db 0x08,0x10,0x0F   ; J
+        db 0x1F,0x04,0x1B   ; K
+        db 0x1F,0x10,0x10   ; L
+        db 0x1F,0x06,0x1F   ; M
+        db 0x1F,0x01,0x1E   ; N
+        db 0x0E,0x11,0x0E   ; O
+        db 0x1F,0x05,0x02   ; P
+        db 0x0E,0x19,0x16   ; Q
+        db 0x1F,0x05,0x1A   ; R
+        db 0x12,0x15,0x09   ; S
+        db 0x01,0x1F,0x01   ; T
+        db 0x1F,0x10,0x1F   ; U
+        db 0x0F,0x10,0x0F   ; V
+        db 0x1F,0x0C,0x1F   ; W
+        db 0x1B,0x04,0x1B   ; X
+        db 0x03,0x1C,0x03   ; Y
+        db 0x19,0x15,0x13   ; Z
+        db 0x1F,0x11,0x1F   ; 0
+        db 0x12,0x1F,0x10   ; 1
+        db 0x19,0x15,0x12   ; 2
+        db 0x11,0x15,0x0A   ; 3
+        db 0x07,0x04,0x1F   ; 4
+        db 0x17,0x15,0x09   ; 5
+        db 0x0E,0x15,0x09   ; 6
+        db 0x01,0x1D,0x03   ; 7
+        db 0x0A,0x15,0x0A   ; 8
+        db 0x12,0x15,0x0E   ; 9
+        db 0x04,0x04,0x04   ; -
+        db 0x00,0x10,0x00   ; .
+        db 0x00,0x0A,0x00   ; :
+        db 0x10,0x08,0x00   ; ,
+bd_sp:    dw 0
+bd_pos:   dw 0
+bd_n:     dw 0
+bd_sub:   db 0
+bd_entry: dw 0
+bd_cols:  ds BD_MLEN*4+BD_CELLS
 
 ; as_step: one phase of every star; a free slot sometimes starts a star in
 ;          a random inner cell that is empty with both neighbours

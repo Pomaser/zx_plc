@@ -97,7 +97,7 @@ editor and key for users.
   - DATA 1: the popup save buffer and the clipboard (`clip_buf`, filled by `src/clip.asm`).
   - DEMO 3: `src/tools.asm` (cross references, watch / force page of the simulation, Help texts),
     `src/clip.asm` (mark / copy / cut / paste, called by the editors with `BCALL cl_cmd` / `mk_draw`),
-    `src/wexpr.asm`, `src/mouse.asm`, `src/ur4.asm`, `src/trend.asm`, `menu_cmd` / `menu_active` (menu commands, check marks), the About box with twinkling stars (`tl_about`) and the demo image (~3.7 KB free).
+    `src/wexpr.asm`, `src/mouse.asm`, `src/ur4.asm`, `src/trend.asm`, `menu_cmd` / `menu_active` (menu commands, check marks), the About box with twinkling stars and the top-border scroller (`tl_about`, `bd_*`) and the demo image (~3.7 KB free).
   - FBD 6: the FBD editor (~7.5 KB free).
   - SPARE 7: undo / redo (`src/undo.asm`): the code, the history records growing up from `UM_REC`, and
     the shadow copy of the project ending at the IM2 stub. The tape load copies the project to `UM_BAK`
@@ -141,6 +141,12 @@ editor and key for users.
     image 64 MB, MBR + FAT16: `mkfs.fat --offset 2048`, `mcopy -i sd.img@@1M -s SYS BIN TMP ::/`; for
     Fuse convert it with `raw2hdf`). Fuse automaps only with divMMC write protection on and does not
     keep the EEPROM between runs (only in SZX snapshots, chunk `DMMC`).
+- About box border scroller (`bd_*` in src/tools.asm): a 3x5 font, each font pixel one `OUT (C),r`
+  (12 T = 24 px) x 4 lines in the top border; 5 row routines of exactly 228 T (128K line) chained by
+  RET through `bd_tab` (SP points at it). While About is open the IM2 stub of the DEMO bank jumps to
+  `ab_isr` (constant length) and the loop calls `kb_isr` / `snd_isr` after `bd_draw`. The start delay
+  (`BD_DLY` / `BD_FINE`) was tuned in JSSpeccy (128K: paper from T 14361); mkvideo draws the border
+  per line segment with that timing (BORDER 24).
 - UR-4 interface (8255; PA 0x1F, PB 0x3F, PC 0x5F, CWR 0x7F): `src/ur4.asm` (DEMO bank, Options > UR-4 I/O,
   `ur_toggle` with a PC read-back detection), state `ur_on` (vm.asm). `sim_inputs` ORs PA / PB into RT_I,
   `ur_out` (sim.asm) writes %QX0 to PC in RUN, 0 otherwise. zxrun: `--ur4`, `ur:AA,BB`.
