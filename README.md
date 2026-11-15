@@ -6,7 +6,7 @@ A PLC programming environment for the **ZX Spectrum 128K** (also +2 / +2A / +3):
 IEC 61131-3 languages IL, LD and FBD, a compiler and a simulator, written in Z80 assembler. Programs are
 not downloaded to a real PLC; they run in the built-in simulation with live monitoring.
 
-**[Try it in the browser](https://pomaser.github.io/zx_plc/)** · **[User manual with screenshots](docs/MANUAL.md)** · **[Download (releases)](https://github.com/Pomaser/zx_plc/releases)**
+**[Video tour (YouTube, 11 min)](https://youtu.be/W62mHPIHemU)** · **[Try it in the browser](https://pomaser.github.io/zx_plc/)** · **[User manual with screenshots](docs/MANUAL.md)** · **[Download (releases)](https://github.com/Pomaser/zx_plc/releases)**
 
 ## What it does
 

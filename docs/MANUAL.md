@@ -43,6 +43,9 @@ Without a Spectrum, [the browser version](https://pomaser.github.io/zx_plc/) loa
 JSSpeccy emulator (keyboard only: Esc or Tab opens the menu, Ctrl is SYMBOL SHIFT; saving to tape does not
 work there).
 
+A narrated [video tour on YouTube](https://youtu.be/W62mHPIHemU) (11 min) builds a small project from
+scratch and shows the simulation, watch / force, trend, UR-4, tape and SD card.
+
 To try it at once:
 
 1. Move to `DEMO_IL` with the cursor keys and press ENTER to see its program.
