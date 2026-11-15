@@ -38,6 +38,17 @@ editor and key for users.
   (default soft). The video starts with the end of the tape loading of `zxplc.tap` (border stripes,
   tape sound, loader effect) from `.scratch/reset128.sna` (a 128K at the 128 menu); `--no-intro` skips
   it. The application is not changed for it.
+- `tools/mkyoutube.py`: the narrated YouTube tour (`.scratch/youtube/zxplc_tour.mp4`, 1080p50, ~11 min,
+  normal speed) with a spoken English commentary (Piper TTS, offline) plus `zxplc_tour.en.srt` /
+  `.cs.srt`, `chapters.txt` (for the description) and `script.md`. The scenario and the texts (English,
+  Czech) are in `tools/yt_scenario.py`: the mkvideo commands (through the `ext` hook of
+  `mkvideo.play`) plus `say:ID` (start a cue; the actions after it run while it is spoken), `ws` (wait
+  for its end), `ch:Title` (chapter), `tape:` / `seek:` (the intro: the end of the real tape load),
+  `sd` (a divMMC with esxDOS booted on a second 128K, then moved over), `ur:`, `mouse:`. `PRONOUNCE`
+  only changes what the TTS says. The cues are cached in `.scratch/youtube/voice/`. Piper runs in its
+  own venv (`.scratch/piper-venv`, Python 3.12: `uv venv -p 3.12`, `uv pip install piper-tts`), voices
+  in `.scratch/piper/` (`python -m piper.download_voices en_US-ryan-high`). Tuning: `--shots DIR`
+  (PNGs + cue times, seconds), `--only "Chapter title"` (`--draft`: 720p, fast), `--script-only`.
 - Releases (`gh release create vX.Y`, assets `zxplc.tap`, `zxplc.sna`, and `zxplc_demo.mp4` when the UI
   changed): the release number is in the file `VERSION` (no newline; Help > About includes it with
   `INCBIN`). Steps: set `VERSION`; `make`, `make tap`, `make test`; load the tape in zxrun from

@@ -290,11 +290,14 @@ class Recorder(Spectrum):
             self.run(1)
 
 
-def play(z, scenario, shots=None):
+def play(z, scenario, shots=None, ext=None):
+    """ext(z, cmd) -> True: an extra command handled by the caller (mkyoutube)"""
     for line in scenario:
         if line == "STOP":
             break
         for cmd in line.split():
+            if ext and ext(z, cmd):
+                continue
             if cmd == "rec":
                 z.rec = True
                 z.ay_log = []
