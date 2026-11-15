@@ -46,6 +46,25 @@ PRONOUNCE = [
     (r"\bkB\b", "kilobytes"),
 ]
 
+# ElevenLabs reads most abbreviations well; only these are spelled out for it
+PRONOUNCE_EL = [
+    (r"\bZX-PLC\b", "Z X P L C"),
+    (r"\bZX\b", "Z X"),
+    (r"\bIEC 61131-3\b", "I E C sixty-one one thirty-one, part three"),
+    (r"%?\b([IQM])X?(\d)\.(\d)\b", r"\1 \2 point \3"),
+    (r"%?\bSW(\d)\b", r"S W \1"),
+    (r"\bPOUs\b", "P O Us"),
+    (r"\bPOU\b", "P O U"),
+    (r"\bIL\b", "I L"),
+    (r"\bLD\b", "L D"),
+    (r"\bFBD\b", "F B D"),
+    (r"\bTON(\d)\b", r"T O N \1"),
+    (r"\bCTU(\d)\b", r"C T U \1"),
+    (r"\bCAL\b", "call"),
+    (r"\bUR-4\b", "U R four"),
+    (r"\b8255\b", "eighty-two fifty-five"),
+]
+
 NARRATION = {
     # ---- Intro
     "intro1": (

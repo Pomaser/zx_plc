@@ -49,6 +49,9 @@ editor and key for users.
   own venv (`.scratch/piper-venv`, Python 3.12: `uv venv -p 3.12`, `uv pip install piper-tts`), voices
   in `.scratch/piper/` (`python -m piper.download_voices en_US-ryan-high`). Tuning: `--shots DIR`
   (PNGs + cue times, seconds), `--only "Chapter title"` (`--draft`: 720p, fast), `--script-only`.
+  `--tts elevenlabs --el-voice VOICE_ID` uses the ElevenLabs API instead (outputs `zxplc_tour_el.*`,
+  `PRONOUNCE_EL`, `--el-samples ID,...`). The API key is read only from `$ELEVENLABS_API_KEY` or
+  `.scratch/elevenlabs.key` (git-ignored); never write it into a tracked file or print it.
 - Releases (`gh release create vX.Y`, assets `zxplc.tap`, `zxplc.sna`, and `zxplc_demo.mp4` when the UI
   changed): the release number is in the file `VERSION` (no newline; Help > About includes it with
   `INCBIN`). Steps: set `VERSION`; `make`, `make tap`, `make test`; load the tape in zxrun from

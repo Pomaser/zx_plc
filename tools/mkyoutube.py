@@ -42,7 +42,7 @@ import wave
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import mkvideo                      # noqa: E402
 from mkvideo import Recorder, ay_render, FILTERS, RATE   # noqa: E402
-from yt_scenario import SCENARIO, NARRATION, PRONOUNCE   # noqa: E402
+from yt_scenario import SCENARIO, NARRATION, PRONOUNCE, PRONOUNCE_EL   # noqa: E402
 
 ROOT = mkvideo.ROOT
 SCR = os.path.join(ROOT, ".scratch")
@@ -50,6 +50,8 @@ PIPER = os.path.join(SCR, "piper-venv", "bin", "python")
 VOICES = os.path.join(SCR, "piper")
 ESX_ROM = os.path.join(SCR, "esx", "x", "ESXMMC.BIN")
 ESX_SD = os.path.join(SCR, "esx", "sd_clean.img")
+
+
 class Done(Exception):
     pass
 
@@ -58,23 +60,87 @@ PAUSE = 20                          # frames after a cue before ws goes on
 
 
 # ---- TTS -------------------------------------------------------------------------
-def spoken(text):
-    """the text as Piper should say it (the PRONOUNCE regex replacements)"""
-    for k, v in PRONOUNCE:
+# voice "en_US-ryan-high": Piper; voice "el:VOICE_ID": ElevenLabs (the API key only from
+# $ELEVENLABS_API_KEY or .scratch/elevenlabs.key, never written anywhere else)
+EL_KEY_FILE = os.path.join(SCR, "elevenlabs.key")
+EL_API = "https://api.elevenlabs.io/v1"
+EL = {"model": "eleven_multilingual_v2", "stability": 0.5, "similarity": 0.75}
+
+
+def spoken(text, el=False):
+    """the text as the TTS should say it (the PRONOUNCE regex replacements)"""
+    for k, v in (PRONOUNCE_EL if el else PRONOUNCE):
         text = re.sub(k, v, text)
     return text
 
 
+def el_key():
+    k = os.environ.get("ELEVENLABS_API_KEY", "").strip()
+    if not k and os.path.exists(EL_KEY_FILE):
+        k = open(EL_KEY_FILE).read().strip()
+    if not k:
+        sys.exit("no ElevenLabs API key: set ELEVENLABS_API_KEY or write it to .scratch/elevenlabs.key")
+    return k
+
+
+def el_request(path, body=None, tries=5):
+    """an ElevenLabs API call -> response bytes (errors without the key)"""
+    import json
+    import time
+    import urllib.error
+    import urllib.request
+    data = json.dumps(body).encode() if body is not None else None
+    for i in range(tries):
+        req = urllib.request.Request(EL_API + path, data=data, method="POST" if data else "GET")
+        req.add_header("xi-api-key", el_key())
+        if data:
+            req.add_header("Content-Type", "application/json")
+        try:
+            with urllib.request.urlopen(req, timeout=120) as r:
+                return r.read()
+        except urllib.error.HTTPError as e:
+            msg = e.read()[:300].decode("utf-8", "replace")
+            if e.code in (429, 500, 502, 503, 504) and i < tries - 1:
+                time.sleep(2 ** i * 2)
+                continue
+            sys.exit("ElevenLabs: HTTP %d %s" % (e.code, msg))
+        except urllib.error.URLError as e:
+            if i < tries - 1:
+                time.sleep(2 ** i * 2)
+                continue
+            sys.exit("ElevenLabs: %s" % e.reason)
+
+
+def el_voices():
+    import json
+    d = json.loads(el_request("/voices"))
+    for v in d.get("voices", []):
+        lb = v.get("labels") or {}
+        print("%-22s %-24s %s" % (v["voice_id"], v["name"][:24],
+                                  ", ".join(str(x) for x in lb.values() if x)))
+
+
 def tts(text, voice, cache, scale):
     """the cue as 16-bit mono samples at RATE (cached)"""
-    s = spoken(text)
-    h = hashlib.sha1(("%s|%s|%s" % (voice, scale, s)).encode()).hexdigest()[:16]
+    el = voice.startswith("el:")
+    s = spoken(text, el)
+    tag = ("%s|%s|%s|%s" % (voice, EL["model"], EL["stability"], EL["similarity"])) if el \
+        else "%s|%s" % (voice, scale)
+    h = hashlib.sha1(("%s|%s" % (tag, s)).encode()).hexdigest()[:16]
     path = os.path.join(cache, h + ".wav")
     if not os.path.exists(path):
-        raw = path + ".piper.wav"
-        subprocess.run([PIPER, "-m", "piper", "-m", os.path.join(VOICES, voice + ".onnx"),
-                        "-f", raw, "--length-scale", str(scale), "--sentence-silence", "0.35"],
-                       input=s.encode(), check=True, capture_output=True)
+        if el:
+            raw = path + ".el.mp3"
+            mp3 = el_request("/text-to-speech/%s?output_format=mp3_44100_128" % voice[3:], {
+                "text": s, "model_id": EL["model"],
+                "voice_settings": {"stability": EL["stability"],
+                                   "similarity_boost": EL["similarity"]}})
+            open(raw, "wb").write(mp3)
+        else:
+            raw = path + ".piper.wav"
+            subprocess.run([PIPER, "-m", "piper", "-m", os.path.join(VOICES, voice + ".onnx"),
+                            "-f", raw, "--length-scale", str(scale), "--sentence-silence", "0.35"],
+                           input=s.encode(), check=True, capture_output=True)
         subprocess.check_call(["ffmpeg", "-y", "-loglevel", "error", "-i", raw,
                                "-ar", str(RATE), "-ac", "1", "-sample_fmt", "s16", path])
         os.remove(raw)
@@ -287,7 +353,14 @@ def voice_track(cues, nframes):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("-d", "--dir", default=os.path.join(SCR, "youtube"))
-    ap.add_argument("--voice", default="en_US-ryan-high")
+    ap.add_argument("--voice", default="en_US-ryan-high", help="Piper voice model")
+    ap.add_argument("--tts", choices=("piper", "elevenlabs"), default="piper")
+    ap.add_argument("--el-voice", default=None, help="ElevenLabs voice_id")
+    ap.add_argument("--el-model", default=EL["model"])
+    ap.add_argument("--el-stability", type=float, default=EL["stability"])
+    ap.add_argument("--el-similarity", type=float, default=EL["similarity"])
+    ap.add_argument("--el-voices", action="store_true", help="list the ElevenLabs voices of the account")
+    ap.add_argument("--el-samples", default=None, help="voice_id,... -> samples/el_<id>.wav")
     ap.add_argument("--speed", type=float, default=1.05, help="Piper length scale (>1 slower)")
     ap.add_argument("--scale", type=int, default=4)
     ap.add_argument("--filter", choices=sorted(FILTERS), default="soft")
@@ -298,6 +371,29 @@ def main():
     ap.add_argument("--script-only", action="store_true", help="only script.md (cue texts + lengths)")
     a = ap.parse_args()
     os.makedirs(a.dir, exist_ok=True)
+    EL.update(model=a.el_model, stability=a.el_stability, similarity=a.el_similarity)
+    if a.el_voices:
+        el_voices()
+        return
+    if a.el_samples:
+        sd = os.path.join(a.dir, "samples")
+        os.makedirs(sd, exist_ok=True)
+        text = " ".join(NARRATION[c][0] for c in ("intro1", "ld5", "il2"))
+        for vid in a.el_samples.split(","):
+            smp = tts(text, "el:" + vid, os.path.join(a.dir, "voice"), 1)
+            out = os.path.join(sd, "el_%s.wav" % vid)
+            with wave.open(out, "wb") as w:
+                w.setnchannels(1)
+                w.setsampwidth(2)
+                w.setframerate(RATE)
+                w.writeframes(smp.tobytes())
+            print(out, "%.1f s" % (len(smp) / RATE))
+        return
+    if a.tts == "elevenlabs":
+        if not a.el_voice:
+            sys.exit("--tts elevenlabs needs --el-voice VOICE_ID (see --el-voices)")
+        a.voice = "el:" + a.el_voice
+    sfx = "_el" if a.tts == "elevenlabs" else ""
     tour = Tour(a.voice, a.speed, a.only, not a.no_intro, os.path.join(a.dir, "sd.img"))
 
     if a.script_only:
@@ -309,8 +405,8 @@ def main():
                     cues.append((cmd[4:], t, smp))
                     t += len(smp) * 50 // RATE
         chs = []
-        write_script(os.path.join(a.dir, "script.md"), cues, chs, timed=False)
-        print("cues: %d, speech %.1f min -> %s" % (len(cues), t / 3000, os.path.join(a.dir, "script.md")))
+        write_script(os.path.join(a.dir, "script%s.md" % sfx), cues, chs, timed=False)
+        print("cues: %d, speech %.1f min -> %s" % (len(cues), t / 3000, os.path.join(a.dir, "script%s.md" % sfx)))
         return
 
     sna = os.path.join(SCR, "reset128.sna") if tour.intro and not a.only else os.path.join(ROOT, "zxplc.sna")
@@ -334,7 +430,7 @@ def main():
     if W * scale > ow or H * scale > oh:
         sys.exit("scale too big for %dx%d" % (ow, oh))
     vf = FILTERS[a.filter].format(s=scale) + ",pad=%d:%d:(ow-iw)/2:(oh-ih)/2:color=0x101014" % (ow, oh)
-    out = os.path.join(a.dir, "zxplc_tour" + ("_" + re.sub(r"\W", "", a.only) if a.only else "") + ".mp4")
+    out = os.path.join(a.dir, "zxplc_tour" + sfx + ("_" + re.sub(r"\W", "", a.only) if a.only else "") + ".mp4")
     silent = out + ".video.mp4"
     ff = subprocess.Popen(
         ["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24",
@@ -371,10 +467,10 @@ def main():
         os.remove(p)
     write_srt(base + ".en.srt", tour.cues, 0)
     write_srt(base + ".cs.srt", tour.cues, 1)
-    with open(os.path.join(a.dir, "chapters.txt" if not a.only else "chapters_only.txt"), "w") as f:
+    with open(os.path.join(a.dir, ("chapters%s.txt" if not a.only else "chapters_only%s.txt") % sfx), "w") as f:
         for fr, t in tour.chapters:
             f.write("%s %s\n" % (ts(fr / 50, False), t))
-    write_script(os.path.join(a.dir, "script.md" if not a.only else "script_only.md"),
+    write_script(os.path.join(a.dir, ("script%s.md" if not a.only else "script_only%s.md") % sfx),
                  tour.cues, tour.chapters)
     print("written:", out)
 
