@@ -340,9 +340,19 @@ def write_script(path, cues, chapters, timed=True):
 
 
 # ---- sound ---------------------------------------------------------------------------
+VOICE_RMS = 0.11                    # speech level of the voice track (about -19 dBFS)
+
+
 def voice_track(cues, nframes):
+    """the cues at their start times, scaled to VOICE_RMS (the TTS engines differ)"""
     per = RATE // 50
     v = array.array("h", bytes(2 * nframes * per))
+    n = sum(len(c[2]) for c in cues)
+    if n:
+        rms = (sum(x * x for c in cues for x in c[2]) / n) ** 0.5 / 32768
+        g = VOICE_RMS / rms if rms else 1
+        cues = [(c, s, array.array("h", (max(-32767, min(32767, int(x * g))) for x in smp)))
+                for c, s, smp in cues]
     for _, start, smp in cues:
         a = start * per
         b = min(len(v), a + len(smp))
