@@ -436,7 +436,8 @@ works like a small text editor:
 * **Every control keyword is on a line of its own:** `IF`, `THEN`, `ELSIF`, `ELSE`, `END_IF`, `CASE`,
   `OF`, `FOR`, `DO`, `WHILE`, `REPEAT`, `UNTIL` and the `END_...` keywords start a line, and nothing but
   a comment follows `THEN`, `ELSE`, `DO`, `OF`, `REPEAT` or `END_...;` on it. A line typed as
-  `IF a THEN x := 1; END_IF;` is split into four lines when the cursor leaves it.
+  `IF a THEN x := 1; END_IF` is split into four lines when the cursor leaves it. No `;` follows the
+  `END_...` keywords (one typed there is removed; the compiler accepts it).
 * **The indent is automatic:** the keywords of one construct (`IF`, `THEN`, `ELSE`, `END_IF`) are always
   aligned, the lines after `THEN`, `ELSE`, `DO`, `OF` or `REPEAT` move one step to the right.
 * Leaving a line (ENTER, UP, DOWN, the menu) checks it: unknown characters, an unclosed `(*` comment and
@@ -444,8 +445,8 @@ works like a small text editor:
   case and the spaces between the words are normalised. The whole program is checked by the compiler
   (Run > Run); an error opens the editor at its line, the message is in the status bar.
 * **Constructs are completed:** ENTER at the end of a line `IF c` adds `THEN`, an empty line and
-  `END_IF;` below it and puts the cursor on the empty line, indented. The same for `WHILE c` / `FOR ...`
-  (`DO`, `END_WHILE;` / `END_FOR;`), `CASE e` (`OF`, `END_CASE;`) and `ELSIF c` (`THEN`). Nothing is
+  `END_IF` below it and puts the cursor on the empty line, indented. The same for `WHILE c` / `FOR ...`
+  (`DO`, `END_WHILE` / `END_FOR`), `CASE e` (`OF`, `END_CASE`) and `ELSIF c` (`THEN`). Nothing is
   added when the next line already starts with the `THEN` / `DO` / `OF`.
 * ENTER splits the line at the cursor (at the end: a new empty line below), SS+ENTER opens an empty line
   below. DELETE deletes the character left of the cursor; on an empty line it removes the line.
@@ -460,17 +461,17 @@ x := expression;
 IF c                 CASE e               FOR i := 1 TO 10 BY 2
 THEN                 OF                   DO
   ...                  1: ...;              ...
-ELSIF c                2, 3: ...;         END_FOR;
+ELSIF c                2, 3: ...;         END_FOR
 THEN                   4..9: ...;
   ...                ELSE                 WHILE c
 ELSE                   ...                DO
-  ...                END_CASE;              ...
-END_IF;                                   END_WHILE;
+  ...                END_CASE               ...
+END_IF                                    END_WHILE
 
 REPEAT
   ...
 UNTIL c
-END_REPEAT;
+END_REPEAT
 
 EXIT;                          (leaves the innermost loop)
 RETURN;                        (ends the POU)

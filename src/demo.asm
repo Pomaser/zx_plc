@@ -333,14 +333,14 @@ dm_st:
         db "ELSE",0
         db "// after 5 back to 0",0
         db "Level := 0;",0
-        db "END_IF;",0
-        db "END_IF;",0
+        db "END_IF",0
+        db "END_IF",0
         db 0                    ; (empty line)
         db "// Clear: back to 0",0
         db "IF Clear",0
         db "THEN",0
         db "Level := 0;",0
-        db "END_IF;",0
+        db "END_IF",0
         db 0                    ; (empty line)
         db "// The bar on three outputs",0
         db "Bar1 := Level >= 1;",0
@@ -352,7 +352,7 @@ dm_st:
         db "FOR N := 1 TO Level",0
         db "DO",0
         db "Total := Total + N;",0
-        db "END_FOR;",0
+        db "END_FOR",0
         db 0                    ; (empty line)
         db "// Range: 0 none, 1 low, 2 high",0
         db "CASE Level",0
@@ -361,7 +361,7 @@ dm_st:
         db "1..3: Range := 1;",0
         db "ELSE",0
         db "Range := 2;",0
-        db "END_CASE;",0
+        db "END_CASE",0
         db 0xFF
 
 ; ---- DEMO_IL: traffic light as a step sequence (one step active in S0)

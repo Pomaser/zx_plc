@@ -234,8 +234,9 @@ editor and key for users.
     splits a line before a control keyword that is not its first token and after THEN / ELSE / DO /
     OF / REPEAT / END_x[;]; `st_commit` (st_split = lines added) and `st_add_line` apply it.
     ENTER at the end of `IF c` / `ELSIF c` / `WHILE c` / `FOR ...` / `CASE e` adds THEN (DO / OF), an
-    empty line and END_x; (`st_editor.auto`, table `au_tab`); a space typed after a keyword makes it
-    upper case (`st_kwup`).
+    empty line and END_x (`st_editor.auto`, table `au_tab`); a space typed after a keyword makes it
+    upper case (`st_kwup`). `st_norm` drops a ";" after END_x (`sn_semi`; the compiler takes it
+    as optional).
     `st_sim_row` draws a line for the simulation (cells 0-24) and puts the watched operand in rd_o;
     `st_xr_line` serves the cross references; `st_add_line` + `st_load_text` (app.asm) load text
     (demo, tests; the text goes through il_out, fixed memory).

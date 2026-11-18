@@ -607,10 +607,10 @@ au_tab: db KW_IF,KW_THEN
 au_then:  db "THEN",0
 au_do:    db "DO",0
 au_of:    db "OF",0
-au_endif: db "END_IF;",0
-au_endwh: db "END_WHILE;",0
-au_endfor: db "END_FOR;",0
-au_endcs: db "END_CASE;",0
+au_endif: db "END_IF",0
+au_endwh: db "END_WHILE",0
+au_endfor: db "END_FOR",0
+au_endcs: db "END_CASE",0
 au_p:     dw 0
 
 ; ============================================================
@@ -1013,6 +1013,7 @@ st_norm:
         ld (sn_out),hl
         xor a
         ld (sn_par),a
+        ld (sn_lend),a
 .l:     ld hl,(ste.lx_p)
         ld (sn_prev),hl
         call ste.lx_next
@@ -1030,7 +1031,9 @@ st_norm:
         ld hl,err_st_cmt
         scf
         ret nz
-.nc:    ld hl,(sn_out)          ; a space in front (not at the start)
+.nc:    call sn_semi            ; (no ";" after END_x)
+        jp z,.l
+        ld hl,(sn_out)          ; a space in front (not at the start)
         ld de,st_tmp
         or a
         sbc hl,de
@@ -1110,6 +1113,40 @@ st_norm:
 .end:   ld hl,(sn_out)
         ld (hl),0
         or a
+        ret
+
+; sn_semi: the token of st_norm -> Z if it is a ";" right after END_x (it
+;      is left out: END_IF, not END_IF;). Comments in between are skipped
+sn_semi:
+        ld a,(ste.lx_type)
+        cp T_CMT
+        jr z,.keep
+        ld b,a
+        ld a,(sn_lend)
+        ld c,a
+        xor a
+        ld (sn_lend),a
+        ld a,b
+        cp T_KW
+        jr nz,.nk
+        ld a,(ste.lx_kw)
+        ld hl,bk_ends
+        call ii_in
+        jr nz,.keep
+        ld a,1
+        ld (sn_lend),a
+        jr .keep
+.nk:    cp T_SYM
+        jr nz,.keep
+        ld a,(ste.lx_sym)
+        cp ';'
+        jr nz,.keep
+        ld a,c
+        or a
+        jr z,.keep
+        xor a                   ; Z: drop it
+        ret
+.keep:  or 1
         ret
 
 ; ---- st_iinfo: HL = line text -> B = 1 if the next line is indented
@@ -2181,6 +2218,7 @@ st_spl:    ds ST_BLEN+2
 st_split:  db 0
 st_brkf:   db 0
 ku_end:    dw 0
+sn_lend:   db 0
 bk_n:      db 0
 bk_aft:    db 0
 bk_end:    db 0
