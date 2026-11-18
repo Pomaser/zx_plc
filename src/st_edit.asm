@@ -968,7 +968,15 @@ st_commit:
         call st_reind_all       ; (the added lines keep a wrong indent)
         jr .ri2
 .ri:    call st_reind
-.ri2:   call st_row_cur
+.ri2:   ld a,(st_redr)          ; a declaration was added above
+        or a
+        jr z,.ri3
+        xor a
+        ld (st_redr),a
+        call st_fix_top
+        call st_redraw_all
+        jr .done
+.ri3:   call st_row_cur
         ld b,a
         ld a,(st_split)
         or a
@@ -1097,6 +1105,7 @@ st_norm:
         ld de,(st_cur)          ; in the VAR block: the declared name (the
         call st_inblk           ; first token) is not checked
         ld (sn_decl),a
+        ld (sn_inb),a
         xor a
         ld (sn_par),a
         ld (sn_lend),a
@@ -1165,7 +1174,21 @@ st_norm:
         ld a,(hl)
         or a
         jr z,.np0
-.unk:   ld a,(cur_pou)          ; a local variable (lx_word changes)
+.unk:   ld hl,(ste.lx_p)        ; the name as typed (auto-declaration)
+        ld de,(ste.lx_start)
+        or a
+        sbc hl,de
+        ld b,l
+        ex de,hl
+        ld de,sn_name
+.u1:    ld a,(hl)
+        ld (de),a
+        inc hl
+        inc de
+        djnz .u1
+        xor a
+        ld (de),a
+        ld a,(cur_pou)          ; a local variable (lx_word changes)
         ld hl,ste.lx_word
         call ste.st_vfind
         jr nc,.np0
@@ -1185,7 +1208,9 @@ st_norm:
         jr z,.np0
         cp S_OUT
         jr z,.np0
-.bad:   ld hl,err_st_name
+.bad:   call st_decl            ; declare it as a local?
+        jr nc,.np0
+        ld hl,err_st_name
         scf
         ret
 .np0:   xor a
@@ -1210,6 +1235,157 @@ st_norm:
         ld (hl),0
         or a
         ret
+
+; ---- st_decl: sn_name = an unknown name (not in the VAR block) -> popup
+;      "Declare NAME as: BOOL / INT / TIME"; NC: the declaration was added
+;      (a new VAR block at line 0, or before END_VAR), st_cur moved down,
+;      st_redr = 1. C: cancelled / not a valid name / no room
+st_decl:
+        ld a,(sn_inb)
+        or a
+        scf
+        ret nz
+        ld hl,sn_name           ; a letter or _, then letters, digits, _
+        ld a,(hl)
+        call to_upper
+        cp 'A'
+        jr c,.f1
+        cp 'Z'+1
+        jr c,.f2
+.f1:    cp '_'
+        scf
+        ret nz
+.f2:    inc hl
+        ld a,(hl)
+        or a
+        jr z,.ok
+        cp '_'
+        jr z,.f2
+        call ste.lx_alnum
+        jr c,.f2
+        scf                     ; (an invalid character)
+        ret
+.ok:    ld a,(cur_pou)          ; where: a new block, or before END_VAR
+        ld hl,st_nothing
+        call ste.st_vfind
+        ld a,(ste.vf_var)
+        or a
+        jr z,.q
+        ld hl,(ste.vf_end)
+        ld a,h
+        or l
+        scf
+        ret z                   ; (VAR without END_VAR)
+.q:     ld de,popup_buf         ; "Declare NAME as:" / B BOOL / I INT / T TIME
+        ld hl,txt_dc1
+        call put_str
+        ld hl,sn_name
+        call put_str
+        ld hl,txt_dc2
+        ld bc,txt_dc_end-txt_dc2
+        ldir
+        ld hl,popup_buf
+        call popup_open
+.k:     call kb_wait
+        cp K_MOUSE
+        jr nz,.nm
+        ld a,3
+        ld b,2
+        BCALL ms_item
+        jp c,.cancel
+        jr .sel
+.nm:    cp K_BREAK
+        jp z,.cancel
+        cp K_EDIT
+        jp z,.cancel
+        call to_upper
+        ld b,0
+        cp 'B'
+        jr z,.typ
+        inc b
+        cp 'I'
+        jr z,.typ
+        inc b
+        cp 'T'
+        jr nz,.k
+.typ:   ld a,b
+.sel:   push af
+        call win_close
+        pop af
+        add a,a                 ; "NAME : TYPE;"
+        ld e,a
+        ld d,0
+        ld hl,dc_types
+        add hl,de
+        ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
+        push hl
+        ld hl,sn_name
+        ld de,sd_text
+        call put_str
+        ld hl,txt_dc3
+        call put_str
+        pop hl
+        call put_str
+        ld a,';'
+        ld (de),a
+        inc de
+        xor a
+        ld (de),a
+        ld a,(ste.vf_var)
+        or a
+        jr z,.new
+        ld de,(ste.vf_end)      ; before END_VAR
+        ld hl,sd_text
+        ld a,1
+        call st_ins_line
+        ret c
+        ld de,1
+        jr .moved
+.new:   ld de,0                 ; VAR / NAME : TYPE; / END_VAR at line 0
+        ld hl,txt_endvar
+        xor a
+        call st_ins_line
+        ret c
+        ld de,0
+        ld hl,sd_text
+        ld a,1
+        call st_ins_line
+        ret c
+        ld de,0
+        ld hl,txt_var
+        xor a
+        call st_ins_line
+        ret c
+        ld de,3
+.moved: ld hl,(st_cur)
+        add hl,de
+        ld (st_cur),hl
+        ld a,1
+        ld (st_redr),a
+        or a
+        ret
+.cancel:
+        call win_close
+        scf
+        ret
+
+dc_types:  dw txt_bool,txt_int,txt_time
+txt_bool:  db "BOOL",0
+txt_int:   db "INT",0
+txt_time:  db "TIME",0
+txt_endvar: db "END_VAR",0
+txt_dc1:   db "Declare ",0
+txt_dc2:   db " as:",0
+           db " ",0
+           db "B",PT_TAB,"BOOL",0
+           db "I",PT_TAB,"INT",0
+           db "T",PT_TAB,"TIME",0
+           db 0
+txt_dc_end:
+txt_dc3:   db " : ",0
 
 ; st_inblk: DE = line -> A = 1 if it is a declaration line of the VAR
 ;      block of the POU (between VAR and END_VAR)
@@ -2565,6 +2741,10 @@ sn_lend:   db 0
 sn_decl:   db 0
 st_fh:     dw 0                 ; folded VAR block: hidden lines (0: none)
 st_fcnt:   db 0
+st_redr:   db 0
+sn_inb:    db 0
+sn_name:   ds 32
+sd_text:   ds 48
 sf_l:      dw 0
 sf_out:    dw 0
 sf_buf:    ds 64
