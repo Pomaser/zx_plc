@@ -566,7 +566,7 @@ the faulty line or element; the message is shown in the status bar.
 
   * In ST every variable shows its value right behind its name, in a field that starts on the next
     character cell: BOOL as TRUE (green) / FALSE (white) in 4 cells, INT (5 cells) and TIME (7 cells)
-    on light blue. Up to 4 fields per line; what does not fit on the screen width is left out:
+    on light blue, the text centred. Up to 4 fields per line; what does not fit on the screen width is left out:
 
     ![Simulation of DEMO_ST](img/sim_st.png)
 

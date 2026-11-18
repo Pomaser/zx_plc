@@ -1003,7 +1003,7 @@ stm_update:
 
 ; stm_draw: IX = descriptor (its cell at IX-1) of row sm_r -> the field:
 ;      BOOL 4 cells TRUE (green) / FALSE (white), INT 5 / TIME 7 cells
-;      (bright cyan), the number right aligned
+;      (bright cyan); the text centred
 stm_draw:
         ld a,(sm_r)
         add a,IL_ROW0
@@ -1051,22 +1051,16 @@ stm_draw:
         call px_span
         pop de
         pop bc
-        ld a,(ix+0)
+        ld a,(ix+0)             ; the text
         and 0x1F
         cp VM_MB
         jr nz,.num
         ld hl,kw_false
         ld a,(ix+4)
         or a
-        jr z,.lt
+        jr z,.ctr
         ld hl,txt_sm_true
-.lt:    ld a,c
-        add a,a
-        add a,a
-        add a,a
-        inc a
-        ld (pt_x),a
-        jp pt_puts
+        jr .ctr
 .num:   push bc
         push de
         ld l,(ix+4)
@@ -1081,18 +1075,30 @@ stm_draw:
         call op_format
 .n:     pop de
         pop bc
-        ld a,c                  ; right edge: the field end - 2
-        add a,d
-        add a,a
-        add a,a
-        add a,a
-        sub 2
         ld hl,sm_num
         bit 6,(ix+0)
-        jr z,.r
+        jr z,.ctr
         inc hl
         inc hl
-.r:     jp pt_puts_r
+.ctr:   call pt_width           ; centred: x = field x + (width - text) / 2
+        ld e,a
+        ld a,d
+        add a,a
+        add a,a
+        add a,a
+        sub e
+        jr nc,.c1
+        xor a
+.c1:    srl a
+        ld e,a
+        ld a,c
+        add a,a
+        add a,a
+        add a,a
+        add a,e
+        inc a
+        ld (pt_x),a
+        jp pt_puts
 
 stm_tab: ds SIM_ROWS*STM_PER*STM_ESZ
 
