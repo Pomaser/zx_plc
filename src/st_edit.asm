@@ -1552,11 +1552,18 @@ st_render:
         ld (rn_gap),a
         inc hl
         jr .ws
-.wse:   xor a
+.wse:   ld a,(ste.lx_type)
+        or a
+        jr nz,.wse2
+        ld a,(rn_gap)           ; a keyword at the end (no space after it):
+        or a                    ; the cursor right behind it, not in the gap
+        jr z,.end
+        ld a,(rn_ke)
+        ld (rn_x),a
+        jr .end
+.wse2:  xor a
         ld (rn_gap),a
         ld a,(ste.lx_type)
-        or a
-        jr z,.end
         cp T_KW
         jr z,.snap
         cp T_CMT
