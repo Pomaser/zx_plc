@@ -211,7 +211,7 @@ st_editor:
         ld d,0
         add hl,de
         ld (hl),0
-        call st_commit
+        call .comment           ; (auto-declaration allowed)
         jr nc,.en1
         ld hl,st_tail           ; error: the line as it was
         ld de,se_buf
@@ -243,7 +243,7 @@ st_editor:
         xor a
         jr .newl
         ; ---- SS+ENTER: a new empty line below
-.ssent: call st_commit
+.ssent: call .comment
         jp c,.loop
         call .tolast
         call .newok
@@ -273,6 +273,13 @@ st_editor:
         dec a
         call st_redraw_from
         jp .loop
+.comment:                       ; st_commit from ENTER: unknown names may
+        ld a,1                  ; be declared (st_decl)
+        ld (st_dcok),a
+        call st_commit
+        ld a,0
+        ld (st_dcok),a
+        ret
 .var0:  ld hl,(st_cur)           ; Z = the cursor is on line 0 = VAR (beep)
         ld a,h
         or l
@@ -1276,10 +1283,14 @@ st_norm:
         ret
 
 ; ---- st_decl: sn_name = an unknown name (not in the VAR block) -> popup
-;      "Declare NAME as: BOOL / INT / TIME"; NC: the declaration was added
+;      "Declare NAME as: BOOL / INT / TIME" (only after ENTER, st_dcok);
+;      NC: the declaration was added
 ;      (a new VAR block at line 0, or before END_VAR), st_cur moved down,
 ;      st_redr = 1. C: cancelled / not a valid name / no room
 st_decl:
+        ld a,(st_dcok)          ; only when the line is left with ENTER
+        sub 1
+        ret c
         ld a,(sn_inb)
         or a
         scf
@@ -2782,6 +2793,7 @@ sn_decl:   db 0
 st_fh:     dw 0                 ; folded VAR block: hidden lines (0: none)
 st_fcnt:   db 0
 st_redr:   db 0
+st_dcok:   db 0
 sn_inb:    db 0
 sn_name:   ds 32
 sd_text:   ds 48

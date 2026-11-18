@@ -514,9 +514,10 @@ END_VAR
 * **The block folds:** while the cursor is below `END_VAR`, the block is shown as one line
   `VAR Idx : INT; Sum : INT := 5; .. (4)` (the line numbers jump). Moving the cursor up into it opens
   it again. ENTER after `VAR` adds an empty line and `END_VAR`.
-* **Declaration on the fly:** when a line with an unknown name (like `count := count + 1;`) is left, a
-  window asks "Declare count as:" `B` BOOL, `I` INT or `T` TIME. The declaration is added to the block
-  (a new block is made at the start of the POU), BREAK leaves the name as an error.
+* **Declaration on the fly:** ENTER at a line with an unknown name (like `count := count + 1;`) opens
+  the window "Declare count as:" `B` BOOL, `I` INT or `T` TIME. The declaration is added to the block
+  (a new block is made at the start of the POU); BREAK leaves the name as an error. Leaving the line
+  another way (UP, DOWN, the mouse) only reports "Unknown name".
 * In the simulation the block is open and every declaration line shows the live value of its variable.
 * `VAR_GLOBAL`, `VAR_INPUT` and `VAR_OUTPUT` are reserved for a later version; global variables are the
   symbols. Local FB instances (`T1 : TON`) are not possible yet: use TON0 ... with a symbol.
