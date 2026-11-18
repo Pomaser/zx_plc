@@ -108,6 +108,10 @@ cl_cmd:
         call pou_lang
         inc a
         ld (cl_lang),a
+        cp LANG_ST+1            ; ST: lines as in IL
+        jr nz,.k
+        ld a,1
+.k:     ld (cl_kind),a
         ld a,(cl_op)
         cp CMD_MARK
         jr nz,.nm
@@ -137,7 +141,7 @@ cl_cmd:
 .mk:    call cl_range
 .rg:    ld hl,0xFFFF
         ld (mk_a),hl
-        ld a,(cl_lang)
+        ld a,(cl_kind)
         cp 1
         jr z,.il
         cp 3
@@ -198,7 +202,7 @@ cl_cmd:
         cp CMD_CUT
         ld hl,txt_cl_copied
         jr nz,.msg
-        ld a,(cl_lang)          ; ---- cut: the block removed
+        ld a,(cl_kind)          ; ---- cut: the block removed
         cp 1
         jr nz,.cutr
         ld a,(cur_pou)
@@ -253,6 +257,9 @@ cl_paste:
         dec a
         jr z,.herr
         ld hl,txt_cl_hfbd
+        dec a
+        jr z,.herr
+        ld hl,txt_cl_hst
 .herr:  jp cl_err
 .lang:  call proj_free          ; room for the records (+ an LD header)
         ld de,(clip_len)
@@ -261,7 +268,7 @@ cl_paste:
         sbc hl,de
         ld hl,err_il_mem
         jp c,cl_err
-        ld a,(cl_lang)
+        ld a,(cl_kind)
         cp 1
         jr nz,.rows
         call cl_il_count        ; IL: at most IL_MAXLN lines
@@ -327,7 +334,7 @@ cl_paste:
         ld bc,(clip_len)
         ld a,BANK_DATA
         call bank_copy
-        ld a,(cl_lang)
+        ld a,(cl_kind)
         cp 1
         jr z,.done
         ld a,(clip_r0)          ; LD / FBD: the rows of the pasted records
@@ -370,7 +377,7 @@ cl_msg: ld de,popup_buf
         push hl
         call cl_dec
         ld hl,txt_cl_line
-        ld a,(clip_lang)
+        ld a,(cl_kind)
         cp 1
         jr z,.u
         ld hl,txt_cl_row
@@ -586,6 +593,7 @@ md_cnt:   db 0
 md_op:    db 0
 cl_op:    db 0
 cl_lang:  db 0
+cl_kind:  db 0              ; 1 lines (IL, ST), 2 LD, 3 FBD
 cl_s:     dw 0
 cl_e:     dw 0
 cl_bend:  dw 0
@@ -602,4 +610,5 @@ txt_cl_empty:  db "The clipboard is empty",0
 txt_cl_hil:    db "The clipboard holds IL",0
 txt_cl_hld:    db "The clipboard holds LD",0
 txt_cl_hfbd:   db "The clipboard holds FBD",0
+txt_cl_hst:    db "The clipboard holds ST",0
 txt_cl_rows:   db "Too many lines",0

@@ -700,8 +700,15 @@ st_commit:
         call st_row_cur
         inc a
         call st_redraw_from
-.done:  call st_load            ; the normalised form
-        or a
+.done:  ld a,(st_pos)            ; the normalised form, the cursor kept
+        push af
+        call st_load
+        pop af
+        ld hl,st_pos
+        cp (hl)
+        jr nc,.d1
+        ld (hl),a
+.d1:    or a
         ret
 .mem:   ld hl,err_il_mem
         call ui_error
@@ -1097,26 +1104,34 @@ st_pos_at:
         ret nz
         jp st_len
 
-; ---- st_word_at: the word under the cursor -> A = area, C = index,
-;      DE = value (op_parse); A = 0 if there is no operand
+; ---- st_word_at: the word under (or before) the cursor -> A = area,
+;      C = index, DE = value (op_parse); A = 0 if there is no operand
 st_word_at:
         ld hl,se_buf
         ld (ste.lx_p),hl
+        xor a
+        ld (st_tail),a
 .l:     call ste.lx_next
         ld a,(ste.lx_type)
         or a
-        ret z
+        jr z,.e
         cp T_WORD
         jr nz,.l
-        ld hl,(ste.lx_p)        ; cursor <= end of the word?
+        ld hl,(ste.lx_start)    ; starts after the cursor: done
         ld de,se_buf
         or a
         sbc hl,de
         ld a,(st_pos)
         cp l
-        jr z,.w
-        jr nc,.l
-.w:     ld hl,ste.lx_word
+        jr c,.e
+        ld hl,ste.lx_word
+        ld de,st_tail
+        call put_str0
+        jr .l
+.e:     ld hl,st_tail
+        ld a,(hl)
+        or a
+        ret z
         call op_parse
         ret nc
         xor a
@@ -1632,14 +1647,148 @@ st_key:
         ret
 
 ; ---- st_sim_row: the simulation listing (sim.asm, BCALL): B = screen
-;      row, DE = line of POU cur_pou
+;      row, DE = line of POU cur_pou -> drawn in cells 0-24; rd_o = the
+;      operand to watch: the target of "x :=", the operand of
+;      "IF x THEN" / "WHILE x DO" / "UNTIL x" / "CASE x OF" / "FOR x :=",
+;      "INST(" -> "INST.ET" (as in IL); "" for none
 st_sim_row:
         ld a,1
         ld (sr_sim),a
+        xor a
+        ld (rd_o),a
+        ld (st_tmp2),a
         call st_draw_row
         xor a
         ld (sr_sim),a
+        ld hl,st_tmp2
+        ld (ste.lx_p),hl
+        call ste.lx_next
+        ld a,(ste.lx_type)
+        cp T_KW
+        jr nz,.w
+        ld a,(ste.lx_kw)
+        ld hl,ws_kw
+        call ii_in
+        ret nz
+        call ste.lx_next
+        ld a,(ste.lx_type)
+        cp T_WORD
+        ret nz
+        call .copy
+        call ste.lx_next        ; a single operand: THEN / DO / OF / := / end
+        ld a,(ste.lx_type)
+        or a
+        ret z
+        cp T_KW
+        ret z
+        cp T_SYM
+        jr nz,.clr
+        ld a,(ste.lx_sym)
+        cp S_ASG
+        ret z
+.clr:   xor a
+        ld (rd_o),a
         ret
+.w:     cp T_WORD
+        ret nz
+        call .copy
+        call ste.lx_next
+        ld a,(ste.lx_type)
+        cp T_SYM
+        jr nz,.clr
+        ld a,(ste.lx_sym)
+        cp S_ASG
+        ret z
+        cp '('
+        jr nz,.clr
+        ld hl,rd_o              ; "INST" + ".ET"
+        xor a
+        ld bc,40
+        cpir
+        dec hl
+        ex de,hl
+        ld hl,txt_ws_et
+        jr put_str0
+.copy:  ld hl,ste.lx_word
+        ld de,rd_o
+put_str0:                       ; HL -> DE with the 0 (DE -> the 0)
+        call put_str
+        xor a
+        ld (de),a
+        ret
+
+ws_kw:     db KW_IF,KW_ELSIF,KW_WHILE,KW_UNTIL,KW_CASE,KW_FOR,0
+txt_ws_et: db ".ET",0
+
+; ---- st_xr_line: HL = ST line record (cross references, tools.asm, BCALL),
+;      A = area, C = index of the operand searched (a member counts as its
+;      FB instance) -> Z if the line uses it, B = 'W' written (x :=,
+;      => x), 'C' FB call, 'R' read
+st_xr_line:
+        ld (xl_a),a
+        ld a,c
+        ld (xl_i),a
+        ld de,st_tmp2
+        call st_rec_text
+        ld hl,st_tmp2
+        ld (ste.lx_p),hl
+        xor a
+        ld (xl_prev),a
+.l:     call ste.lx_next
+        ld a,(ste.lx_type)
+        or a
+        jr z,.no
+        cp T_WORD
+        jr nz,.nx
+        ld hl,ste.lx_word
+        call op_parse
+        jr c,.nx
+        and AR_MASK
+        cp AR_FBM
+        jr nz,.a
+        ld a,AR_FBI
+.a:     ld hl,xl_a
+        cp (hl)
+        jr nz,.nx
+        ld a,(xl_i)
+        cp c
+        jr nz,.nx
+        ld b,'W'                ; found: how is it used?
+        ld a,(xl_prev)
+        cp S_OUT
+        ret z
+        ld hl,(ste.lx_p)
+        push hl
+        call ste.lx_next
+        pop hl
+        ld (ste.lx_p),hl
+        ld b,'R'
+        ld a,(ste.lx_type)
+        cp T_SYM
+        jr nz,.r
+        ld a,(ste.lx_sym)
+        ld b,'W'
+        cp S_ASG
+        ret z
+        ld b,'C'
+        cp '('
+        ret z
+        ld b,'R'
+.r:     cp a
+        ret
+.nx:    ld a,(ste.lx_type)      ; xl_prev = the symbol (or 0)
+        cp T_SYM
+        ld a,0
+        jr nz,.p
+        ld a,(ste.lx_sym)
+.p:     ld (xl_prev),a
+        jr .l
+.no:    or 1
+        ret
+
+xl_a:    db 0
+xl_i:    db 0
+xl_prev: db 0
 
 ; ---- st_add_line: A = slot, HL = line text (fixed memory) -> appended to
 ;      the POU, its indent computed (st_load_text in app.asm: demo, tests)

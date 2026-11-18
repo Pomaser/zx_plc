@@ -24,6 +24,10 @@ demo_build:
         ld a,LANG_FBD
         call pou_add
         jp c,dm_fail
+        ld hl,dm_n_st           ; slot 4
+        ld a,LANG_ST
+        call pou_add
+        jp c,dm_fail
         ; symbols (before the code, which refers to them)
         ld a,2
         ld (TEST_RES+3),a
@@ -63,6 +67,9 @@ demo_build:
         ld a,1
         call il_load_text
         jp c,dm_fail
+        ld hl,dm_st             ; ST code
+        ld a,4
+        call st_load_text
         ; LD and FBD cells, network comments
         ld a,5
         ld (TEST_RES+3),a
@@ -108,6 +115,9 @@ demo_build:
         call dm_cmt
         ld hl,dm_c_fbd
         ld a,3
+        call dm_cmt
+        ld hl,dm_c_st
+        ld a,4
         call dm_cmt
         ; everything must compile
         ld a,8
@@ -213,10 +223,12 @@ dm_name: dw 0
 dm_n_il: db "DEMO_IL "
 dm_n_ld: db "DEMO_LD "
 dm_n_fbd: db "DEMO_FBD"
-dm_c_main: db "Calls the 3 demos",0
+dm_n_st:  db "DEMO_ST "
+dm_c_main: db "Calls the 4 demos",0
 dm_c_il:   db "Traffic light (IL)",0
 dm_c_ld:   db "Pump and fan (LD)",0
 dm_c_fbd:  db "Valve and horn (FBD)",0
+dm_c_st:   db "Level bar (ST)",0
 
 ; ---- watch list: [area][index]
 dm_watch:
@@ -232,6 +244,7 @@ dm_watch:
         db AR_Q,9                               ; Horn
         db AR_FBM+0x30,FBT_TOF*FB_PER_TYPE+1    ; TValve.ET
         db AR_FBM+0x40,FBT_CTU*FB_PER_TYPE+0    ; Fills.CV
+        db AR_MW,0                              ; Level (ST)
         db AR_SW,0                              ; ScanLast (scan cycle time)
         db AR_SW,1                              ; ScanMax
         db AR_SW,2                              ; ScanMin
@@ -283,16 +296,59 @@ dm_syms:
         db AR_I,13,"SvcRst",0,"Service reset",0
         db AR_Q,10,"Service",0,"Service needed",0
         db AR_FBI,FBT_CTU*FB_PER_TYPE+0,"Fills",0,"Fill counter",0
+        ; DEMO_ST
+        db AR_I,2,"Up",0,"Level bar: one step up",0
+        db AR_I,3,"Clear",0,"Level bar: back to 0",0
+        db AR_Q,3,"Bar1",0,"Level >= 1",0
+        db AR_Q,7,"Bar2",0,"Level >= 3",0
+        db AR_Q,11,"Bar3",0,"Level = 5",0
+        db AR_MW,0,"Level",0,"Level 0-5",0
+        db AR_MW,1,"Total",0,"1 + 2 + ... + Level",0
+        db AR_MW,2,"Range",0,"0 empty, 1 low, 2 high",0
+        db AR_MW,3,"N",0,"FOR loop counter",0
+        db AR_FBI,FBT_RTRIG*FB_PER_TYPE+1,"UpEdge",0,"Rising edge of Up",0
         db 0xFF
 
 ; ---- MAIN
 dm_main:
         db "// Demo project: MAIN runs the",0
-        db "// traffic light (IL), the pump (LD)",0
-        db "// and the tank (FBD)",0
+        db "// traffic light (IL), the pump (LD),",0
+        db "// the tank (FBD) and the level bar (ST)",0
         db "CAL",9,"DEMO_IL",0
         db "CAL",9,"DEMO_LD",0
         db "CAL",9,"DEMO_FBD",0
+        db "CAL",9,"DEMO_ST",0
+        db 0xFF
+
+; ---- DEMO_ST: a level 0-5, one step up on each press of Up
+dm_st:
+        db "// Up: one step up, after 5 back to 0",0
+        db "UpEdge(CLK := Up);",0
+        db "IF UpEdge.Q THEN",0
+        db "IF Level < 5 THEN",0
+        db "Level := Level + 1;",0
+        db "ELSE",0
+        db "Level := 0;",0
+        db "END_IF;",0
+        db "END_IF;",0
+        db "IF Clear THEN Level := 0; END_IF;",0
+        db "",0
+        db "// The bar on three outputs",0
+        db "Bar1 := Level >= 1;",0
+        db "Bar2 := Level >= 3;",0
+        db "Bar3 := Level = 5;",0
+        db "",0
+        db "// Total = 1 + 2 + ... + Level",0
+        db "Total := 0;",0
+        db "FOR N := 1 TO Level DO",0
+        db "Total := Total + N;",0
+        db "END_FOR;",0
+        db "",0
+        db "CASE Level OF",0
+        db "0: Range := 0;",0
+        db "1..3: Range := 1;",0
+        db "ELSE Range := 2;",0
+        db "END_CASE;",0
         db 0xFF
 
 ; ---- DEMO_IL: traffic light as a step sequence (one step active in S0)

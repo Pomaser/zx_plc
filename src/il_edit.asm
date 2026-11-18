@@ -1001,6 +1001,8 @@ il_fmt_one:
         jr z,.sym
         cp AR_SX
         jr z,.sym
+        cp AR_MW
+        jr z,.sym
         cp AR_FBI
         jr z,.sym
         and AR_MASK

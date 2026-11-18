@@ -31,10 +31,12 @@ scr_run:
         ld a,(cur_pou)          ; (every language can be monitored)
         call pou_lang
         inc a
-        ld (sm_mon),a           ; 1 = IL, 2 = LD, 3 = FBD
+        ld (sm_mon),a           ; 1 = IL, 2 = LD, 3 = FBD, 4 = ST
+        cp 4
+        jr z,.lines
         cp 2
         jr nc,.ldm
-        call il_count
+.lines: call il_count
         jr .nomon
 .ldm:   call ld_nrows           ; scrolling limit
         ld l,a
@@ -627,6 +629,8 @@ sim_draw_list:
 .tr:    BCALL tr_draw
         ret
 .prog:  ld a,(sm_mon)
+        cp 4
+        jr z,.st
         cp 2
         jr c,.nld
         ld a,(sm_top)           ; LD / FBD diagram
@@ -671,6 +675,26 @@ sim_draw_list:
         pop hl
         ld (il_cur),hl
         ret
+.st:    xor a                   ; ST: the lines (st_edit.asm), each with its
+        ld (sm_r),a             ; assignment target / condition operand
+.sl:    ld a,(sm_r)
+        ld e,a
+        ld d,0
+        ld hl,(sm_top)
+        add hl,de
+        ex de,hl
+        add a,IL_ROW0
+        ld b,a
+        BCALL st_sim_row        ; -> rd_o
+        call sim_desc_addr
+        ld (hl),0
+        call sim_mon_op
+        ld hl,sm_r
+        inc (hl)
+        ld a,(hl)
+        cp SIM_ROWS
+        jr c,.sl
+        ret
 
 ; sim_mon_desc: after il_draw_row (rd_m/rd_o/dr_kind) -> descriptor of row sm_r
 sim_mon_desc:
@@ -690,7 +714,7 @@ sim_mon_desc:
         cp IC_LABEL
         ret z
         cp IC_CALL
-        jr nz,.op
+        jr nz,sim_mon_op
         ld hl,rd_o              ; CAL of a timer: its ET ("NAME(..." ->
 .cn:    ld a,(hl)               ; "NAME.ET"; POU calls do not resolve)
         or a
@@ -706,7 +730,9 @@ sim_mon_desc:
         ld (hl),'T'
         inc hl
         ld (hl),0
-.op:    ld hl,rd_o
+; sim_mon_op: the operand text rd_o -> descriptor of row sm_r (if shown)
+sim_mon_op:
+        ld hl,rd_o
         call cp_operand
         ret c
         ld a,(cp_mode)
@@ -756,6 +782,8 @@ sim_update:
         BCALL wt_update
         jr .leds
 .prog:  ld a,(sm_mon)
+        cp 4
+        jr z,.mon
         cp 2
         jr c,.nld
         jr z,.ld
@@ -765,7 +793,7 @@ sim_update:
         jr .leds
 .nld:   or a
         jr z,.leds
-        xor a
+.mon:   xor a
         ld (sm_r),a
 .l:     call sim_desc_addr
         ld a,(hl)

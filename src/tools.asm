@@ -218,9 +218,13 @@ xr_scan:
         or c
         jr z,.next
         ld a,(xr_lang)
+        cp LANG_ST
+        jr z,.st
         cp LANG_IL
         jr nz,.grid
         call xr_il
+        jr .next
+.st:    call xr_st
         jr .next
 .grid:  inc hl                  ; (row count)
         call xr_grid
@@ -356,6 +360,27 @@ xr_match:
         cp (hl)
         pop hl
         ret
+
+; xr_st: HL = first line record of an ST body (st_xr_line in the FBD
+;      bank tells if the line uses the operand)
+xr_st:  ld de,0
+        ld (xr_line),de
+.l:     call xr_at_end
+        ret nc
+        ld (xr_rec),hl
+        ld a,(xr_idx)
+        ld c,a
+        ld a,(xr_area)
+        BCALL st_xr_line
+        call z,xr_add_il
+        ld hl,(xr_line)
+        inc hl
+        ld (xr_line),hl
+        ld hl,(xr_rec)
+        ld e,(hl)
+        ld d,0
+        add hl,de
+        jr .l
 
 xr_add_il:
         ld de,(xr_line)
@@ -687,7 +712,10 @@ xr_draw_entry:
         call pou_lang
         ld de,rd_o              ; place
         cp LANG_IL
+        jr z,.ln
+        cp LANG_ST
         jr nz,.rc
+.ln:
         ld hl,txt_xr_line
         call put_str
         ld hl,(xr_ep)
