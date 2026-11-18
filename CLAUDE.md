@@ -255,7 +255,10 @@ editor and key for users.
     (`src/complete.asm`, DEMO bank: locals read from the body text, symbols sorted, FB members after
     "Inst."; 4-byte entries pointing into the project / `fb_members`), then replaces it with il_out.
     `st_norm` drops a ";" after END_x (`sn_semi`; the compiler takes it as optional).
-    `st_sim_row` draws a line for the simulation (cells 0-24) and puts the watched operand in rd_o;
+    `st_sim_row` draws a line for the simulation (cells 0-31): `st_render` (`rn_fld`) leaves a value
+    field (BOOL 4 / INT 5 / TIME 7 cells, from the next cell) behind every variable and lists it in rd_o
+    (`[col][mode][addr][mask]`, max 4, 0xFF); sim.asm copies the list to `stm_tab` (EDIT bank) and
+    `stm_update` / `stm_draw` fill the fields (paper: TRUE green, FALSE white, numbers cyan);
     `st_xr_line` serves the cross references; `st_add_line` + `st_load_text` (app.asm) load text
     (demo, tests; the text goes through il_out, fixed memory).
   - `src/st_comp.asm` (RUN bank): recursive descent over the tokens of all lines. Expressions on the

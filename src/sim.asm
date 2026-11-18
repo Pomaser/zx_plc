@@ -685,10 +685,42 @@ sim_draw_list:
         ex de,hl
         add a,IL_ROW0
         ld b,a
-        BCALL st_sim_row        ; -> rd_o
-        call sim_desc_addr
-        ld (hl),0
-        call sim_mon_op
+        BCALL st_sim_row        ; -> rd_o: the value fields of the line
+        call stm_addr           ; -> stm_tab row sm_r (4 entries)
+        ex de,hl
+        ld hl,rd_o
+        ld b,STM_PER
+.fc:    ld a,(hl)
+        cp 0xFF
+        jr z,.fe
+        push bc
+        ld bc,5                 ; [col][mode][addr][mask]
+        ldir
+        pop bc
+        dec de                  ; (mode: bit 7 = draw it)
+        dec de
+        dec de
+        dec de
+        ex de,hl
+        set 7,(hl)
+        inc hl
+        inc hl
+        inc hl
+        inc hl
+        inc hl                  ; (past the last value)
+        inc hl
+        ex de,hl
+        djnz .fc
+        jr .fd
+.fe:    ld a,0xFF               ; the rest: unused
+        ld (de),a
+        push hl
+        ld hl,STM_ESZ
+        add hl,de
+        ex de,hl
+        pop hl
+        djnz .fe
+.fd:
         ld hl,sm_r
         inc (hl)
         ld a,(hl)
@@ -732,30 +764,7 @@ sim_mon_desc:
         ld (hl),0
 ; sim_mon_op: the operand text rd_o -> descriptor of row sm_r (if shown)
 sim_mon_op:
-        ld a,(sm_mon)           ; ST: a local variable first
-        cp 4
-        jr nz,.gl
-        ld a,(cur_pou)
         ld hl,rd_o
-        BCALL st_lvaddr
-        jr c,.gl
-        ld (cp_arg),hl
-        ld a,1
-        ld (cp_arg3),a
-        ld a,b
-        cp 2                    ; TIME
-        ld a,0
-        jr nz,.t
-        inc a
-.t:     ld (cp_istime),a
-        ld a,b
-        or a
-        ld a,VM_MB+0x20         ; bit 5: in the RUN bank
-        jr z,.m
-        ld a,VM_MW+0x20
-.m:     ld (cp_mode),a
-        jr .ok
-.gl:    ld hl,rd_o
         call cp_operand
         ret c
         ld a,(cp_mode)
@@ -806,7 +815,10 @@ sim_update:
         jr .leds
 .prog:  ld a,(sm_mon)
         cp 4
-        jr z,.mon
+        jr nz,.nst
+        call stm_update
+        jr .leds
+.nst:
         cp 2
         jr c,.nld
         jr z,.ld
@@ -824,39 +836,8 @@ sim_update:
         jr z,.next
         push hl
         pop ix
-        ; current value -> DE
-        ld l,(ix+1)
-        ld h,(ix+2)
-        and 0x3F
-        bit 5,a
-        jr z,.nb
-        push af
-        BCALL st_lvrd           ; a local (RUN bank): a copy in rd_c
-        pop af
-        and 0x1F
-.nb:    cp VM_MB
-        jr nz,.w
-        ld a,(ix+3)
-        and (hl)
-        ld de,0
-        jr z,.cmp
-        inc e
-        jr .cmp
-.w:     ld e,(hl)
-        inc hl
-        ld d,(hl)
-.cmp:   bit 7,(ix+0)
-        jr nz,.draw
-        ld a,(ix+4)
-        cp e
-        jr nz,.draw
-        ld a,(ix+5)
-        cp d
-        jr z,.next
-.draw:  res 7,(ix+0)
-        ld (ix+4),e
-        ld (ix+5),d
-        call sim_draw_val
+        call sim_chk
+        call nz,sim_draw_val
 .next:  ld hl,sm_r
         inc (hl)
         ld a,(hl)
@@ -929,6 +910,191 @@ sim_update:
         inc e
         djnz .lb
         ret
+
+; sim_chk: IX = value descriptor [mode][addr lo hi][mask][last lo hi]
+;      (mode bit 7: draw it, bit 6: TIME, bit 5: a local in the RUN bank)
+;      -> NZ if it must be drawn (the value stored in last)
+sim_chk:
+        ld a,(ix+0)
+        ld l,(ix+1)
+        ld h,(ix+2)
+        and 0x3F
+        bit 5,a
+        jr z,.nb
+        push af
+        BCALL st_lvrd           ; a local (RUN bank): a copy in rd_c
+        pop af
+        and 0x1F
+.nb:    cp VM_MB
+        jr nz,.w
+        ld a,(ix+3)
+        and (hl)
+        ld de,0
+        jr z,.cmp
+        inc e
+        jr .cmp
+.w:     ld e,(hl)
+        inc hl
+        ld d,(hl)
+.cmp:   bit 7,(ix+0)
+        jr nz,.draw
+        ld a,(ix+4)
+        cp e
+        jr nz,.draw
+        ld a,(ix+5)
+        cp d
+        ret z
+.draw:  res 7,(ix+0)
+        ld (ix+4),e
+        ld (ix+5),d
+        or 1
+        ret
+
+; ---- ST: a value field right behind each variable of a line (cells from
+;      st_sim_row): stm_tab row r = STM_PER entries [col][descriptor]
+STM_PER EQU 4
+STM_ESZ EQU 7
+
+; stm_addr: HL = stm_tab + sm_r * STM_PER * STM_ESZ
+stm_addr:
+        ld a,(sm_r)
+        ld l,a
+        ld h,0
+        add hl,hl
+        add hl,hl
+        ld d,h
+        ld e,l
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        or a
+        sbc hl,de               ; * 28
+        ld de,stm_tab
+        add hl,de
+        ret
+
+; stm_update: redraws the changed values of the ST listing
+stm_update:
+        xor a
+        ld (sm_r),a
+.r:     call stm_addr
+        ld b,STM_PER
+.e:     push bc
+        push hl
+        ld a,(hl)
+        cp 0xFF
+        jr z,.n
+        inc hl
+        push hl
+        pop ix
+        call sim_chk
+        call nz,stm_draw
+.n:     pop hl
+        ld de,STM_ESZ
+        add hl,de
+        pop bc
+        djnz .e
+        ld hl,sm_r
+        inc (hl)
+        ld a,(hl)
+        cp SIM_ROWS
+        jr c,.r
+        ret
+
+; stm_draw: IX = descriptor (its cell at IX-1) of row sm_r -> the field:
+;      BOOL 4 cells TRUE (green) / FALSE (white), INT 5 / TIME 7 cells
+;      (bright cyan), the number right aligned
+stm_draw:
+        ld a,(sm_r)
+        add a,IL_ROW0
+        ld (pt_row),a
+        ld b,a
+        ld c,(ix-1)
+        ld a,(ix+0)
+        and 0x1F
+        ld d,4
+        ld e,0x78               ; FALSE: bright white
+        cp VM_MB
+        jr z,.w
+        ld d,5
+        ld e,0x68               ; INT / TIME: bright cyan
+        bit 6,(ix+0)
+        jr z,.w
+        ld d,7
+.w:     ld a,(ix+0)             ; TRUE: green
+        and 0x1F
+        cp VM_MB
+        jr nz,.w2
+        ld a,(ix+4)
+        or a
+        jr z,.w2
+        ld e,ATTR_ON
+.w2:    push bc
+        push de
+        call scr_fill_attr
+        pop de
+        pop bc
+        push bc
+        push de
+        ld a,c                  ; the pixels cleared
+        add a,a
+        add a,a
+        add a,a
+        ld c,a
+        ld a,d
+        add a,a
+        add a,a
+        add a,a
+        ld d,a
+        ld hl,0x0008
+        ld e,PX_CLR
+        call px_span
+        pop de
+        pop bc
+        ld a,(ix+0)
+        and 0x1F
+        cp VM_MB
+        jr nz,.num
+        ld hl,kw_false
+        ld a,(ix+4)
+        or a
+        jr z,.lt
+        ld hl,txt_sm_true
+.lt:    ld a,c
+        add a,a
+        add a,a
+        add a,a
+        inc a
+        ld (pt_x),a
+        jp pt_puts
+.num:   push bc
+        push de
+        ld l,(ix+4)
+        ld h,(ix+5)
+        ld de,sm_num
+        bit 6,(ix+0)
+        jr nz,.t
+        call itoa16
+        jr .n
+.t:     ld a,AR_KT              ; "T#1s260ms" without "T#"
+        ld b,0
+        call op_format
+.n:     pop de
+        pop bc
+        ld a,c                  ; right edge: the field end - 2
+        add a,d
+        add a,a
+        add a,a
+        add a,a
+        sub 2
+        ld hl,sm_num
+        bit 6,(ix+0)
+        jr z,.r
+        inc hl
+        inc hl
+.r:     jp pt_puts_r
+
+stm_tab: ds SIM_ROWS*STM_PER*STM_ESZ
 
 ; ---- sim_draw_val: IX = descriptor (value in +4/+5), row sm_r
 sim_draw_val:

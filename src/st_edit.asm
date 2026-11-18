@@ -20,7 +20,7 @@ ST_X_SEP EQU 23
 ST_X0    EQU 25             ; text start (cell 3 + 1)
 ST_BLEN  EQU 60             ; max. characters of a line
 ST_IMAX  EQU 12             ; max. indent (cells)
-ST_SIM_COL EQU 25           ; simulation: the values from this cell (SIM_VCOL)
+ST_SIM_COL EQU 32           ; simulation: the whole row (values in the line)
 
 ; ---- st_editor: screen handler for an ST POU, returns a command in A
 st_editor:
@@ -1970,7 +1970,7 @@ st_render:
         jr nz,.wse2
         ld a,(rn_gap)           ; a keyword at the end (no space after it):
         or a                    ; the cursor right behind it, not in the gap
-        jr z,.end
+        jp z,.end
         ld a,(rn_ke)
         ld (rn_x),a
         jr .end
@@ -1997,7 +1997,13 @@ st_render:
         inc hl
         jr .cl
 .ce:    ld a,(ste.lx_type)
-        cp T_CMT
+        cp T_WORD               ; simulation: a value field behind a variable
+        jr nz,.ce1
+        ld a,(sr_sim)
+        or a
+        call nz,rn_fld
+        jp .tok
+.ce1:   cp T_CMT
         jr z,.cmt
         cp T_KW
         jp nz,.tok
@@ -2054,11 +2060,98 @@ rn_ov:  ld a,1
         ld (rn_x),a
         ret
 
+; rn_fld: the word just drawn in the simulation listing: a BOOL / INT /
+;      TIME variable gets a value field (4 / 5 / 7 cells) from the next
+;      cell, listed at fl_out: [col][mode][addr lo hi][mask] ... 0xFF
+;      (mode bit 6: TIME, bit 5: a local, read through the RUN bank)
+rn_fld:
+        ld a,(fl_nf)
+        cp 4
+        ret nc
+        ld hl,ste.lx_word       ; the name -> fixed memory
+        ld de,popup_buf
+        call put_str0
+        ld a,(cur_pou)
+        ld hl,popup_buf
+        BCALL st_lvaddr         ; a local: HL = address, B = type
+        jr c,.gl
+        ld c,1
+        ld e,VM_MB+0x20
+        ld a,b
+        or a
+        jr z,.ty
+        ld e,VM_MW+0x20
+        dec a
+        jr z,.ty
+        ld e,VM_MW+0x60
+        jr .ty
+.gl:    ld hl,popup_buf
+        call cp_operand
+        ret c
+        ld a,(cp_mode)
+        ld e,a
+        cp VM_MB
+        jr z,.g1
+        cp VM_MW
+        ret nz
+        ld a,(cp_istime)
+        or a
+        jr z,.g1
+        ld e,VM_MW+0x40
+.g1:    ld hl,(cp_arg)
+        ld a,(cp_arg3)
+        ld c,a
+.ty:    push hl
+        ld d,4                  ; the width: BOOL 4, INT 5, TIME 7 cells
+        ld a,e
+        and 0x1F
+        cp VM_MB
+        jr z,.w
+        inc d
+        bit 6,e
+        jr z,.w
+        inc d
+        inc d
+.w:     call rn_snap
+        ld a,(rn_x)
+        rrca
+        rrca
+        rrca
+        and 31
+        ld b,a                  ; B = the first cell
+        add a,d
+        cp 32
+        jr nc,.full
+        add a,a
+        add a,a
+        add a,a
+        inc a
+        ld (rn_x),a             ; the text goes on behind the field
+        ld hl,(fl_out)
+        ld (hl),b
+        inc hl
+        ld (hl),e
+        inc hl
+        pop de
+        ld (hl),e
+        inc hl
+        ld (hl),d
+        inc hl
+        ld (hl),c
+        inc hl
+        ld (hl),0xFF
+        ld (fl_out),hl
+        ld hl,fl_nf
+        inc (hl)
+        ret
+.full:  pop hl
+        ret
+
 ; rn_snap: rn_x -> the next x = 8k+1
 rn_snap:
         ld a,(rn_x)
         add a,6
-        jr c,rn_ov
+        jp c,rn_ov
         and 0xF8
         inc a
         ld (rn_x),a
@@ -2632,80 +2725,26 @@ st_key:
         ret
 
 ; ---- st_sim_row: the simulation listing (sim.asm, BCALL): B = screen
-;      row, DE = line of POU cur_pou -> drawn in cells 0-24; rd_o = the
-;      operand to watch: the target of "x :=", the operand of
-;      "IF x THEN" / "WHILE x DO" / "UNTIL x" / "CASE x OF" / "FOR x :=",
-;      "INST(" -> "INST.ET" (as in IL); "" for none
+;      row, DE = line of POU cur_pou -> drawn in cells 0-31, the value
+;      field of each variable left free and listed in rd_o (rn_fld)
 st_sim_row:
         ld a,1
         ld (sr_sim),a
+        ld hl,rd_o
+        ld (hl),0xFF
+        ld (fl_out),hl
         xor a
-        ld (rd_o),a
-        ld (st_tmp2),a
+        ld (fl_nf),a
         call st_draw_row
         xor a
         ld (sr_sim),a
-        ld hl,st_tmp2
-        ld (ste.lx_p),hl
-        call ste.lx_next
-        ld a,(ste.lx_type)
-        cp T_KW
-        jr nz,.w
-        ld a,(ste.lx_kw)
-        ld hl,ws_kw
-        call ii_in
-        ret nz
-        call ste.lx_next
-        ld a,(ste.lx_type)
-        cp T_WORD
-        ret nz
-        call .copy
-        call ste.lx_next        ; a single operand: THEN / DO / OF / := / end
-        ld a,(ste.lx_type)
-        or a
-        ret z
-        cp T_KW
-        ret z
-        cp T_SYM
-        jr nz,.clr
-        ld a,(ste.lx_sym)
-        cp S_ASG
-        ret z
-.clr:   xor a
-        ld (rd_o),a
         ret
-.w:     cp T_WORD
-        ret nz
-        call .copy
-        call ste.lx_next
-        ld a,(ste.lx_type)
-        cp T_SYM
-        jr nz,.clr
-        ld a,(ste.lx_sym)
-        cp S_ASG
-        ret z
-        cp ':'                  ; a declaration "Name : TYPE"
-        ret z
-        cp '('
-        jr nz,.clr
-        ld hl,rd_o              ; "INST" + ".ET"
-        xor a
-        ld bc,40
-        cpir
-        dec hl
-        ex de,hl
-        ld hl,txt_ws_et
-        jr put_str0
-.copy:  ld hl,ste.lx_word
-        ld de,rd_o
+
 put_str0:                       ; HL -> DE with the 0 (DE -> the 0)
         call put_str
         xor a
         ld (de),a
         ret
-
-ws_kw:     db KW_IF,KW_ELSIF,KW_WHILE,KW_UNTIL,KW_CASE,KW_FOR,0
-txt_ws_et: db ".ET",0
 
 ; ---- st_xr_line: HL = ST line record (cross references, tools.asm, BCALL),
 ;      A = area, C = index of the operand searched (a member counts as its
@@ -2847,7 +2886,9 @@ st_con:    db 0             ; 1: the cursor is drawn
 se_buf:    ds ST_BLEN+2
 st_tail:   ds ST_BLEN+2
 st_tmp:    ds ST_BLEN+2
-st_tmp2:   ds 256
+st_tmp2:   ds 80
+fl_out:    dw 0
+fl_nf:     db 0
 st_spl:    ds ST_BLEN+2
 st_split:  db 0
 st_brkf:   db 0

@@ -527,7 +527,8 @@ END_VAR
   the window "Declare count as:" `B` BOOL, `I` INT or `T` TIME. The declaration is added to the block
   (a new block is made at the start of the POU); BREAK leaves the name as an error. Leaving the line
   another way (UP, DOWN, the mouse) only reports "Unknown name".
-* In the simulation the block is open and every declaration line shows the live value of its variable.
+* In the simulation the block is open and every declaration line shows the live value of its variable
+  behind its name.
 * `VAR_GLOBAL`, `VAR_INPUT` and `VAR_OUTPUT` are reserved for a later version; global variables are the
   symbols. Local FB instances (`T1 : TON`) are not possible yet: use TON0 ... with a symbol.
 
@@ -563,8 +564,9 @@ the faulty line or element; the message is shown in the status bar.
 
     ![Simulation of DEMO_FBD](img/sim_fbd.png)
 
-  * ST lines show the value of the variable they assign (`x := ...`), of the single operand of
-    `IF x`, `ELSIF x`, `WHILE x`, `UNTIL x`, `CASE x`, `FOR x := ...`, or the ET of a timer call:
+  * In ST every variable shows its value right behind its name, in a field that starts on the next
+    character cell: BOOL as TRUE (green) / FALSE (white) in 4 cells, INT (5 cells) and TIME (7 cells)
+    on light blue. Up to 4 fields per line; what does not fit on the screen width is left out:
 
     ![Simulation of DEMO_ST](img/sim_st.png)
 
