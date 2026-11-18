@@ -122,6 +122,10 @@ st_editor:
         jr c,.loop
         cp 128
         jr nc,.loop
+        cp ' '                  ; a space after a keyword: in upper case
+        push af
+        call z,st_kwup
+        pop af
         call st_insert
         call c,beep
 .redraw:                        ; text part only
@@ -1155,6 +1159,40 @@ ri_open:
 ; edit buffer
 ; ============================================================
 
+; ---- st_kwup: a keyword that ends at the cursor is written in upper case
+;      in se_buf (not in a comment: the line is read by the tokenizer)
+st_kwup:
+        ld a,(st_pos)
+        ld e,a
+        ld d,0
+        ld hl,se_buf
+        add hl,de
+        ld (ku_end),hl
+        ld hl,se_buf
+        ld (ste.lx_p),hl
+.l:     call ste.lx_next
+        ld a,(ste.lx_type)
+        or a
+        ret z
+        ld hl,(ste.lx_p)
+        ld de,(ku_end)
+        or a
+        sbc hl,de
+        jr c,.l
+        ret nz                  ; (the cursor is inside this token)
+        ld a,(ste.lx_type)
+        cp T_KW
+        ret nz
+        ld hl,(ste.lx_start)
+        ld de,ste.lx_word
+.u:     ld a,(de)
+        or a
+        ret z
+        ld (hl),a
+        inc hl
+        inc de
+        jr .u
+
 ; ---- st_len: A = length of se_buf (keeps BC, DE)
 st_len:
         push bc
@@ -2018,6 +2056,7 @@ st_tmp2:   ds 256
 st_spl:    ds ST_BLEN+2
 st_split:  db 0
 st_brkf:   db 0
+ku_end:    dw 0
 bk_n:      db 0
 bk_aft:    db 0
 bk_end:    db 0

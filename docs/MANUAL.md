@@ -432,7 +432,7 @@ works like a small text editor:
 
 * Keywords (`IF`, `THEN`, `END_IF`, `AND`, ...) are dark blue and start on a character cell, so the text
   after a keyword can have a small gap. Comments (`// text` to the end of the line, or `(* text *)`) are
-  dark green.
+  dark green. A keyword typed in lower case (`if`) turns upper case as soon as a space follows it.
 * **Every control keyword is on a line of its own:** `IF`, `THEN`, `ELSIF`, `ELSE`, `END_IF`, `CASE`,
   `OF`, `FOR`, `DO`, `WHILE`, `REPEAT`, `UNTIL` and the `END_...` keywords start a line, and nothing but
   a comment follows `THEN`, `ELSE`, `DO`, `OF`, `REPEAT` or `END_...;` on it. A line typed as
