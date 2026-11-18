@@ -1889,15 +1889,23 @@ st_render:
         sbc hl,de
         add hl,de
         jr z,.wse
-        ld a,(rn_gap)           ; (the first one after a keyword: in its gap)
-        or a
-        ld a,0
-        jr nz,.w0
+        ld a,(rn_gap)           ; (the first one after a keyword: in its gap,
+        or a                    ; the cursor right behind the keyword)
+        jr nz,.wg
         ld a,' '
         call pt_charw
-.w0:    ld c,a
+        ld c,a
         call rn_char
-        xor a
+        jr .wn
+.wg:    ld a,(rn_x)
+        push af
+        ld a,(rn_ke)
+        ld (rn_x),a
+        ld c,0
+        call rn_char
+        pop af
+        ld (rn_x),a
+.wn:    xor a
         ld (rn_gap),a
         inc hl
         jr .ws
@@ -1936,7 +1944,7 @@ st_render:
         cp T_CMT
         jr z,.cmt
         cp T_KW
-        jr nz,.tok
+        jp nz,.tok
         ld a,(rn_x)             ; keyword: its cells blue, next cell
         ld (rn_ke),a
         sub 2
