@@ -176,6 +176,16 @@ lv_first:
 .e:     ld a,(lf_sum)
         ret
 
+; ---- lv_reset: the locals get their initial values (after compiling,
+;      vm_reset). NC
+lv_reset:
+        ld hl,LV_INIT
+        ld de,LV_BASE
+        ld bc,LV_MAX*2
+        ldir
+        or a
+        ret
+
 ; ---- st_lvaddr: A = POU slot, HL = name (upper case, fixed memory) ->
 ;      NC: a local of that POU, HL = its address, B = type; C: not one
 ;      (simulation monitor, BCALL from the EDIT bank)

@@ -506,14 +506,12 @@ st_editor:
         ; ---- mouse: a click puts the cursor on the line and character under
         ;      it; the right button is ENTER
 .mouse: BCALL ms_crow
-        sub ST_ROW0
+        cp ST_ROW0
         jp c,.loop
-        cp ST_ROWS
+        cp ST_ROW0+ST_ROWS
         jp nc,.loop
-        ld e,a
-        ld d,0
-        ld hl,(st_top)
-        add hl,de
+        call st_rowline
+        ex de,hl
         ld de,(st_n)            ; (below the last line: the last line)
         or a
         sbc hl,de
@@ -597,6 +595,11 @@ st_editor:
         ld (st_left),hl
         ret
 .mkd:   ld hl,(st_top)          ; marker bars of the marked block
+        ld a,h                  ; (folded, top 0: rows 1.. are st_fh+1..)
+        or l
+        jr nz,.mk1
+        ld hl,(st_fh)
+.mk1:
         ld de,(st_cur)
         ld bc,ST_ROWS*256+ST_ROW0
         ld a,2
@@ -672,6 +675,9 @@ au_endcs: db "END_CASE",0
 au_endrp: db "END_REPEAT",0
 au_endvar: db "END_VAR",0
 au_chk:   db 0
+txt_var:  db "VAR",0
+txt_sf_more: db " ..",0
+SF_MAX  EQU 46                  ; summary: characters of declarations
 au_end:   db 0
 au_p:     dw 0
 
@@ -1831,18 +1837,91 @@ rn_mark:
 
 ; ---- st_row_cur: A = screen row of the current line
 st_row_cur:
+        ld hl,(st_top)
+        call st_d
+        ex de,hl
         ld hl,(st_cur)
-        ld de,(st_top)
+        call st_d
         or a
         sbc hl,de
         ld a,l
         add a,ST_ROW0
         ret
 
-; ---- st_fix_top: keeps st_cur visible; NZ = st_top changed
+; ---- folding of the VAR block: while the cursor is below END_VAR, the
+;      lines 1..END_VAR (st_fh of them) are hidden and line 0 shows a
+;      summary of the declarations. Display index D: line 0 -> 0, a hidden
+;      line -> 0, line l > st_fh -> l - st_fh
+
+; st_d: HL = line -> HL = display index (keeps BC, DE)
+st_d:   push de
+        ld de,(st_fh)
+        ld a,d
+        or e
+        jr z,.e
+        ld a,h
+        or l
+        jr z,.e
+        or a
+        sbc hl,de
+        jr z,.z
+        jr nc,.e
+.z:     ld hl,0
+.e:     pop de
+        ret
+
+; st_l: HL = display index -> HL = line (keeps BC, DE)
+st_l:   ld a,h
+        or l
+        ret z
+        push de
+        ld de,(st_fh)
+        add hl,de
+        pop de
+        ret
+
+; st_fcalc: st_fh for the current cursor; NZ = it changed
+st_fcalc:
+        ld a,(cur_pou)
+        ld hl,st_nothing
+        call ste.st_vfind
+        ld a,(ste.vf_cnt)
+        ld (st_fcnt),a
+        ld hl,0
+        ld a,(ste.vf_var)
+        or a
+        jr z,.s
+        ld de,(ste.vf_end)
+        ld a,d
+        or e
+        jr z,.s
+        ld hl,(st_cur)          ; below END_VAR?
+        or a
+        sbc hl,de
+        ld hl,0
+        jr z,.s
+        jr c,.s
+        ex de,hl
+.s:     ld de,(st_fh)
+        ld (st_fh),hl
+        or a
+        sbc hl,de
+        ld a,h
+        or l
+        ret
+
+; ---- st_fix_top: keeps st_cur visible; NZ = st_top or the folding changed
 st_fix_top:
+        call st_fcalc
+        push af
+        ld hl,(st_top)          ; (never a hidden line)
+        call st_d
+        call st_l
+        ld (st_top),hl
+        call st_d
+        ex de,hl
         ld hl,(st_cur)
-        ld de,(st_top)
+        call st_d
         or a
         sbc hl,de
         jr c,.up
@@ -1850,18 +1929,140 @@ st_fix_top:
         or a
         sbc hl,de
         jr nc,.down
-        xor a
+        pop af
         ret
-.up:    ld hl,(st_cur)
+.up:    pop af
+        ld hl,(st_cur)
         ld (st_top),hl
         or 1
         ret
-.down:  ld hl,(st_cur)
+.down:  pop af
+        ld hl,(st_cur)
+        call st_d
         ld de,ST_ROWS-1
         or a
         sbc hl,de
+        call st_l
         ld (st_top),hl
         or 1
+        ret
+
+; st_rowline: A = screen row (from ST_ROW0) -> DE = its line
+st_rowline:
+        sub ST_ROW0
+        ld e,a
+        ld d,0
+        ld hl,(st_top)
+        call st_d
+        add hl,de
+        call st_l
+        ex de,hl
+        ret
+
+; st_fsum: the summary of the folded VAR block -> st_tmp2:
+;      "VAR Idx : INT; Sum : INT; .. (n)" (comments left out)
+st_fsum:
+        ld de,st_tmp2
+        ld hl,txt_var
+        call put_str
+        ld (sf_out),de
+        ld hl,1
+        ld (sf_l),hl
+.l:     ld de,(sf_l)
+        ld hl,(st_fh)
+        or a
+        sbc hl,de
+        jr z,.e
+        jr c,.e
+        call st_line_addr
+        ld de,sf_buf
+        call st_rec_text
+        ld hl,sf_buf            ; cut at a comment
+        ld (ste.lx_p),hl
+.c:     call ste.lx_next
+        ld a,(ste.lx_type)
+        or a
+        jr z,.c2
+        cp T_CMT
+        jr nz,.c
+        ld hl,(ste.lx_start)
+        ld (hl),0
+        dec hl
+        ld a,(hl)
+        cp ' '
+        jr nz,.c2
+        ld (hl),0
+.c2:    ld hl,sf_buf
+        call strlen
+        or a
+        jr z,.n
+        ld c,a
+        ld hl,(sf_out)
+        ld de,st_tmp2
+        or a
+        sbc hl,de
+        ld a,l
+        add a,c
+        cp SF_MAX
+        jr nc,.full
+        ld de,(sf_out)
+        ld a,' '
+        ld (de),a
+        inc de
+        ld hl,sf_buf
+        call put_str
+        ld (sf_out),de
+.n:     ld hl,(sf_l)
+        inc hl
+        ld (sf_l),hl
+        jr .l
+.full:  ld de,(sf_out)
+        ld hl,txt_sf_more
+        call put_str
+        ld (sf_out),de
+.e:     ld de,(sf_out)          ; " (n)"
+        ld a,' '
+        ld (de),a
+        inc de
+        ld a,'('
+        ld (de),a
+        inc de
+        ld a,(st_fcnt)
+        ld b,0
+        cp 100
+        jr c,.d1
+        sub 100
+        ld c,'1'
+        call .put
+        inc b
+.d1:    ld c,'0'-1
+.d2:    inc c
+        sub 10
+        jr nc,.d2
+        add a,10
+        push af
+        ld a,c
+        cp '0'
+        jr nz,.d3
+        ld a,b
+        or a
+        jr z,.d4
+.d3:    call .put
+.d4:    pop af
+        add a,'0'
+        ld c,a
+        call .put
+        ld a,')'
+        ld (de),a
+        inc de
+        xor a
+        ld (de),a
+        ret
+.put:   push af
+        ld a,c
+        ld (de),a
+        inc de
+        pop af
         ret
 
 ; ---- st_redraw_all / st_redraw_from: A = first screen row
@@ -1875,12 +2076,7 @@ st_redraw_from:
 .l:     ld a,(rf_r)
         cp ST_ROW0+ST_ROWS
         ret nc
-        sub ST_ROW0
-        ld e,a
-        ld d,0
-        ld hl,(st_top)
-        add hl,de
-        ex de,hl
+        call st_rowline
         ld a,(rf_r)
         ld b,a
         call st_draw_row
@@ -1914,7 +2110,22 @@ st_draw_row:
         ld hl,se_buf
         ld a,(st_ind)
         jr .go
-.oth:   call st_line_addr
+.oth:   ld a,d                  ; line 0 of a folded VAR block: summary
+        or e
+        jr nz,.oth2
+        ld hl,(st_fh)
+        ld a,h
+        or l
+        jr z,.oth2
+        ld a,(sr_sim)
+        or a
+        jr nz,.oth2
+        call st_fsum
+        ld de,0
+        ld hl,st_tmp2
+        xor a
+        jr .go
+.oth2:  call st_line_addr
         jp c,.none
         ld de,st_tmp2
         call st_rec_text
@@ -2352,6 +2563,11 @@ st_brkf:   db 0
 ku_end:    dw 0
 sn_lend:   db 0
 sn_decl:   db 0
+st_fh:     dw 0                 ; folded VAR block: hidden lines (0: none)
+st_fcnt:   db 0
+sf_l:      dw 0
+sf_out:    dw 0
+sf_buf:    ds 64
 bk_decl:   db 0
 bk_n:      db 0
 bk_aft:    db 0
