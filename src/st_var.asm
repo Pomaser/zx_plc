@@ -176,10 +176,10 @@ lv_first:
 .e:     ld a,(lf_sum)
         ret
 
-; ---- st_lvval: A = POU slot, HL = name (upper case, fixed memory) ->
-;      NC: a local of that POU, DE = its value, B = type; C: not one
+; ---- st_lvaddr: A = POU slot, HL = name (upper case, fixed memory) ->
+;      NC: a local of that POU, HL = its address, B = type; C: not one
 ;      (simulation monitor, BCALL from the EDIT bank)
-st_lvval:
+st_lvaddr:
         push af
         call stc.st_vfind
         jr c,.no
@@ -196,13 +196,19 @@ st_lvval:
         add hl,hl
         ld de,LV_BASE
         add hl,de
-        ld e,(hl)
-        inc hl
-        ld d,(hl)
         or a
         ret
 .no:    pop af
         scf
+        ret
+
+; ---- st_lvrd: HL = address of a local -> its word copied to rd_c (fixed
+;      memory), HL = rd_c (simulation monitor)
+st_lvrd:
+        ld de,rd_c
+        ldi
+        ldi
+        ld hl,rd_c
         ret
 
 err_sc_dup:    db "Duplicate name",0

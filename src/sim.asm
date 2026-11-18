@@ -732,7 +732,30 @@ sim_mon_desc:
         ld (hl),0
 ; sim_mon_op: the operand text rd_o -> descriptor of row sm_r (if shown)
 sim_mon_op:
+        ld a,(sm_mon)           ; ST: a local variable first
+        cp 4
+        jr nz,.gl
+        ld a,(cur_pou)
         ld hl,rd_o
+        BCALL st_lvaddr
+        jr c,.gl
+        ld (cp_arg),hl
+        ld a,1
+        ld (cp_arg3),a
+        ld a,b
+        cp 2                    ; TIME
+        ld a,0
+        jr nz,.t
+        inc a
+.t:     ld (cp_istime),a
+        ld a,b
+        or a
+        ld a,VM_MB+0x20         ; bit 5: in the RUN bank
+        jr z,.m
+        ld a,VM_MW+0x20
+.m:     ld (cp_mode),a
+        jr .ok
+.gl:    ld hl,rd_o
         call cp_operand
         ret c
         ld a,(cp_mode)
@@ -778,7 +801,7 @@ sim_update:
         or a
         jr z,.prog
         dec a                   ; (the trend draws in tr_tick)
-        jr nz,.leds
+        jp nz,.leds
         BCALL wt_update
         jr .leds
 .prog:  ld a,(sm_mon)
@@ -805,7 +828,13 @@ sim_update:
         ld l,(ix+1)
         ld h,(ix+2)
         and 0x3F
-        cp VM_MB
+        bit 5,a
+        jr z,.nb
+        push af
+        BCALL st_lvrd           ; a local (RUN bank): a copy in rd_c
+        pop af
+        and 0x1F
+.nb:    cp VM_MB
         jr nz,.w
         ld a,(ix+3)
         and (hl)

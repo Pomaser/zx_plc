@@ -245,8 +245,8 @@ lx_kwfind:
 ; ---- st_vfind: A = POU slot, HL = name (upper case, 0) -> NC: a local
 ;      variable of that POU, C = its index in the VAR block, B = type (0
 ;      BOOL, 1 INT, 2 TIME, 0xFF: invalid); C (carry): not declared.
-;      Always: vf_cnt = number of declarations, vf_end = line of END_VAR
-;      (0: no VAR block). The block starts at line 0, one declaration
+;      Always: vf_cnt = number of declarations, vf_var = 1 if line 0 is
+;      VAR, vf_end = line of END_VAR (0: none). The block starts at line 0, one declaration
 ;      "Name : TYPE ..." per line. Keeps the tokenizer state (lx_p...)
 st_vfind:
         ld (vf_slot),a
@@ -262,6 +262,7 @@ st_vfind:
         ld (vf_res),a
         xor a
         ld (vf_cnt),a
+        ld (vf_var),a
         ld h,a
         ld l,a
         ld (vf_end),hl
@@ -279,6 +280,8 @@ st_vfind:
         ld a,(lx_kw)
         cp KW_VAR
         jr nz,.done
+        ld a,1
+        ld (vf_var),a
 .l:     call vf_load
         jr c,.done
         ld hl,(vf_line)
@@ -419,6 +422,7 @@ vf_res:   db 0
 vf_typ:   db 0
 vf_m:     db 0
 vf_cnt:   db 0
+vf_var:   db 0
 vf_end:   dw 0
 vf_line:  dw 0
 vf_rec:   dw 0

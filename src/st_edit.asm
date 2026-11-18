@@ -287,10 +287,10 @@ st_editor:
         ld b,a
         ld de,(st_oldln)
         jp st_draw_row
-        ; ---- .auto: the line is "IF c" (ELSIF / WHILE / FOR / CASE) and the
-        ;      next line does not start with its THEN (DO / OF): THEN, an
-        ;      empty line and END_IF; are added below, the cursor goes to the
-        ;      empty line. C = done
+        ; ---- .auto: ENTER at the end of "IF c" (ELSIF, WHILE, FOR, CASE,
+        ;      REPEAT, VAR) whose construct is not complete yet (.acomp):
+        ;      its lines are added below (THEN / empty / END_IF ...), the
+        ;      cursor goes to the empty line. C = done
 .auto:  ld hl,se_buf
         ld (ste.lx_p),hl
         call ste.lx_next
@@ -300,7 +300,7 @@ st_editor:
         ld a,(ste.lx_kw)
         ld hl,au_tab
         ld b,AU_N
-        ld de,6
+        ld de,AU_ESZ
 .au1:   cp (hl)
         jr z,.au2
         add hl,de
@@ -308,65 +308,59 @@ st_editor:
 .aun:   or a
         ret
 .au2:   ld (au_p),hl
-.au3:   call ste.lx_next        ; something follows the keyword
+        inc hl
+        inc hl
+        inc hl
+        ld a,(hl)               ; a condition must follow the keyword
+        or a
+        jr z,.au4
+.au3:   call ste.lx_next
         ld a,(ste.lx_type)
         or a
         jr z,.aun
         cp T_CMT
         jr z,.au3
-        ld de,(st_cur)          ; the next line: already THEN?
-        inc de
-        call st_line_addr
-        jr c,.au4
-        ld de,st_tmp2
-        call st_rec_text
-        ld hl,st_tmp2
-        ld (ste.lx_p),hl
-        call ste.lx_next
-        ld a,(ste.lx_type)
-        cp T_KW
-        jr nz,.au4
-        ld hl,(au_p)
-        inc hl
-        ld a,(ste.lx_kw)
-        cp (hl)
-        jr z,.aun
-.au4:   ld hl,(st_n)            ; room for 3 lines
+.au4:   call .acomp
+        jr c,.aun
+        ld hl,(st_n)            ; room for 3 lines
         ld de,IL_MAXLN-3
         or a
         sbc hl,de
         jr nc,.aun
-        ld hl,(au_p)            ; inserted in reverse order
-        ld de,4
+        ld hl,(au_p)            ; the lines in reverse order
+        ld de,AU_ESZ-2
         add hl,de
+        ld b,3
+.ai:    push bc
+        push hl
         ld e,(hl)
         inc hl
         ld d,(hl)
         ld a,d
         or e
-        jr z,.au5
+        jr z,.ai2
         ex de,hl
-        call .auins             ; END_x;
-        ret c
-.au5:   ld hl,st_nothing
-        call .auins             ; the empty line
-        ret c
-        ld hl,(au_p)
-        inc hl
-        inc hl
-        ld e,(hl)
-        inc hl
-        ld d,(hl)
-        ex de,hl
-        call .auins             ; THEN / DO / OF
-        ret c
+        call .auins
+        jr nc,.ai2
+        pop hl
+        pop bc
+        ret                     ; (C: out of memory, message shown)
+.ai2:   pop hl
+        pop bc
+        dec hl
+        dec hl
+        djnz .ai
         call st_row_cur
         ld (st_oldrow),a
-        ld de,(st_cur)
-        push de
-        inc de
-        inc de
-        ld (st_cur),de
+        ld hl,(au_p)
+        ld de,4
+        add hl,de
+        ld e,(hl)               ; the cursor: the empty line
+        ld d,0
+        ld hl,(st_cur)
+        push hl
+        add hl,de
+        ld (st_cur),hl
         pop de
         call st_reind_all
         call st_load
@@ -378,6 +372,62 @@ st_editor:
         ret
 .auf:   call st_redraw_all
         scf
+        ret
+        ; .acomp: C = the construct of line st_cur is complete already.
+        ;      Next-line mode (au_chk: ELSIF): the next line starts with
+        ;      THEN. Otherwise the lines below with the same indent are
+        ;      THEN / ELSE / DO / ... until its END_x (deeper ones skipped)
+.acomp: ld hl,(au_p)
+        inc hl
+        ld a,(hl)
+        ld (au_chk),a
+        inc hl
+        ld a,(hl)
+        ld (au_end),a
+        ld de,(st_cur)
+.ac1:   inc de
+        call st_line_addr
+        jr c,.acn
+        push de
+        ld de,st_tmp2
+        call st_rec_text        ; A = its indent
+        pop de
+        ld b,a
+        ld a,(st_ind)
+        cp b
+        jr c,.ac2               ; deeper
+        jr nz,.acn              ; less deep: the construct ended
+        push de
+        ld hl,st_tmp2
+        ld (ste.lx_p),hl
+        call ste.lx_next
+        pop de
+        ld a,(ste.lx_type)
+        cp T_KW
+        jr nz,.acn
+        ld a,(ste.lx_kw)
+        ld c,a
+        ld a,(au_chk)
+        or a
+        jr z,.ac3
+        cp c
+        jr z,.acy
+        jr .acn
+.ac3:   ld a,(au_end)
+        cp c
+        jr z,.acy
+        push de
+        ld a,c
+        ld hl,au_mid
+        call ii_in
+        pop de
+        jr nz,.acn
+.ac2:   ld a,(au_chk)
+        or a
+        jr z,.ac1
+.acn:   or a
+        ret
+.acy:   scf
         ret
 .auins: ld de,(st_cur)          ; HL = text -> new line below st_cur
         inc de
@@ -592,25 +642,37 @@ st_editor:
         call st_commit
         jp .redrawf
 
-; .auto: [keyword][its THEN / DO / OF][dw middle line][dw END_x line or 0]
-AU_N    EQU 5
-au_tab: db KW_IF,KW_THEN
-        dw au_then,au_endif
-        db KW_ELSIF,KW_THEN
-        dw au_then,0
-        db KW_WHILE,KW_DO
-        dw au_do,au_endwh
-        db KW_FOR,KW_DO
-        dw au_do,au_endfor
-        db KW_CASE,KW_OF
-        dw au_of,au_endcs
+; .auto: [keyword][next-line keyword (0: scan to END)][its END_x]
+;        [condition needed][cursor: line offset][dw 3 lines (0: none)]
+AU_N    EQU 7
+AU_ESZ  EQU 11
+au_tab: db KW_IF,0,KW_END_IF,1,2
+        dw au_then,st_nothing,au_endif
+        db KW_ELSIF,KW_THEN,0,1,2
+        dw au_then,st_nothing,0
+        db KW_WHILE,0,KW_END_WHILE,1,2
+        dw au_do,st_nothing,au_endwh
+        db KW_FOR,0,KW_END_FOR,1,2
+        dw au_do,st_nothing,au_endfor
+        db KW_CASE,0,KW_END_CASE,1,2
+        dw au_of,st_nothing,au_endcs
+        db KW_REPEAT,0,KW_END_REPEAT,0,1
+        dw st_nothing,au_until,au_endrp
+        db KW_VAR,0,KW_END_VAR,0,1
+        dw st_nothing,au_endvar,0
+au_mid:   db KW_THEN,KW_ELSE,KW_ELSIF,KW_DO,KW_OF,KW_UNTIL,0
 au_then:  db "THEN",0
 au_do:    db "DO",0
 au_of:    db "OF",0
+au_until: db "UNTIL",0
 au_endif: db "END_IF",0
 au_endwh: db "END_WHILE",0
 au_endfor: db "END_FOR",0
 au_endcs: db "END_CASE",0
+au_endrp: db "END_REPEAT",0
+au_endvar: db "END_VAR",0
+au_chk:   db 0
+au_end:   db 0
 au_p:     dw 0
 
 ; ============================================================
@@ -929,6 +991,9 @@ st_brk:
         or a
         sbc hl,de
         ret nc                  ; (NC: full)
+        ld de,(st_cur)
+        call st_inblk
+        ld (bk_decl),a
         ld hl,st_tmp
         ld (ste.lx_p),hl
         xor a
@@ -978,13 +1043,24 @@ st_brk:
         jr nz,.nal
         ld a,1
         ld (bk_aft),a
-.nal:   ld a,e
+.nal:   ld a,(bk_decl)          ; VAR block: one declaration per line
+        or a
+        jr z,.nd
+        ld a,(ste.lx_type)
+        cp T_SYM
+        jr nz,.nd
+        ld a,(ste.lx_sym)
+        cp ';'
+        jr nz,.nd
+        ld a,1
+        ld (bk_aft),a
+.nd:    ld a,e
         ld hl,bk_ends
         call ii_in
         jr nz,.l
         ld a,1
         ld (bk_end),a
-        jr .l
+        jp .l
 .cut:   ld hl,(ste.lx_start)
         ld de,st_spl
         call put_str
@@ -1001,8 +1077,9 @@ st_brk:
         ret
 
 bk_start: db KW_IF,KW_THEN,KW_ELSIF,KW_ELSE,KW_CASE,KW_OF,KW_FOR,KW_DO
-          db KW_WHILE,KW_REPEAT,KW_UNTIL
-bk_ends:  db KW_END_IF,KW_END_CASE,KW_END_FOR,KW_END_WHILE,KW_END_REPEAT,0
+          db KW_WHILE,KW_REPEAT,KW_UNTIL,KW_VAR
+bk_ends:  db KW_END_IF,KW_END_CASE,KW_END_FOR,KW_END_WHILE,KW_END_REPEAT
+          db KW_END_VAR,0
 
 ; ---- st_norm: HL = line text -> st_tmp = normalised text (keywords in
 ;      upper case, one space between tokens, no spaces at the ends);
@@ -1011,6 +1088,9 @@ st_norm:
         ld (ste.lx_p),hl
         ld hl,st_tmp
         ld (sn_out),hl
+        ld de,(st_cur)          ; in the VAR block: the declared name (the
+        call st_inblk           ; first token) is not checked
+        ld (sn_decl),a
         xor a
         ld (sn_par),a
         ld (sn_lend),a
@@ -1070,13 +1150,20 @@ st_norm:
         ld a,(ste.lx_type)
         cp T_WORD
         jr nz,.np
+        ld a,(sn_decl)
+        or a
+        jr nz,.np0
         ld hl,ste.lx_word       ; a name / operand must be known
         call op_parse
         jr c,.unk
         ld a,(hl)
         or a
         jr z,.np0
-.unk:   ld a,(sn_par)           ; FB parameter: "(" / "," before, ":=" / "=>" after
+.unk:   ld a,(cur_pou)          ; a local variable (lx_word changes)
+        ld hl,ste.lx_word
+        call ste.st_vfind
+        jr nc,.np0
+        ld a,(sn_par)           ; FB parameter: "(" / "," before, ":=" / "=>" after
         or a
         jr z,.bad
         ld hl,(ste.lx_p)
@@ -1097,8 +1184,11 @@ st_norm:
         ret
 .np0:   xor a
         ld (sn_par),a
+        ld (sn_decl),a
         jp .l
 .np:    ld b,0                  ; sn_par: the token is "(" or ","
+        ld hl,sn_decl
+        ld (hl),b
         cp T_SYM
         jr nz,.p
         ld a,(ste.lx_sym)
@@ -1113,6 +1203,33 @@ st_norm:
 .end:   ld hl,(sn_out)
         ld (hl),0
         or a
+        ret
+
+; st_inblk: DE = line -> A = 1 if it is a declaration line of the VAR
+;      block of the POU (between VAR and END_VAR)
+st_inblk:
+        push de
+        ld a,(cur_pou)
+        ld hl,st_nothing
+        call ste.st_vfind
+        pop de
+        ld a,(ste.vf_var)
+        or a
+        ret z
+        ld a,d
+        or e
+        ret z                   ; (line 0: VAR)
+        ld hl,(ste.vf_end)
+        ld a,h
+        or l
+        ld a,1
+        ret z                   ; (no END_VAR yet)
+        ex de,hl
+        or a
+        sbc hl,de
+        ld a,0
+        ret nc
+        inc a
         ret
 
 ; sn_semi: the token of st_norm -> Z if it is a ";" right after END_x (it
@@ -2066,6 +2183,8 @@ st_sim_row:
         ld a,(ste.lx_sym)
         cp S_ASG
         ret z
+        cp ':'                  ; a declaration "Name : TYPE"
+        ret z
         cp '('
         jr nz,.clr
         ld hl,rd_o              ; "INST" + ".ET"
@@ -2172,7 +2291,13 @@ st_add_line:
         call put_str
         xor a
         ld (de),a
-.l:     call st_brk             ; control keywords on lines of their own
+.l:     ld hl,(st_cur)          ; (st_brk: the VAR block test of line st_n)
+        push hl
+        ld hl,(st_n)
+        ld (st_cur),hl
+        call st_brk             ; control keywords on lines of their own
+        pop hl
+        ld (st_cur),hl
         sbc a,a
         ld (st_brkf),a
         ld de,(st_n)
@@ -2226,6 +2351,8 @@ st_split:  db 0
 st_brkf:   db 0
 ku_end:    dw 0
 sn_lend:   db 0
+sn_decl:   db 0
+bk_decl:   db 0
 bk_n:      db 0
 bk_aft:    db 0
 bk_end:    db 0
