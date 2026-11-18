@@ -1058,8 +1058,25 @@ st_tests:
         and 7                   ; (=>), M0.2 = TON0.Q
         cp 7
         call t_check
+        ld a,(RT_M+1)           ; M1.0: a local BOOL
+        and 1
+        dec a
+        call t_check
         ld hl,t_st_err          ; a missing END_IF: error on line 3
-                                ; (IF / THEN are split into two lines)
+        ld de,t_st_emsg         ; (IF / THEN are split into two lines)
+        ld bc,3
+        call t_sterr
+        ld hl,t_st_dup          ; a local declared twice
+        ld de,t_st_edup
+        ld bc,3
+        call t_sterr
+        ld hl,t_st_vfirst       ; VAR not at the start
+        ld de,t_st_evf
+        ld bc,2
+; t_sterr: HL = ST text, DE = expected message, BC = its line -> checks
+t_sterr:
+        push bc
+        push de
         ld a,(t_stslot)
         call st_load_text
         BCALL il_compile
@@ -1068,13 +1085,15 @@ st_tests:
         inc a
 .e1:    dec a
         call t_check
+        pop de
+        pop bc
+        push de
         ld hl,(cp_line)
-        ld de,3
         or a
-        sbc hl,de
+        sbc hl,bc
         call t_check
+        pop de
         ld hl,(il_err)
-        ld de,t_st_emsg
         call strcmp
         jp t_check
 
@@ -1082,6 +1101,12 @@ t_stname:  db "STT     "
 t_stslot:  db 0
 t_st_main: db "CAL",9,"STT",0,0xFF
 t_st_prog:
+        db "VAR",0
+        db "Idx : INT;",0
+        db "Sum : INT := 5; // initial value",0
+        db "Ok : BOOL;",0
+        db "T1 : TIME := T#2s;",0
+        db "END_VAR",0
         db "%MW0 := 2 + 3 * 4;",0
         db "%MW1 := (2 + 3) * 4;",0
         db "%MW2 := 0;",0
@@ -1111,15 +1136,34 @@ t_st_prog:
         db "%MX0.0 := NOT %IX0.0 AND %IX0.1;",0
         db "TON0(IN := %IX0.2, PT := T#60ms, Q => %MX0.1);",0
         db "%MX0.2 := TON0.Q;",0
+        db "%MW11 := Sum; // 2nd scan: 5 + 10",0
+        db "FOR Idx := 1 TO 4 DO Sum := Sum + Idx; END_FOR",0
+        db "%MW12 := Idx;",0
+        db "Ok := Idx = 5;",0
+        db "%MX1.0 := Ok;",0
+        db "%MW13 := T1;",0
         db 0xFF
 t_st_words:
-        dw 14, 20, 55, 11, 8, 15, 2, 2, 4, 4, 12
+        dw 14, 20, 55, 11, 8, 15, 2, 2, 4, 4, 12, 15, 5, 100
         db 0xEE
 t_st_err:
         db "IF %MX0.0 THEN",0
         db "%MW0 := 1;",0
         db 0xFF
 t_st_emsg: db "END_IF expected",0
+t_st_dup:
+        db "VAR",0
+        db "A : INT;",0
+        db "A : BOOL;",0
+        db "END_VAR",0
+        db 0xFF
+t_st_edup: db "Duplicate name",0
+t_st_vfirst:
+        db "%MW0 := 1;",0
+        db "VAR",0
+        db "END_VAR",0
+        db 0xFF
+t_st_evf: db "VAR only at the start",0
 
 ; ---- FBD compiler: cells built with ld_put, MAIN = CAL FBT
 fbd_tests:

@@ -242,6 +242,159 @@ lx_kwfind:
         or a
         ret
 
+; ---- st_vfind: A = POU slot, HL = name (upper case, 0) -> NC: a local
+;      variable of that POU, C = its index in the VAR block, B = type (0
+;      BOOL, 1 INT, 2 TIME, 0xFF: invalid); C (carry): not declared.
+;      Always: vf_cnt = number of declarations, vf_end = line of END_VAR
+;      (0: no VAR block). The block starts at line 0, one declaration
+;      "Name : TYPE ..." per line. Keeps the tokenizer state (lx_p...)
+st_vfind:
+        ld (vf_slot),a
+        ld de,vf_name
+        call put_str
+        xor a
+        ld (de),a
+        ld hl,lx_p
+        ld de,vf_save
+        ld bc,8
+        ldir
+        ld a,0xFF
+        ld (vf_res),a
+        xor a
+        ld (vf_cnt),a
+        ld h,a
+        ld l,a
+        ld (vf_end),hl
+        ld (vf_line),hl
+        ld a,(vf_slot)
+        call pou_body
+        ld (vf_rec),hl
+        add hl,bc
+        ld (vf_bend),hl
+        call vf_load
+        jp c,.done
+        call vf_tok
+        cp T_KW
+        jp nz,.done
+        ld a,(lx_kw)
+        cp KW_VAR
+        jr nz,.done
+.l:     call vf_load
+        jr c,.done
+        ld hl,(vf_line)
+        inc hl
+        ld (vf_line),hl
+        call vf_tok
+        or a
+        jr z,.l                 ; (empty / comment line)
+        cp T_KW
+        jr nz,.w
+        ld a,(lx_kw)
+        cp KW_END_VAR
+        jr nz,.l
+        ld hl,(vf_line)
+        ld (vf_end),hl
+        jr .done
+.w:     cp T_WORD
+        jr nz,.l
+        ld hl,lx_word
+        ld de,vf_name
+.cmp:   ld a,(de)
+        cp (hl)
+        jr nz,.cm
+        inc hl
+        inc de
+        or a
+        jr nz,.cmp
+        inc a                   ; A = 1: the name
+.cm:    ld (vf_m),a             ; (A = 1 only when equal)
+        call vf_tok
+        cp T_SYM
+        jr nz,.l
+        ld a,(lx_sym)
+        cp ':'
+        jr nz,.l
+        call vf_tok
+        ld b,0xFF
+        cp T_KW
+        jr nz,.w2
+        ld a,(lx_kw)
+        sub KW_BOOL
+        cp 3
+        jr nc,.w2
+        ld b,a
+.w2:    ld a,(vf_m)
+        dec a
+        jr nz,.w3
+        ld a,(vf_res)           ; (the first declaration counts)
+        inc a
+        jr nz,.w3
+        ld a,(vf_cnt)
+        ld (vf_res),a
+        ld a,b
+        ld (vf_typ),a
+.w3:    ld hl,vf_cnt
+        inc (hl)
+        jr .l
+.done:  ld hl,vf_save
+        ld de,lx_p
+        ld bc,8
+        ldir
+        ld a,(vf_res)
+        ld c,a
+        inc a
+        scf
+        ret z
+        ld a,(vf_typ)
+        ld b,a
+        or a
+        ret
+
+; vf_load: the line at vf_rec -> its text in vf_buf (lx_p), vf_rec = the
+;      next line; C = past the end of the body
+vf_load:
+        ld hl,(vf_rec)
+        ld de,(vf_bend)
+        or a
+        sbc hl,de
+        ccf
+        ret c
+        add hl,de
+        ld c,(hl)
+        ld b,0
+        push hl
+        add hl,bc
+        ld (vf_rec),hl
+        pop hl
+        inc hl
+        ld a,(hl)
+        inc hl
+        inc hl
+        ld de,vf_buf
+        cp K_STXT
+        jr nz,.e
+        ld a,c
+        sub 3
+        jr z,.e
+        jr c,.e
+        cp 63
+        jr c,.ok
+        ld a,63
+.ok:    ld c,a
+        ldir
+.e:     xor a
+        ld (de),a
+        ld hl,vf_buf
+        ld (lx_p),hl
+        ret
+
+; vf_tok: the next token that is not a comment -> A = lx_type
+vf_tok: call lx_next
+        ld a,(lx_type)
+        cp T_CMT
+        jr z,vf_tok
+        ret
+
 lx_kwtab:
         db 2,"IF",4,"THEN",5,"ELSIF",4,"ELSE",6,"END_IF"
         db 4,"CASE",2,"OF",8,"END_CASE",3,"FOR",2,"TO"
@@ -261,3 +414,15 @@ lx_sym:   db 0
 lx_bad:   db 0
 lx_wlen:  db 0
 lx_word:  ds LX_WMAX+1
+vf_slot:  db 0
+vf_res:   db 0
+vf_typ:   db 0
+vf_m:     db 0
+vf_cnt:   db 0
+vf_end:   dw 0
+vf_line:  dw 0
+vf_rec:   dw 0
+vf_bend:  dw 0
+vf_save:  ds 8
+vf_name:  ds LX_WMAX+1
+vf_buf:   ds 64

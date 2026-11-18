@@ -31,7 +31,13 @@ st_compile:
         ld hl,cp_text
         ld (stc.lx_p),hl
         call tk_next
-        call sc_stmts
+        ld a,(stc.lx_type)      ; local variables: VAR ... END_VAR first
+        cp T_KW
+        jr nz,.st
+        ld a,(stc.lx_kw)
+        cp KW_VAR
+        call z,sc_var
+.st:    call sc_stmts
         ld a,(stc.lx_type)      ; everything used?
         or a
         ret z
@@ -141,7 +147,15 @@ sc_word:
         call put_str
         xor a
         ld (de),a
+        ld a,(cp_slot)          ; a local variable of the POU?
         ld hl,sc_wbuf
+        call stc.st_vfind
+        jr c,.glob
+        call sc_lvop
+        call tk_next
+        ld a,AR_LV
+        ret
+.glob:  ld hl,sc_wbuf
         call op_parse
         jr c,.unk
         ld b,a
@@ -168,6 +182,8 @@ sc_word:
 
 ; sc_wrchk: A = area (masked) -> error if it cannot be written
 sc_wrchk:
+        cp AR_LV
+        ret z
         cp AR_Q
         ret z
         cp AR_M
@@ -309,7 +325,14 @@ sc_emit0:
 ; sc_emitv: A = op with the operand sc_oa / sc_oi / sc_ov
 sc_emitv:
         push af
-        ld a,(sc_oi)
+        ld a,(sc_oa)
+        and AR_MASK
+        cp AR_LV
+        jr nz,.g
+        call sc_lvmode          ; a local variable (st_var.asm)
+        pop af
+        jr sc_emit
+.g:     ld a,(sc_oi)
         ld c,a
         ld de,(sc_ov)
         ld a,(sc_oa)
@@ -642,8 +665,10 @@ sc_stmt:
         jp z,sc_return
         cp KW_VAR
         jp c,sc_syntax
-        ld hl,err_sc_nyet       ; declarations: later
-        jp sc_err
+        ld hl,err_sc_vfirst     ; VAR: only at the start of the POU
+        jr z,.verr
+        ld hl,err_sc_nyet       ; VAR_GLOBAL ...: later
+.verr:  jp sc_err
 .word:  call sc_word
         cp AR_FBI
         jp z,sc_fbcall
@@ -1253,6 +1278,3 @@ sc_instd: dw 0
 sc_wbuf:  ds stc.LX_WMAX+1
 sc_inst:  ds 2*stc.LX_WMAX+2
 
-        MODULE stc
-        INCLUDE "st_lex.asm"
-        ENDMODULE

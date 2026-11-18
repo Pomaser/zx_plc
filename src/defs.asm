@@ -13,7 +13,10 @@ PROJ        EQU 0x9000      ; project 0x9000-0xBFFF, 12 KB (saved to tape)
 PROJ_END    EQU 0xC000
 BANKED      EQU 0xC000      ; code of the paged banks
 BCODE       EQU 0xF000      ; compiled bytecode 0xF000-0xF7FF (RUN bank)
-BCODE_END   EQU 0xF800
+BCODE_END   EQU 0xF800      ; 0xF800-0xFBFF: more RUN code (st_var.asm)
+LV_INIT     EQU 0xFC00      ; ST locals: initial values (RUN bank)
+LV_BASE     EQU 0xFD00      ; ST locals: one word each (RUN bank)
+LV_MAX      EQU 126         ; locals of all POUs together (up to IM2_JP)
 IM2_JP      EQU 0xFDFD      ; JP isr        (in every paged bank)
 IM2_TAB     EQU 0xFE00      ; 257 B vector table (in every paged bank)
 
@@ -112,6 +115,9 @@ KW_NOT      EQU 24
 KW_MOD      EQU 25
 KW_VAR      EQU 26          ; 26-33: reserved (declarations, types)
 KW_END_VAR  EQU 30
+KW_BOOL     EQU 31          ; types of the local variables (0, 1, 2)
+KW_INT      EQU 32
+KW_TIME     EQU 33
 
 ; ---- FBD element types (LD record format; the codes of the wire, the
 ;      timer boxes and the comment row are the same as in LD)
@@ -250,6 +256,8 @@ AR_SM       EQU 13          ; (12 = AR_LBL in IL records) system flag %SMn (read
 N_SM        EQU 8
 AR_SW       EQU 14          ; system word %SWn (read only, TIME): 0 last, 1 max, 2 min scan time
 N_SW        EQU 3
+AR_LV       EQU 15          ; ST local variable: index = LV index (all
+                            ; POUs), area bits 4-5 = type 0 BOOL 1 INT 2 TIME
 AR_MASK     EQU 0x0F
 
 N_IN        EQU 8

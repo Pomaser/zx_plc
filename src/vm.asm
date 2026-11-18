@@ -117,6 +117,10 @@ vm_reset:
         ld hl,RT_SW
         ld bc,N_SW*2
         call memset
+        ld hl,LV_INIT           ; ST local variables: their initial values
+        ld de,LV_BASE
+        ld bc,LV_MAX*2
+        ldir
         xor a
         ld hl,RT
         ld bc,RT_DATA_LEN

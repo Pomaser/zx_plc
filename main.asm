@@ -162,12 +162,20 @@ EDIT_END:
         INCLUDE "src/ld_comp.asm"
         INCLUDE "src/fbd_comp.asm"
         INCLUDE "src/st_comp.asm"       ; Structured Text compiler
+        INCLUDE "src/st_var.asm"        ; ST local variables
         INCLUDE "src/pou.asm"           ; POU list screen
         INCLUDE "src/tape.asm"          ; tape (uncontended bank)
         INCLUDE "src/sd.asm"            ; SD card (divMMC / esxDOS)
 RUN_END:
         DISPLAY "RUN:   free: ",/D,BCODE-RUN_END
         ASSERT RUN_END <= BCODE
+        ORG BCODE_END           ; above the bytecode: more RUN code
+        MODULE stc                      ; the ST tokenizer of the compiler
+        INCLUDE "src/st_lex.asm"
+        ENDMODULE
+RUN2_END:
+        DISPLAY "RUN2:  free: ",/D,LV_INIT-RUN2_END
+        ASSERT RUN2_END <= LV_INIT
         IM2STUB
 
 ; ---- DATA bank ----------------------------------------------
