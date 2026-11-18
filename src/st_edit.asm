@@ -209,7 +209,8 @@ st_editor:
         ld de,se_buf
         call strcat
         jp .loop
-.en1:   ld hl,st_tail           ; (leading spaces dropped)
+.en1:   call .tolast
+        ld hl,st_tail           ; (leading spaces dropped)
 .en2:   ld a,(hl)
         cp ' '
         jr nz,.en3
@@ -229,6 +230,7 @@ st_editor:
         ; ---- SS+ENTER: a new empty line below
 .ssent: call st_commit
         jp c,.loop
+        call .tolast
         call .newok
         jp c,.loop
         ld de,(st_cur)
@@ -256,6 +258,24 @@ st_editor:
         dec a
         call st_redraw_from
         jp .loop
+.tolast:                        ; a split line: the new line after its end
+        ld a,(st_split)
+        or a
+        ret z
+        call st_row_cur         ; the first part: drawn as not current
+        ld (st_oldrow),a
+        ld hl,(st_cur)
+        ld (st_oldln),hl
+        ld a,(st_split)
+        ld e,a
+        ld d,0
+        add hl,de
+        ld (st_cur),hl
+        call st_load
+        ld a,(st_oldrow)
+        ld b,a
+        ld de,(st_oldln)
+        jp st_draw_row
 .newok: ld hl,(st_n)            ; C = too many lines (message shown)
         ld de,IL_MAXLN
         or a
@@ -356,7 +376,16 @@ st_editor:
         call st_commit
         pop hl
         jp c,.loop
-        ld a,1
+        ld de,(st_cur)          ; below a split line: lines were added
+        or a
+        sbc hl,de
+        add hl,de
+        jr c,.mup
+        ld a,(st_split)
+        ld e,a
+        ld d,0
+        add hl,de
+.mup:   ld a,1
         ld (st_mpend),a
         jp .move
 .mf:    call .mpos
@@ -626,15 +655,23 @@ st_load:
         ret
 
 ; ---- st_commit: checks and normalises se_buf and stores it as line
-;      st_cur; the lines below get their indent. C = error (message shown)
+;      st_cur; the lines below get their indent. A line with a control
+;      keyword not at its start (or text after THEN / ELSE / DO / OF /
+;      REPEAT / END_x;) is split into more lines (st_brk); st_split = the
+;      number of lines added below st_cur. C = error (message shown)
 st_commit:
-        ld hl,se_buf
+        xor a
+        ld (st_split),a
+.again: ld hl,se_buf
         call st_norm
         jr nc,.ok
         call ui_error
         scf
         ret
-.ok:    ld hl,st_tmp            ; record [len][K_STXT][indent][text]
+.ok:    call st_brk
+        sbc a,a
+        ld (st_brkf),a
+        ld hl,st_tmp            ; record [len][K_STXT][indent][text]
         ld de,rec_buf+3
         call put_str
         ex de,hl
@@ -660,7 +697,7 @@ st_commit:
         inc hl
         inc de
         djnz .cmp
-        jr .done
+        jr .stored
 .store: ld hl,(se_cmaddr)
         call st_offset
         ld (se_cmoff),de
@@ -669,7 +706,7 @@ st_commit:
         ld b,0
         ld a,(cur_pou)
         call pou_insert         ; new record in front of the old one
-        jr c,.mem
+        jp c,.mem
         ex de,hl
         ld hl,rec_buf
         ld a,(rec_buf)
@@ -692,15 +729,35 @@ st_commit:
         ld a,(cur_pou)
         call pou_delete
         call status_right
+.stored:
+        ld a,(st_brkf)          ; the rest of a split line: a new line below,
+        or a                    ; split again if needed
+        jr z,.fin
         ld de,(st_cur)
-        call st_reind
-        ld a,(ri_chg)           ; lines below changed: redraw them
+        inc de
+        ld hl,st_spl
+        ld a,(st_ind)
+        call st_ins_line
+        jr c,.fin
+        ld hl,(st_cur)
+        inc hl
+        ld (st_cur),hl
+        ld hl,st_spl
+        ld de,se_buf
+        call put_str
+        xor a
+        ld (de),a
+        ld hl,st_split
+        inc (hl)
+        jp .again
+.fin:   ld a,(st_split)         ; back to the first part
+        ld e,a
+        ld d,0
+        ld hl,(st_cur)
         or a
-        jr z,.done
-        call st_row_cur
-        inc a
-        call st_redraw_from
-.done:  ld a,(st_pos)            ; the normalised form, the cursor kept
+        sbc hl,de
+        ld (st_cur),hl
+        ld a,(st_pos)           ; its normalised form, the cursor kept
         push af
         call st_load
         pop af
@@ -708,12 +765,116 @@ st_commit:
         cp (hl)
         jr nc,.d1
         ld (hl),a
-.d1:    or a
+.d1:    ld de,(st_cur)
+        ld a,(st_split)
+        or a
+        jr z,.ri
+        call st_reind_all       ; (the added lines keep a wrong indent)
+        jr .ri2
+.ri:    call st_reind
+.ri2:   call st_row_cur
+        ld b,a
+        ld a,(st_split)
+        or a
+        jr nz,.rd               ; split: this row and all below
+        ld a,(ri_chg)           ; lines below changed: redraw them
+        or a
+        jr z,.done
+        inc b
+.rd:    ld a,b
+        call st_redraw_from
+.done:  or a
         ret
 .mem:   ld hl,err_il_mem
         call ui_error
         scf
         ret
+
+; ---- st_brk: st_tmp (normalised) -> C if it must be split: st_tmp is cut
+;      before the split point, the rest goes to st_spl. Control keywords
+;      (bk_start) start a line, nothing follows THEN / ELSE / DO / OF /
+;      REPEAT or END_x [;] on their line (comments may). No split when the
+;      POU has the maximum number of lines.
+st_brk:
+        ld hl,(st_n)
+        ld de,IL_MAXLN
+        or a
+        sbc hl,de
+        ret nc                  ; (NC: full)
+        ld hl,st_tmp
+        ld (ste.lx_p),hl
+        xor a
+        ld (bk_n),a
+        ld (bk_aft),a
+        ld (bk_end),a
+.l:     call ste.lx_next
+        ld a,(ste.lx_type)
+        or a
+        ret z                   ; (NC)
+        cp T_CMT
+        jr z,.l
+        ld e,0
+        cp T_KW
+        jr nz,.nk
+        ld a,(ste.lx_kw)
+        ld e,a
+.nk:    ld a,(bk_aft)
+        or a
+        jr nz,.cut
+        ld a,(bk_end)           ; END_x: a ";" may follow
+        or a
+        jr z,.ne
+        xor a
+        ld (bk_end),a
+        ld a,(ste.lx_type)
+        cp T_SYM
+        jr nz,.cut
+        ld a,(ste.lx_sym)
+        cp ';'
+        jr nz,.cut
+        ld a,1
+        ld (bk_aft),a
+        jr .l
+.ne:    ld a,(bk_n)
+        or a
+        jr z,.first
+        ld a,e
+        ld hl,bk_start
+        call ii_in
+        jr z,.cut
+.first: ld a,1
+        ld (bk_n),a
+        ld a,e
+        ld hl,ii_open
+        call ii_in
+        jr nz,.nal
+        ld a,1
+        ld (bk_aft),a
+.nal:   ld a,e
+        ld hl,bk_ends
+        call ii_in
+        jr nz,.l
+        ld a,1
+        ld (bk_end),a
+        jr .l
+.cut:   ld hl,(ste.lx_start)
+        ld de,st_spl
+        call put_str
+        xor a
+        ld (de),a
+        ld hl,(ste.lx_start)
+        dec hl
+        ld a,(hl)
+        cp ' '
+        jr z,.c1
+        inc hl
+.c1:    ld (hl),0
+        scf
+        ret
+
+bk_start: db KW_IF,KW_THEN,KW_ELSIF,KW_ELSE,KW_CASE,KW_OF,KW_FOR,KW_DO
+          db KW_WHILE,KW_REPEAT,KW_UNTIL
+bk_ends:  db KW_END_IF,KW_END_CASE,KW_END_FOR,KW_END_WHILE,KW_END_REPEAT,0
 
 ; ---- st_norm: HL = line text -> st_tmp = normalised text (keywords in
 ;      upper case, one space between tokens, no spaces at the ends);
@@ -1800,13 +1961,31 @@ st_add_line:
         ld a,(lt_s)
         ld (cur_pou),a
         call st_count
-        ld de,(st_n)
         ld hl,(lt_p)
+        ld de,st_tmp
+        call put_str
+        xor a
+        ld (de),a
+.l:     call st_brk             ; control keywords on lines of their own
+        sbc a,a
+        ld (st_brkf),a
+        ld de,(st_n)
+        ld hl,st_tmp
         xor a
         call st_ins_line
         ld de,(st_n)
         dec de
         call st_reind
+        ld a,(st_brkf)
+        or a
+        jr z,.e
+        ld hl,st_spl
+        ld de,st_tmp
+        call put_str
+        xor a
+        ld (de),a
+        jr .l
+.e:
         ld a,0xFF               ; the editor starts at line 0
         ld (st_pou),a
         ld a,(lt_cur)
@@ -1836,6 +2015,12 @@ se_buf:    ds ST_BLEN+2
 st_tail:   ds ST_BLEN+2
 st_tmp:    ds ST_BLEN+2
 st_tmp2:   ds 256
+st_spl:    ds ST_BLEN+2
+st_split:  db 0
+st_brkf:   db 0
+bk_n:      db 0
+bk_aft:    db 0
+bk_end:    db 0
 ei_c:      db 0
 sl_ind:    db 0
 sl_len:    db 0

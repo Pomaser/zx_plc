@@ -324,14 +324,19 @@ dm_main:
 dm_st:
         db "// Up: one step up, after 5 back to 0",0
         db "UpEdge(CLK := Up);",0
-        db "IF UpEdge.Q THEN",0
-        db "IF Level < 5 THEN",0
+        db "IF UpEdge.Q",0
+        db "THEN",0
+        db "IF Level < 5",0
+        db "THEN",0
         db "Level := Level + 1;",0
         db "ELSE",0
         db "Level := 0;",0
         db "END_IF;",0
         db "END_IF;",0
-        db "IF Clear THEN Level := 0; END_IF;",0
+        db "IF Clear",0
+        db "THEN",0
+        db "Level := 0;",0
+        db "END_IF;",0
         db "",0
         db "// The bar on three outputs",0
         db "Bar1 := Level >= 1;",0
@@ -340,14 +345,17 @@ dm_st:
         db "",0
         db "// Total = 1 + 2 + ... + Level",0
         db "Total := 0;",0
-        db "FOR N := 1 TO Level DO",0
+        db "FOR N := 1 TO Level",0
+        db "DO",0
         db "Total := Total + N;",0
         db "END_FOR;",0
         db "",0
-        db "CASE Level OF",0
+        db "CASE Level",0
+        db "OF",0
         db "0: Range := 0;",0
         db "1..3: Range := 1;",0
-        db "ELSE Range := 2;",0
+        db "ELSE",0
+        db "Range := 2;",0
         db "END_CASE;",0
         db 0xFF
 

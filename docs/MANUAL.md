@@ -433,8 +433,12 @@ works like a small text editor:
 * Keywords (`IF`, `THEN`, `END_IF`, `AND`, ...) are dark blue and start on a character cell, so the text
   after a keyword can have a small gap. Comments (`// text` to the end of the line, or `(* text *)`) are
   dark green.
-* **The indent is automatic:** the line after `THEN`, `ELSE`, `DO`, `OF` or `REPEAT` moves one step to
-  the right, a line starting with `END_IF`, `ELSE`, `ELSIF`, `END_FOR`, `UNTIL`, ... one step back.
+* **Every control keyword is on a line of its own:** `IF`, `THEN`, `ELSIF`, `ELSE`, `END_IF`, `CASE`,
+  `OF`, `FOR`, `DO`, `WHILE`, `REPEAT`, `UNTIL` and the `END_...` keywords start a line, and nothing but
+  a comment follows `THEN`, `ELSE`, `DO`, `OF`, `REPEAT` or `END_...;` on it. A line typed as
+  `IF a THEN x := 1; END_IF;` is split into four lines when the cursor leaves it.
+* **The indent is automatic:** the keywords of one construct (`IF`, `THEN`, `ELSE`, `END_IF`) are always
+  aligned, the lines after `THEN`, `ELSE`, `DO`, `OF` or `REPEAT` move one step to the right.
 * Leaving a line (ENTER, UP, DOWN, the menu) checks it: unknown characters, an unclosed `(*` comment and
   unknown names are reported in a popup and the cursor stays on the line. Keywords are stored in upper
   case and the spaces between the words are normalised. The whole program is checked by the compiler
@@ -448,11 +452,22 @@ works like a small text editor:
 
 ```
 x := expression;
-IF c THEN ... ELSIF c THEN ... ELSE ... END_IF;
-CASE e OF 1: ...; 2, 3: ...; 4..9: ...; ELSE ... END_CASE;
-FOR i := 1 TO 10 BY 2 DO ... END_FOR;
-WHILE c DO ... END_WHILE;
-REPEAT ... UNTIL c END_REPEAT;
+
+IF c                 CASE e               FOR i := 1 TO 10 BY 2
+THEN                 OF                   DO
+  ...                  1: ...;              ...
+ELSIF c                2, 3: ...;         END_FOR;
+THEN                   4..9: ...;
+  ...                ELSE                 WHILE c
+ELSE                   ...                DO
+  ...                END_CASE;              ...
+END_IF;                                   END_WHILE;
+
+REPEAT
+  ...
+UNTIL c
+END_REPEAT;
+
 EXIT;                          (leaves the innermost loop)
 RETURN;                        (ends the POU)
 TON0(IN := Start, PT := T#5s, Q => Lamp);
@@ -507,7 +522,7 @@ the faulty line or element; the message is shown in the status bar.
     ![Simulation of DEMO_FBD](img/sim_fbd.png)
 
   * ST lines show the value of the variable they assign (`x := ...`), of the single operand of
-    `IF x THEN`, `WHILE x DO`, `UNTIL x`, `CASE x OF`, `FOR x := ...`, or the ET of a timer call:
+    `IF x`, `ELSIF x`, `WHILE x`, `UNTIL x`, `CASE x`, `FOR x := ...`, or the ET of a timer call:
 
     ![Simulation of DEMO_ST](img/sim_st.png)
 

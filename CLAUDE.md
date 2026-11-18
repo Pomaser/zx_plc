@@ -230,6 +230,9 @@ editor and key for users.
     keywords and comments start on x = 8k+1 so their cells can be coloured (rn_attr); the same layout gives
     the cursor x and the width check. The indent is derived from the line above (`st_iinfo`, `st_reind`:
     +1 after THEN / ELSE / DO / OF / REPEAT / an UNTIL line, -1 for END_* / ELSE / ELSIF / UNTIL).
+    Control keywords are always on lines of their own (so IF / THEN / ELSE / END_IF align): `st_brk`
+    splits a line before a control keyword that is not its first token and after THEN / ELSE / DO /
+    OF / REPEAT / END_x[;]; `st_commit` (st_split = lines added) and `st_add_line` apply it.
     `st_sim_row` draws a line for the simulation (cells 0-24) and puts the watched operand in rd_o;
     `st_xr_line` serves the cross references; `st_add_line` + `st_load_text` (app.asm) load text
     (demo, tests; the text goes through il_out, fixed memory).

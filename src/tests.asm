@@ -1058,7 +1058,8 @@ st_tests:
         and 7                   ; (=>), M0.2 = TON0.Q
         cp 7
         call t_check
-        ld hl,t_st_err          ; a missing END_IF: error on line 2
+        ld hl,t_st_err          ; a missing END_IF: error on line 3
+                                ; (IF / THEN are split into two lines)
         ld a,(t_stslot)
         call st_load_text
         BCALL il_compile
@@ -1068,7 +1069,7 @@ st_tests:
 .e1:    dec a
         call t_check
         ld hl,(cp_line)
-        ld de,2
+        ld de,3
         or a
         sbc hl,de
         call t_check
