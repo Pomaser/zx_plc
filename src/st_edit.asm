@@ -220,7 +220,14 @@ st_editor:
         jr nz,.en3
         inc hl
         jr .en2
-.en3:   push hl
+.en3:   ld a,(hl)               ; at the end of IF c / WHILE c / ...:
+        or a                    ; the construct is completed
+        jr nz,.en4
+        push hl
+        call .auto
+        pop hl
+        jp c,.loop
+.en4:   push hl
         call .newok
         pop hl
         jp c,.loop
@@ -280,6 +287,102 @@ st_editor:
         ld b,a
         ld de,(st_oldln)
         jp st_draw_row
+        ; ---- .auto: the line is "IF c" (ELSIF / WHILE / FOR / CASE) and the
+        ;      next line does not start with its THEN (DO / OF): THEN, an
+        ;      empty line and END_IF; are added below, the cursor goes to the
+        ;      empty line. C = done
+.auto:  ld hl,se_buf
+        ld (ste.lx_p),hl
+        call ste.lx_next
+        ld a,(ste.lx_type)
+        cp T_KW
+        jr nz,.aun
+        ld a,(ste.lx_kw)
+        ld hl,au_tab
+        ld b,AU_N
+        ld de,6
+.au1:   cp (hl)
+        jr z,.au2
+        add hl,de
+        djnz .au1
+.aun:   or a
+        ret
+.au2:   ld (au_p),hl
+.au3:   call ste.lx_next        ; something follows the keyword
+        ld a,(ste.lx_type)
+        or a
+        jr z,.aun
+        cp T_CMT
+        jr z,.au3
+        ld de,(st_cur)          ; the next line: already THEN?
+        inc de
+        call st_line_addr
+        jr c,.au4
+        ld de,st_tmp2
+        call st_rec_text
+        ld hl,st_tmp2
+        ld (ste.lx_p),hl
+        call ste.lx_next
+        ld a,(ste.lx_type)
+        cp T_KW
+        jr nz,.au4
+        ld hl,(au_p)
+        inc hl
+        ld a,(ste.lx_kw)
+        cp (hl)
+        jr z,.aun
+.au4:   ld hl,(st_n)            ; room for 3 lines
+        ld de,IL_MAXLN-3
+        or a
+        sbc hl,de
+        jr nc,.aun
+        ld hl,(au_p)            ; inserted in reverse order
+        ld de,4
+        add hl,de
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        ld a,d
+        or e
+        jr z,.au5
+        ex de,hl
+        call .auins             ; END_x;
+        ret c
+.au5:   ld hl,st_nothing
+        call .auins             ; the empty line
+        ret c
+        ld hl,(au_p)
+        inc hl
+        inc hl
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        ex de,hl
+        call .auins             ; THEN / DO / OF
+        ret c
+        call st_row_cur
+        ld (st_oldrow),a
+        ld de,(st_cur)
+        push de
+        inc de
+        inc de
+        ld (st_cur),de
+        pop de
+        call st_reind_all
+        call st_load
+        call st_fix_top
+        jr nz,.auf
+        ld a,(st_oldrow)
+        call st_redraw_from
+        scf
+        ret
+.auf:   call st_redraw_all
+        scf
+        ret
+.auins: ld de,(st_cur)          ; HL = text -> new line below st_cur
+        inc de
+        xor a
+        jp st_ins_line
 .newok: ld hl,(st_n)            ; C = too many lines (message shown)
         ld de,IL_MAXLN
         or a
@@ -488,6 +591,27 @@ st_editor:
         ld (st_pos),a
         call st_commit
         jp .redrawf
+
+; .auto: [keyword][its THEN / DO / OF][dw middle line][dw END_x line or 0]
+AU_N    EQU 5
+au_tab: db KW_IF,KW_THEN
+        dw au_then,au_endif
+        db KW_ELSIF,KW_THEN
+        dw au_then,0
+        db KW_WHILE,KW_DO
+        dw au_do,au_endwh
+        db KW_FOR,KW_DO
+        dw au_do,au_endfor
+        db KW_CASE,KW_OF
+        dw au_of,au_endcs
+au_then:  db "THEN",0
+au_do:    db "DO",0
+au_of:    db "OF",0
+au_endif: db "END_IF;",0
+au_endwh: db "END_WHILE;",0
+au_endfor: db "END_FOR;",0
+au_endcs: db "END_CASE;",0
+au_p:     dw 0
 
 ; ============================================================
 ; line storage

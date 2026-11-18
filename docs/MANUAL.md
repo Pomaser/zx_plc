@@ -443,6 +443,10 @@ works like a small text editor:
   unknown names are reported in a popup and the cursor stays on the line. Keywords are stored in upper
   case and the spaces between the words are normalised. The whole program is checked by the compiler
   (Run > Run); an error opens the editor at its line, the message is in the status bar.
+* **Constructs are completed:** ENTER at the end of a line `IF c` adds `THEN`, an empty line and
+  `END_IF;` below it and puts the cursor on the empty line, indented. The same for `WHILE c` / `FOR ...`
+  (`DO`, `END_WHILE;` / `END_FOR;`), `CASE e` (`OF`, `END_CASE;`) and `ELSIF c` (`THEN`). Nothing is
+  added when the next line already starts with the `THEN` / `DO` / `OF`.
 * ENTER splits the line at the cursor (at the end: a new empty line below), SS+ENTER opens an empty line
   below. DELETE deletes the character left of the cursor; on an empty line it removes the line.
   SS+LEFT / SS+RIGHT go to the start / end of the line, SS+UP / SS+DOWN page.
