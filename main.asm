@@ -202,12 +202,19 @@ FBD_END:
         INCLUDE "src/mouse.asm"     ; Kempston mouse
         INCLUDE "src/ur4.asm"       ; UR-4 interface (physical I/O)
         INCLUDE "src/trend.asm"     ; trend page of the simulation
-demo_img:
+        INCLUDE "src/complete.asm"  ; ST name completion (SS+SPACE)
+; ---- demo_unpack: the demo project (ZX0 packed) -> PROJ
+demo_unpack:
     IFNDEF MKDEMO
-        INCBIN "src/demo_proj.bin"
+        ld hl,demo_img
+        ld de,PROJ
+        jp dzx0_standard
+        INCLUDE "tools/zx0/dzx0_standard.asm"
+demo_img:
+        INCBIN "src/demo_proj.zx0"
+    ELSE
+        ret                     ; (the builder build has no demo image)
     ENDIF
-DEMO_LEN EQU $-demo_img
-        ASSERT DEMO_LEN <= PROJ_END-PROJ
 DEMO_END:
         DISPLAY "DEMO:  free: ",/D,IM2_JP-DEMO_END
         ASSERT DEMO_END <= IM2_JP

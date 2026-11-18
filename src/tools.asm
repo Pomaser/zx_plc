@@ -1923,4 +1923,5 @@ txt_keys:
         db "SS+W",PT_TAB,"add to watch",0
         db "SS+A D F",PT_TAB,"mark  copy  paste",0
         db "SS+I",PT_TAB,"LD: insert element",0
+        db "SS+SPACE",PT_TAB,"ST: complete a name",0
         db 0

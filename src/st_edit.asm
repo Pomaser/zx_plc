@@ -93,6 +93,8 @@ st_editor:
         jp z,.pgdn
         cp K_DEL
         jp z,.del
+        cp K_COMPL
+        jp z,.compl
         cp K_MOUSE
         jp z,.mouse
         cp K_BREAK
@@ -121,7 +123,7 @@ st_editor:
 .kc:    cp 32
         jr c,.loop
         cp 128
-        jr nc,.loop
+        jp nc,.loop
         cp ' '                  ; a space after a keyword: in upper case
         push af
         call z,st_kwup
@@ -134,6 +136,60 @@ st_editor:
 .redrawf:                       ; whole row incl. inverted line number
         call st_draw_cur
         jp .loop
+
+        ; ---- SS+SPACE: name completion (complete.asm, DEMO bank); the
+        ;      word part in front of the cursor is replaced by its result
+.compl: ld a,(st_pos)
+        ld c,a
+        ld b,0
+        ld hl,se_buf
+        add hl,bc
+.cb:    ld a,c
+        or a
+        jr z,.cs
+        dec hl
+        ld a,(hl)
+        call ste.lx_wchar
+        jr nc,.cs1
+        dec c
+        jr .cb
+.cs1:   inc hl
+.cs:    ld a,c                  ; HL = the start, C = its index
+        ld (st_ac0),a
+        ld de,il_out
+        ld a,(st_pos)
+        sub c
+        jr z,.cz
+        ld b,a
+.cc:    ld a,(hl)
+        ld (de),a
+        inc hl
+        inc de
+        djnz .cc
+.cz:    xor a
+        ld (de),a
+        call st_row_cur
+        ld b,a
+        ld a,(cur_pou)
+        BCALL ac_run
+.cr:    ld a,(st_ac0)           ; the old part out, the new text in
+        ld hl,st_pos
+        cp (hl)
+        jr z,.ci
+        dec (hl)
+        call st_del_char
+        jr .cr
+.ci:    ld hl,il_out
+.ci1:   ld a,(hl)
+        or a
+        jp z,.redrawf
+        push hl
+        call st_insert
+        pop hl
+        inc hl
+        jr nc,.ci1
+        call beep
+        jp .redrawf
 
         ; ---- cursor
 .left:  ld a,(st_pos)
@@ -164,7 +220,7 @@ st_editor:
         dec a
         ld (st_pos),a
         call st_del_char
-        jr .redraw
+        jp .redraw
 .del0:  call st_len
         or a
         jp nz,.loop
@@ -2802,6 +2858,7 @@ st_fh:     dw 0                 ; folded VAR block: hidden lines (0: none)
 st_fcnt:   db 0
 st_redr:   db 0
 st_dcok:   db 0
+st_ac0:    db 0
 sn_inb:    db 0
 sn_name:   ds 32
 sd_text:   ds 48

@@ -37,14 +37,10 @@ proj_new:
         ld (cur_pou),a
         ret
 
-; ---- proj_load_demo: copies the demo project from the DEMO bank
+; ---- proj_load_demo: the demo project from the DEMO bank
 proj_load_demo:
         call undo_save
-        ld a,BANK_DEMO
-        ld hl,demo_img
-        ld de,PROJ
-        ld bc,DEMO_LEN          ; (0 in the builder build)
-        call bank_copy
+        BCALL demo_unpack       ; (ZX0 packed, unpacked by the DEMO bank)
         xor a
         ld (cur_pou),a
         ret

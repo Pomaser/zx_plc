@@ -15,8 +15,8 @@ not downloaded to a real PLC; they run in the built-in simulation with live moni
   * Ladder Diagram: contacts, coils, branches, boxes.
   * Function Block Diagram: blocks nest and make room for themselves.
   * Structured Text: IF / CASE / FOR / WHILE / REPEAT, expressions, FB calls, local variables
-    (`VAR` block, folded to one line, declared on the fly); keywords in blue, an automatic indent and
-    constructs completed on ENTER.
+    (`VAR` block, folded to one line, declared on the fly); keywords in blue, an automatic indent,
+    constructs completed on ENTER and names completed with SS+SPACE (Ctrl+Space).
 * **Up to 8 POUs per project:** MAIN calls the others. A project holds up to 12 KB.
 * **Standard function blocks:** TON / TOF / TP timers, CTU / CTD counters, R_TRIG / F_TRIG, SR / RS. Also
   word compare and arithmetic (GT … LT, ADD, SUB, MUL, DIV, MOVE), step flags for sequences, system flags

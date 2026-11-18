@@ -452,6 +452,15 @@ works like a small text editor:
   below. DELETE deletes the character left of the cursor; on an empty line it removes the line.
   SS+LEFT / SS+RIGHT go to the start / end of the line, SS+UP / SS+DOWN page.
 * SS+X and SS+W take the operand under (or just before) the cursor.
+* **Name completion: SS+SPACE** (Ctrl+Space in the browser) completes the name in front of the cursor.
+  ![Name completion](img/st_compl.png)
+  * Without a dot it offers the local variables of the POU (with their type) and then the symbols in
+    alphabetical order (with their address); after `Inst.` the members of that FB (`TValve.` → IN,
+    PT, Q, ET).
+  * When only one name fits, it is written at once. Otherwise a list opens below (or above) the line:
+    letters, digits and `_` narrow it, DELETE widens it again, UP / DOWN select, ENTER, SS+SPACE or a
+    click takes the name. BREAK closes the list and keeps what was typed; a letter that fits no name
+    closes it too.
 
 **Statements**
 

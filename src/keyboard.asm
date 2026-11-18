@@ -237,4 +237,4 @@ kt_sym:
         db '_',')','(',0x27,'&'
         db '"',';',K_INS,K_UNDO,K_REDO
         db K_SSENTER,'=','+','-','^'
-        db ' ',0,'.',',','*'
+        db K_COMPL,0,'.',',','*'

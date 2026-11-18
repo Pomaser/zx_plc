@@ -75,7 +75,7 @@ editor and key for users.
   per image, `--noborder`). Update the manual and the scripts when the UI changes.
 - `python3 tools/fixjr.py main.asm`: builds and converts every out-of-range `jr` to `jp` in the source,
   then prints the remaining errors. Run it after edits that make code longer.
-- `python3 tools/xref.py --check "pou:R,app:E,il_edit:E,sym_edit:E,ld_edit:E,sim:E,demo:E,il_comp:R,vm:R,ld_comp:R,fbd_comp:R,st_comp:R,st_var:R,tape:R,tests:E,fbd_edit:F,st_edit:F,tools:D,clip:D,wexpr:D,mouse:D,undo:S,ur4:D,trend:D,sd:R"`:
+- `python3 tools/xref.py --check "pou:R,app:E,il_edit:E,sym_edit:E,ld_edit:E,sim:E,demo:E,il_comp:R,vm:R,ld_comp:R,fbd_comp:R,st_comp:R,st_var:R,tape:R,tests:E,fbd_edit:F,st_edit:F,tools:D,clip:D,wexpr:D,mouse:D,undo:S,ur4:D,trend:D,sd:R,complete:D"`:
   reports labels referenced across paged banks without `BCALL`. Unlisted modules are core. The
   `run_tests` / `demo_build` hits in main.asm are expected. Extend the map when a module moves.
 - Headless emulator: `.scratch/venv/bin/python tools/zxrun.py zxplc.sna -f 30 -s "<script>"`
@@ -112,7 +112,11 @@ editor and key for users.
   - DATA 1: the popup save buffer and the clipboard (`clip_buf`, filled by `src/clip.asm`).
   - DEMO 3: `src/tools.asm` (cross references, watch / force page of the simulation, Help texts),
     `src/clip.asm` (mark / copy / cut / paste, called by the editors with `BCALL cl_cmd` / `mk_draw`),
-    `src/wexpr.asm`, `src/mouse.asm`, `src/ur4.asm`, `src/trend.asm`, `menu_cmd` / `menu_active` (menu commands, check marks), the About box with twinkling stars and the top-border scroller (`tl_about`, `bd_*`) and the demo image (~1.1 KB free).
+    `src/wexpr.asm`, `src/mouse.asm`, `src/ur4.asm`, `src/trend.asm`, `src/complete.asm` (ST name
+    completion), `menu_cmd` / `menu_active` (menu commands, check marks), the About box with twinkling
+    stars and the top-border scroller (`tl_about`, `bd_*`) and the demo image (~0.8 KB free). The demo
+    image is ZX0 packed (`src/demo_proj.zx0`, made by make from the committed `src/demo_proj.bin`,
+    git-ignored) and unpacked to PROJ by `demo_unpack` (main.asm, `dzx0_standard`).
   - FBD 6: the FBD editor and the ST editor `src/st_edit.asm` (~0.3 KB free).
   - SPARE 7: undo / redo (`src/undo.asm`): the code, the history records growing up from `UM_REC`, and
     the shadow copy of the project ending at the IM2 stub. The tape load copies the project to `UM_BAK`
@@ -246,8 +250,11 @@ editor and key for users.
     tokenizer (MODULE stc) is at 0xF800 above the bytecode ("RUN2", nearly full).
     Editor: the block folds while the cursor is below END_VAR (`st_fh` hidden lines; rows <-> lines
     through `st_d` / `st_l` / `st_rowline`, summary `st_fsum`); an unknown name opens the declaration
-    popup (`st_decl`). `st_norm` drops a ";" after END_x (`sn_semi`; the compiler takes it
-    as optional).
+    popup (`st_decl`). SS+SPACE (`K_COMPL`, Ctrl+Space in the browser) completes a name:
+    `st_editor.compl` copies the word part in front of the cursor to il_out and calls `BCALL ac_run`
+    (`src/complete.asm`, DEMO bank: locals read from the body text, symbols sorted, FB members after
+    "Inst."; 4-byte entries pointing into the project / `fb_members`), then replaces it with il_out.
+    `st_norm` drops a ";" after END_x (`sn_semi`; the compiler takes it as optional).
     `st_sim_row` draws a line for the simulation (cells 0-24) and puts the watched operand in rd_o;
     `st_xr_line` serves the cross references; `st_add_line` + `st_load_text` (app.asm) load text
     (demo, tests; the text goes through il_out, fixed memory).
@@ -266,7 +273,8 @@ editor and key for users.
   editor routines; its watch list starts with the traffic light (each timer ET followed by its light),
   shown first on the trend page, and ends with the scan time words %SW0-2 (symbols ScanLast / ScanMax /
   ScanMin). `tools/mkdemo.py` runs that snapshot and saves the project memory to `src/demo_proj.bin`
-  (committed), which the normal build includes into bank 3. Edit the demo in `src/demo.asm`, never the
+  (committed); make packs it with ZX0 into `src/demo_proj.zx0`, which the normal build includes into
+  bank 3. Edit the demo in `src/demo.asm`, never the
   .bin.
 
 ## Pitfalls seen in this code

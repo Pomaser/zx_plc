@@ -6,7 +6,8 @@ SRC := main.asm $(wildcard src/*.asm) VERSION
 
 all: zxplc.sna
 
-zxplc.sna: $(SRC) src/demo_proj.bin
+ZX0 := tools/zx0/zx0
+zxplc.sna: $(SRC) src/demo_proj.zx0
 	sjasmplus --nologo --fullpath --sym=zxplc.sym main.asm
 
 # demo project: built by the program itself (src/demo.asm), saved as an image
@@ -16,10 +17,14 @@ zxplc_mkdemo.sna: $(SRC)
 src/demo_proj.bin: zxplc_mkdemo.sna
 	$(PYTHON) tools/mkdemo.py zxplc_mkdemo.sna $@
 
-zxplc_test1.sna: $(SRC) src/demo_proj.bin
+# the demo image in the DEMO bank is ZX0 packed (demo_unpack)
+src/demo_proj.zx0: src/demo_proj.bin $(ZX0)
+	$(ZX0) -f src/demo_proj.bin $@ >/dev/null
+
+zxplc_test1.sna: $(SRC) src/demo_proj.zx0
 	sjasmplus --nologo --fullpath -DTEST -DTPART=1 main.asm
 
-zxplc_test2.sna: $(SRC) src/demo_proj.bin
+zxplc_test2.sna: $(SRC) src/demo_proj.zx0
 	sjasmplus --nologo --fullpath -DTEST -DTPART=2 main.asm
 
 # run both test builds headless and check the results (TEST_RES = 0x5B00)
@@ -32,7 +37,6 @@ run: zxplc.sna
 
 # tape image for a real ZX Spectrum 128K (BASIC + machine code loader,
 # blocks packed with ZX0)
-ZX0 := tools/zx0/zx0
 zxplc.tap: zxplc.sna tools/mktap.py img/zxplc_load.scr $(ZX0) tools/zx0/dzx0_standard.asm
 	python3 tools/mktap.py zxplc.sna zxplc.sym $@ img/zxplc_load.scr
 
