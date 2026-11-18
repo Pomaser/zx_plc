@@ -253,14 +253,14 @@ ms_arrow:                       ; the pointer, 8x8 (1 = pixel)
 
 txt_ms_none: db "No Kempston mouse",0
 
-; ---- ui_choose_lang: A = language (0-2), carry = cancelled (DEMO bank: BCALL)
+; ---- ui_choose_lang: A = language (0-3), carry = cancelled (DEMO bank: BCALL)
 ui_choose_lang:
         ld hl,txt_lang_q
         call popup_open
 .k:     call kb_wait
         cp K_MOUSE              ; a click on a language line
         jr nz,.nm
-        ld a,3
+        ld a,4
         ld b,3
         call ms_item
         jr c,.cancel
@@ -280,6 +280,9 @@ ui_choose_lang:
         ld b,LANG_FBD
         cp 'F'
         jr z,.ok
+        ld b,LANG_ST
+        cp 'S'
+        jr z,.ok
         jr .k
 .ok:    push bc
         call win_close
@@ -298,6 +301,7 @@ txt_lang_q:
         db "I",PT_TAB,"IL - Instruction List",0
         db "L",PT_TAB,"LD - Ladder Diagram",0
         db "F",PT_TAB,"FBD - Function Block Diagram",0
+        db "S",PT_TAB,"ST - Structured Text",0
         db 0
 
 ; ---- ms_item: a click in a list window: A = items, B = row of item 0

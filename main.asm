@@ -179,6 +179,7 @@ clip_buf:                   ; the clipboard (clip.asm), up to the IM2 stub
 ; ---- FBD bank -----------------------------------------------
         MMU 3, BANK_FBD, BANKED
         INCLUDE "src/fbd_edit.asm"
+        INCLUDE "src/st_edit.asm"       ; Structured Text editor
 FBD_END:
         DISPLAY "FBD:   free: ",/D,IM2_JP-FBD_END
         ASSERT FBD_END <= IM2_JP

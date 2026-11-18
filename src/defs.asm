@@ -66,6 +66,52 @@ HDR_LEN     EQU POU_BODIES-PROJ
 LANG_IL     EQU 0
 LANG_LD     EQU 1
 LANG_FBD    EQU 2
+LANG_ST     EQU 3
+
+; ---- Structured Text (st_lex.asm, st_edit.asm, st_comp.asm)
+; ST body = line records [len][K_STXT][indent][text...] (no 0)
+K_STXT      EQU 4           ; record kind of an ST line
+; token types of lx_next
+T_END       EQU 0           ; end of the line (st_comp: end of the POU)
+T_WORD      EQU 1           ; operand / name / number (lx_word, upper case)
+T_KW        EQU 2           ; keyword (lx_kw = KW_*)
+T_SYM       EQU 3           ; operator / punctuation (lx_sym = char or S_*)
+T_CMT       EQU 4           ; comment (// or (* *))
+T_BAD       EQU 5           ; invalid character
+S_ASG       EQU 1           ; :=
+S_OUT       EQU 2           ; =>
+S_LE        EQU 3           ; <=
+S_GE        EQU 4           ; >=
+S_NE        EQU 5           ; <>
+S_RNG       EQU 6           ; ..
+; keyword ids (order of st_kw_tab)
+KW_IF       EQU 1
+KW_THEN     EQU 2
+KW_ELSIF    EQU 3
+KW_ELSE     EQU 4
+KW_END_IF   EQU 5
+KW_CASE     EQU 6
+KW_OF       EQU 7
+KW_END_CASE EQU 8
+KW_FOR      EQU 9
+KW_TO       EQU 10
+KW_BY       EQU 11
+KW_DO       EQU 12
+KW_END_FOR  EQU 13
+KW_WHILE    EQU 14
+KW_END_WHILE EQU 15
+KW_REPEAT   EQU 16
+KW_UNTIL    EQU 17
+KW_END_REPEAT EQU 18
+KW_EXIT     EQU 19
+KW_RETURN   EQU 20
+KW_AND      EQU 21
+KW_OR       EQU 22
+KW_XOR      EQU 23
+KW_NOT      EQU 24
+KW_MOD      EQU 25
+KW_VAR      EQU 26          ; 26-33: reserved (declarations, types)
+KW_END_VAR  EQU 30
 
 ; ---- FBD element types (LD record format; the codes of the wire, the
 ;      timer boxes and the comment row are the same as in LD)

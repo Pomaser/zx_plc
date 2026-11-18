@@ -23,5 +23,9 @@ scr_edit:
         jp z,il_editor
         cp LANG_LD
         jp z,ld_editor
+        cp LANG_ST
+        jr z,.st
         BCALL fb_editor         ; FBD (own bank)
+        ret
+.st:    BCALL st_editor         ; ST (in the FBD bank)
         ret

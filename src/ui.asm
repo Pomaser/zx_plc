@@ -108,7 +108,7 @@ lang_name:
         ld bc,lang_names
         add hl,bc
         ret
-lang_names: db "IL LD FBD"
+lang_names: db "IL LD FBDST "
 
 ; ---- ui_input: line editor in the proportional font
 ;   HL = buffer (holds initial 0-terminated text), B = char row, C = x (px),
