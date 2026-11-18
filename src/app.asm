@@ -29,3 +29,29 @@ scr_edit:
         ret
 .st:    BCALL st_editor         ; ST (in the FBD bank)
         ret
+
+; ---- st_load_text: HL = ST lines (0-terminated, the list ends with 0xFF),
+;      A = slot -> replaces the POU body (demo, tests)
+st_load_text:
+        ld (stl_s),a
+        push hl
+        call pou_body
+        ld de,0
+        ld a,(stl_s)
+        call pou_delete
+        pop hl
+.l:     ld a,(hl)
+        cp 0xFF
+        ret z
+        ld de,il_out
+        call put_str
+        xor a
+        ld (de),a
+        inc hl
+        push hl
+        ld a,(stl_s)
+        ld hl,il_out
+        BCALL st_add_line
+        pop hl
+        jr .l
+stl_s:  db 0

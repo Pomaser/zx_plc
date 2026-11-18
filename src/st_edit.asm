@@ -1641,38 +1641,23 @@ st_sim_row:
         ld (sr_sim),a
         ret
 
-; ---- st_load_text: HL = text lines (0-terminated, list ends with 0xFF),
-;      A = slot -> replaces the POU body (demo, tests), indents computed
-st_load_text:
+; ---- st_add_line: A = slot, HL = line text (fixed memory) -> appended to
+;      the POU, its indent computed (st_load_text in app.asm: demo, tests)
+st_add_line:
         ld (lt_s),a
         ld (lt_p),hl
-        ld hl,(cur_pou)
-        ld (lt_cur),hl
-        ld (cur_pou),a
-        call pou_body
-        ld de,0
+        ld a,(cur_pou)
+        ld (lt_cur),a
         ld a,(lt_s)
-        call pou_delete
-        ld hl,0
-        ld (st_n),hl
-.l:     ld hl,(lt_p)
-        ld a,(hl)
-        cp 0xFF
-        jr z,.e
+        ld (cur_pou),a
+        call st_count
         ld de,(st_n)
+        ld hl,(lt_p)
         xor a
-        push hl
         call st_ins_line
-        pop hl
-        jr c,.e
-.s:     ld a,(hl)
-        inc hl
-        or a
-        jr nz,.s
-        ld (lt_p),hl
-        jr .l
-.e:     ld de,0
-        call st_reind_all
+        ld de,(st_n)
+        dec de
+        call st_reind
         ld a,0xFF               ; the editor starts at line 0
         ld (st_pou),a
         ld a,(lt_cur)
@@ -1745,7 +1730,7 @@ rn_cpos:   db 0
 rn_attr:   ds 32
 lt_s:      db 0
 lt_p:      dw 0
-lt_cur:    dw 0
+lt_cur:    db 0
 
         MODULE ste
         INCLUDE "st_lex.asm"

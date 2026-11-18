@@ -106,6 +106,7 @@ run_tests:
         call fbd_tests
         call clip_tests
         call undo_tests
+        call st_tests
     ENDIF
         ; ---- result
         ld bc,0x0000
@@ -1011,6 +1012,113 @@ ld_tests:
         ld a,(RT_Q)
         and 8
         jp t_check
+
+; ---- ST compiler: POU STT (st_load_text), MAIN = CAL STT
+st_tests:
+        ld hl,t_stname
+        ld a,LANG_ST
+        call pou_add
+        ld (t_stslot),a
+        ld hl,t_st_prog
+        call st_load_text
+        xor a
+        ld (cur_pou),a
+        ld hl,t_st_main
+        call il_load_text
+        call t_nc
+        BCALL il_compile
+        call t_nc
+        BCALL vm_reset
+        ld a,0x06               ; I0.1, I0.2 on
+        call t_scan_i
+        ld a,0x06
+        call t_scan_i
+        ld hl,t_st_words
+        ld de,RT_MW
+.w:     ld a,(hl)
+        cp 0xEE
+        jr z,.bits
+        push hl
+        push de
+        ld c,(hl)
+        inc hl
+        ld b,(hl)
+        ex de,hl
+        ld e,c
+        ld d,b
+        call t_word
+        pop de
+        pop hl
+        inc hl
+        inc hl
+        inc de
+        inc de
+        jr .w
+.bits:  ld a,(RT_M)             ; M0.0 = NOT I0.0 AND I0.1, M0.1 = TON0 Q
+        and 7                   ; (=>), M0.2 = TON0.Q
+        cp 7
+        call t_check
+        ld hl,t_st_err          ; a missing END_IF: error on line 2
+        ld a,(t_stslot)
+        call st_load_text
+        BCALL il_compile
+        ld a,0
+        jr nc,.e1
+        inc a
+.e1:    dec a
+        call t_check
+        ld hl,(cp_line)
+        ld de,2
+        or a
+        sbc hl,de
+        call t_check
+        ld hl,(il_err)
+        ld de,t_st_emsg
+        call strcmp
+        jp t_check
+
+t_stname:  db "STT     "
+t_stslot:  db 0
+t_st_main: db "CAL",9,"STT",0,0xFF
+t_st_prog:
+        db "%MW0 := 2 + 3 * 4;",0
+        db "%MW1 := (2 + 3) * 4;",0
+        db "%MW2 := 0;",0
+        db "FOR %MW3 := 1 TO 10 DO",0
+        db "%MW2 := %MW2 + %MW3;",0
+        db "END_FOR;",0
+        db "%MW4 := 0; // comment",0
+        db "WHILE %MW4 < 7 DO %MW4 := %MW4 + 2; END_WHILE;",0
+        db "%MW5 := 0;",0
+        db "REPEAT %MW5 := %MW5 + 5;",0
+        db "UNTIL %MW5 >= 12 END_REPEAT;",0
+        db "CASE %MW1 OF",0
+        db "1, 2: %MW6 := 1;",0
+        db "15..25: %MW6 := 2;",0
+        db "ELSE %MW6 := 3;",0
+        db "END_CASE;",0
+        db "IF %MW0 > 20 THEN %MW7 := 1;",0
+        db "ELSIF %MW0 = 14 THEN (* yes *) %MW7 := 2;",0
+        db "ELSE %MW7 := 3;",0
+        db "END_IF;",0
+        db "%MW8 := 0;",0
+        db "FOR %MW9 := 10 TO 0 BY -2 DO",0
+        db "%MW8 := %MW8 + 1;",0
+        db "IF %MW8 = 4 THEN EXIT; END_IF;",0
+        db "END_FOR;",0
+        db "%MW10 := -(%MW0 - 20) * 2;",0
+        db "%MX0.0 := NOT %IX0.0 AND %IX0.1;",0
+        db "TON0(IN := %IX0.2, PT := T#60ms, Q => %MX0.1);",0
+        db "%MX0.2 := TON0.Q;",0
+        db 0xFF
+t_st_words:
+        dw 14, 20, 55, 11, 8, 15, 2, 2, 4, 4, 12
+        db 0xEE
+t_st_err:
+        db "IF %MX0.0 THEN",0
+        db "%MW0 := 1;",0
+        db 0xFF
+t_st_emsg: db "END_IF expected",0
 
 ; ---- FBD compiler: cells built with ld_put, MAIN = CAL FBT
 fbd_tests:

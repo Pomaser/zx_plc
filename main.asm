@@ -161,6 +161,7 @@ EDIT_END:
         INCLUDE "src/vm.asm"
         INCLUDE "src/ld_comp.asm"
         INCLUDE "src/fbd_comp.asm"
+        INCLUDE "src/st_comp.asm"       ; Structured Text compiler
         INCLUDE "src/pou.asm"           ; POU list screen
         INCLUDE "src/tape.asm"          ; tape (uncontended bank)
         INCLUDE "src/sd.asm"            ; SD card (divMMC / esxDOS)

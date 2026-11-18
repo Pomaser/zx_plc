@@ -46,8 +46,13 @@ il_compile:
         ret c
         jr .ret
 .fbd:   cp LANG_FBD
-        jr nz,.ret
+        jr nz,.st
         call fb_compile
+        ret c
+        jr .ret
+.st:    cp LANG_ST
+        jr nz,.ret
+        call st_compile
         ret c
 .ret:   ld a,OP_RET
         call cp_emit0

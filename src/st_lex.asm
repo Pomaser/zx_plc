@@ -197,32 +197,44 @@ lx_wchar:
         ret
 
 ; ---- lx_kwfind: HL = word (upper case, 0) -> A = keyword id (NZ), or
-;      A = 0 (Z). Keeps BC, DE, HL
+;      A = 0 (Z). Keeps BC, DE, HL. Table entries: [length][text]
 lx_kwfind:
         push bc
         push de
         push hl
+        call strlen
+        ld (lx_wlen),a
+        ld c,1                  ; C = id
         ld de,lx_kwtab
-        ld c,1
 .l:     ld a,(de)
         or a
         jr z,.e
+        ld b,a
+        inc de                  ; DE = text
+        ld a,(lx_wlen)
+        cp b
+        jr nz,.sk
         pop hl
         push hl
+        push de
 .c:     ld a,(de)
         cp (hl)
         jr nz,.ne
         inc de
         inc hl
-        or a
-        jr nz,.c
-        ld a,c                  ; both ended: found
+        djnz .c
+        pop de
+        ld a,c                  ; found
         jr .e
-.ne:    ld a,(de)
-        inc de
-        or a
-        jr nz,.ne
-        inc c
+.ne:    pop de
+        ld a,(lx_wlen)
+        ld b,a
+.sk:    ld a,e                  ; DE += length
+        add a,b
+        ld e,a
+        jr nc,.n
+        inc d
+.n:     inc c
         jr .l
 .e:     pop hl
         pop de
@@ -231,14 +243,13 @@ lx_kwfind:
         ret
 
 lx_kwtab:
-        db "IF",0,"THEN",0,"ELSIF",0,"ELSE",0,"END_IF",0
-        db "CASE",0,"OF",0,"END_CASE",0
-        db "FOR",0,"TO",0,"BY",0,"DO",0,"END_FOR",0
-        db "WHILE",0,"END_WHILE",0,"REPEAT",0,"UNTIL",0,"END_REPEAT",0
-        db "EXIT",0,"RETURN",0
-        db "AND",0,"OR",0,"XOR",0,"NOT",0,"MOD",0
-        db "VAR",0,"VAR_GLOBAL",0,"VAR_INPUT",0,"VAR_OUTPUT",0,"END_VAR",0
-        db "BOOL",0,"INT",0,"TIME",0
+        db 2,"IF",4,"THEN",5,"ELSIF",4,"ELSE",6,"END_IF"
+        db 4,"CASE",2,"OF",8,"END_CASE",3,"FOR",2,"TO"
+        db 2,"BY",2,"DO",7,"END_FOR",5,"WHILE",9,"END_WHILE"
+        db 6,"REPEAT",5,"UNTIL",10,"END_REPEAT",4,"EXIT",6,"RETURN"
+        db 3,"AND",2,"OR",3,"XOR",3,"NOT",3,"MOD"
+        db 3,"VAR",10,"VAR_GLOBAL",9,"VAR_INPUT",10,"VAR_OUTPUT",7,"END_VAR"
+        db 4,"BOOL",3,"INT",4,"TIME"
         db 0
 lx_syms: db "+-*/(),;&",0
 
@@ -248,4 +259,5 @@ lx_type:  db 0
 lx_kw:    db 0
 lx_sym:   db 0
 lx_bad:   db 0
+lx_wlen:  db 0
 lx_word:  ds LX_WMAX+1
