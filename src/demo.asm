@@ -322,34 +322,39 @@ dm_main:
 
 ; ---- DEMO_ST: a level 0-5, one step up on each press of Up
 dm_st:
-        db "// Up: one step up, after 5 back to 0",0
+        db "// ---- Level 0-5: one step per Up press",0
         db "UpEdge(CLK := Up);",0
+        db 0                    ; (empty line)
         db "IF UpEdge.Q",0
         db "THEN",0
         db "IF Level < 5",0
         db "THEN",0
         db "Level := Level + 1;",0
         db "ELSE",0
+        db "// after 5 back to 0",0
         db "Level := 0;",0
         db "END_IF;",0
         db "END_IF;",0
+        db 0                    ; (empty line)
+        db "// ---- Clear: back to 0",0
         db "IF Clear",0
         db "THEN",0
         db "Level := 0;",0
         db "END_IF;",0
-        db "",0
-        db "// The bar on three outputs",0
+        db 0                    ; (empty line)
+        db "// ---- The bar on three outputs",0
         db "Bar1 := Level >= 1;",0
         db "Bar2 := Level >= 3;",0
         db "Bar3 := Level = 5;",0
-        db "",0
-        db "// Total = 1 + 2 + ... + Level",0
+        db 0                    ; (empty line)
+        db "// ---- Total = 1 + 2 + ... + Level",0
         db "Total := 0;",0
         db "FOR N := 1 TO Level",0
         db "DO",0
         db "Total := Total + N;",0
         db "END_FOR;",0
-        db "",0
+        db 0                    ; (empty line)
+        db "// ---- Range: 0 none, 1 low, 2 high",0
         db "CASE Level",0
         db "OF",0
         db "0: Range := 0;",0
