@@ -106,14 +106,14 @@ editor and key for users.
   - The project at 0x9000-0xBFFF (12 KB).
 - **Paged banks at 0xC000.** `main.asm` decides which module goes where:
   - EDIT 0: IL, LD and symbol editors, simulation screen, tests (~2.8 KB free).
-  - RUN 4: compilers (also `src/st_comp.asm`), VM, bytecode at 0xF000, POU list, tape, SD card
-    (`src/sd.asm`). It is uncontended, which tape timing needs (~0.3 KB free; 0xF800-0xFDFC above
-    `BCODE_END` is still unused).
+  - RUN 4: compilers (also `src/st_comp.asm`, `src/st_var.asm`), VM, bytecode at 0xF000, POU list, tape,
+    SD card (`src/sd.asm`). It is uncontended, which tape timing needs (~0.4 KB free). Above `BCODE_END`:
+    0xF800-0xFBFF the ST tokenizer of the compiler, 0xFC00 / 0xFD00 the ST locals (LV_INIT / LV_BASE).
   - DATA 1: the popup save buffer and the clipboard (`clip_buf`, filled by `src/clip.asm`).
   - DEMO 3: `src/tools.asm` (cross references, watch / force page of the simulation, Help texts),
     `src/clip.asm` (mark / copy / cut / paste, called by the editors with `BCALL cl_cmd` / `mk_draw`),
     `src/wexpr.asm`, `src/mouse.asm`, `src/ur4.asm`, `src/trend.asm`, `menu_cmd` / `menu_active` (menu commands, check marks), the About box with twinkling stars and the top-border scroller (`tl_about`, `bd_*`) and the demo image (~1.1 KB free).
-  - FBD 6: the FBD editor and the ST editor `src/st_edit.asm` (~2.8 KB free).
+  - FBD 6: the FBD editor and the ST editor `src/st_edit.asm` (~0.3 KB free).
   - SPARE 7: undo / redo (`src/undo.asm`): the code, the history records growing up from `UM_REC`, and
     the shadow copy of the project ending at the IM2 stub. The tape load copies the project to `UM_BAK`
     (= `UM_REC`) and calls `um_reset`.
@@ -221,8 +221,7 @@ editor and key for users.
     A (`fc_link` in fbd_comp.asm, the same when placed).
 - **Structured Text** (LANG_ST):
   - Body: line records `[len][K_STXT][indent][text]` (no 0). The text is stored as typed, only
-    normalised (keywords upper case, one space between tokens), so names are resolved when compiling;
-    a later VAR / END_VAR declaration (reserved keywords today) only changes the name lookup.
+    normalised (keywords upper case, one space between tokens), so names are resolved when compiling.
   - `src/st_lex.asm`: the tokenizer and the keyword table, included twice inside `MODULE ste` (FBD bank,
     the editor) and `MODULE stc` (RUN bank, the compiler); keyword ids `KW_*`, token types `T_*`, two-char
     symbols `S_*` are in defs.asm.
@@ -235,7 +234,19 @@ editor and key for users.
     OF / REPEAT / END_x[;]; `st_commit` (st_split = lines added) and `st_add_line` apply it.
     ENTER at the end of `IF c` / `ELSIF c` / `WHILE c` / `FOR ...` / `CASE e` adds THEN (DO / OF), an
     empty line and END_x (`st_editor.auto`, table `au_tab`); a space typed after a keyword makes it
-    upper case (`st_kwup`). `st_norm` drops a ";" after END_x (`sn_semi`; the compiler takes it
+    upper case (`st_kwup`).
+  - Local variables: a `VAR` block at line 0, one `Name : BOOL|INT|TIME [:= k];` per line.
+    `st_vfind` (st_lex.asm, both banks) reads it from the body text (A = slot, HL = name -> index,
+    type; vf_cnt / vf_var / vf_end). Each local is a word at `LV_BASE` (RUN bank 0xFD00, LV_MAX 126 in
+    all POUs; the LV indices of a POU follow those of the ST POUs in lower slots, `lv_first`), initial
+    values at `LV_INIT` (0xFC00, written by `sc_var`, copied by `lv_reset` after compiling and in
+    vm_reset). Operands: area `AR_LV` + type*16, index = LV index, emitted as VM_MB / VM_MW addresses
+    (`sc_lvmode`; the VM is unchanged). `src/st_var.asm` (RUN) has the compiler part and `st_lvaddr` /
+    `st_lvrd` for the simulation monitor (descriptor bit 5: read through the RUN bank). The compiler's
+    tokenizer (MODULE stc) is at 0xF800 above the bytecode ("RUN2", nearly full).
+    Editor: the block folds while the cursor is below END_VAR (`st_fh` hidden lines; rows <-> lines
+    through `st_d` / `st_l` / `st_rowline`, summary `st_fsum`); an unknown name opens the declaration
+    popup (`st_decl`). `st_norm` drops a ";" after END_x (`sn_semi`; the compiler takes it
     as optional).
     `st_sim_row` draws a line for the simulation (cells 0-24) and puts the watched operand in rd_o;
     `st_xr_line` serves the cross references; `st_add_line` + `st_load_text` (app.asm) load text

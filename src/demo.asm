@@ -305,7 +305,6 @@ dm_syms:
         db AR_MW,0,"Level",0,"Level 0-5",0
         db AR_MW,1,"Total",0,"1 + 2 + ... + Level",0
         db AR_MW,2,"Range",0,"0 empty, 1 low, 2 high",0
-        db AR_MW,3,"N",0,"FOR loop counter",0
         db AR_FBI,FBT_RTRIG*FB_PER_TYPE+1,"UpEdge",0,"Rising edge of Up",0
         db 0xFF
 
@@ -322,6 +321,9 @@ dm_main:
 
 ; ---- DEMO_ST: a level 0-5, one step up on each press of Up
 dm_st:
+        db "VAR",0
+        db "N : INT; // FOR loop counter",0
+        db "END_VAR",0
         db "// Level 0-5: one step per Up press",0
         db "UpEdge(CLK := Up);",0
         db 0                    ; (empty line)

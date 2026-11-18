@@ -491,8 +491,34 @@ SUB1();                        (calls the POU SUB1)
   evaluated before every pass.
 * **CASE** labels are INT constants, lists (`2, 3`) and ranges (`4..9`).
 * A loop that never ends is stopped by the watchdog (30000 instructions per scan).
-* `VAR` ... `END_VAR` and the types `BOOL`, `INT`, `TIME` are reserved for declarations of variables
-  in a later version; today the variables are the operands and their symbols.
+
+**Local variables**
+
+![Folded VAR block and the declaration popup](img/st_vars.png)
+
+A POU can declare its own variables in a `VAR` block at its very start, one declaration per line:
+
+```
+VAR
+  Idx : INT;
+  Sum : INT := 5;     (initial value)
+  Done : BOOL;
+  Delay : TIME := T#2s;
+END_VAR
+```
+
+* The types are `BOOL`, `INT` and `TIME`; the initial value is a constant (0 / FALSE when there is none).
+  The names are not case sensitive, a local name hides a symbol with the same name.
+* The values are kept from scan to scan; Run and Reset set them to their initial values.
+* **The block folds:** while the cursor is below `END_VAR`, the block is shown as one line
+  `VAR Idx : INT; Sum : INT := 5; .. (4)` (the line numbers jump). Moving the cursor up into it opens
+  it again. ENTER after `VAR` adds an empty line and `END_VAR`.
+* **Declaration on the fly:** when a line with an unknown name (like `count := count + 1;`) is left, a
+  window asks "Declare count as:" `B` BOOL, `I` INT or `T` TIME. The declaration is added to the block
+  (a new block is made at the start of the POU), BREAK leaves the name as an error.
+* In the simulation the block is open and every declaration line shows the live value of its variable.
+* `VAR_GLOBAL`, `VAR_INPUT` and `VAR_OUTPUT` are reserved for a later version; global variables are the
+  symbols. Local FB instances (`T1 : TON`) are not possible yet: use TON0 ... with a symbol.
 
 ## 10. Symbol editor
 
@@ -659,7 +685,7 @@ inputs and outputs:
 | DEMO_IL | traffic light as a step sequence (S0.0-S0.4), one TON per step | `0` start, `1` stop | Q0.0-Q0.2 |
 | DEMO_LD | pump with self-holding, fan run-on (TOF), alert memory (P / N contacts, set / reset), blinking lamp (2 x TP) | `4`-`7` | Q0.4-Q0.6 |
 | DEMO_FBD | inlet valve with nested gates and a 2 s run-on, overflow horn (RT, SR), service counter (CTU, after 3 fills) | byte 1: `B`, then `0`-`5` | Q1.0-Q1.2 |
-| DEMO_ST | level bar: each press of Up (R_TRIG) raises Level 0-5, the bar outputs, a FOR sum and a CASE range | `2` up, `3` clear | Q0.3, Q0.7, Q1.3 |
+| DEMO_ST | level bar: each press of Up (R_TRIG) raises Level 0-5, the bar outputs, a FOR sum with a local counter and a CASE range | `2` up, `3` clear | Q0.3, Q0.7, Q1.3 |
 
 A symbol table names all of them. The watch list contains the traffic light (the ET of each of its four timers followed by its light,
 shown first on the trend page), HighLvl, Valve, Horn, TValve.ET, Fills.CV, Level (DEMO_ST) and the scan
@@ -692,5 +718,6 @@ times.
 | ST line | 60 characters |
 | ST expression | 8 nested right sides (`a - (b - (c - ...))`) |
 | ST FB call outputs (`=>`) | 4 per call |
+| ST local variables | 126 in all POUs together |
 
 For the program structure, memory map and build details see `README.md` and `CLAUDE.md`.
