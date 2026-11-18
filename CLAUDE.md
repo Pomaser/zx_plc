@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-ZX-PLC is a PLC editor and simulator (IEC 61131-3: IL, LD, FBD) for the ZX Spectrum 128K. It is written
+ZX-PLC is a PLC editor and simulator (IEC 61131-3: IL, LD, FBD, ST) for the ZX Spectrum 128K. It is written
 in Z80 assembler for sjasmplus. Programs only run in the built-in simulation (optionally with real I/O
 through a UR-4 interface); projects are saved and loaded on tape or on an SD card (divMMC with esxDOS).
 There is also a browser version (GitHub Pages, JSSpeccy). README.md and docs/MANUAL.md describe every
@@ -75,7 +75,7 @@ editor and key for users.
   per image, `--noborder`). Update the manual and the scripts when the UI changes.
 - `python3 tools/fixjr.py main.asm`: builds and converts every out-of-range `jr` to `jp` in the source,
   then prints the remaining errors. Run it after edits that make code longer.
-- `python3 tools/xref.py --check "pou:R,app:E,il_edit:E,sym_edit:E,ld_edit:E,sim:E,demo:E,il_comp:R,vm:R,ld_comp:R,fbd_comp:R,tape:R,tests:E,fbd_edit:F,tools:D,clip:D,wexpr:D,mouse:D,undo:S,ur4:D,trend:D,sd:R"`:
+- `python3 tools/xref.py --check "pou:R,app:E,il_edit:E,sym_edit:E,ld_edit:E,sim:E,demo:E,il_comp:R,vm:R,ld_comp:R,fbd_comp:R,st_comp:R,tape:R,tests:E,fbd_edit:F,st_edit:F,tools:D,clip:D,wexpr:D,mouse:D,undo:S,ur4:D,trend:D,sd:R"`:
   reports labels referenced across paged banks without `BCALL`. Unlisted modules are core. The
   `run_tests` / `demo_build` hits in main.asm are expected. Extend the map when a module moves.
 - Headless emulator: `.scratch/venv/bin/python tools/zxrun.py zxplc.sna -f 30 -s "<script>"`
@@ -106,13 +106,14 @@ editor and key for users.
   - The project at 0x9000-0xBFFF (12 KB).
 - **Paged banks at 0xC000.** `main.asm` decides which module goes where:
   - EDIT 0: IL, LD and symbol editors, simulation screen, tests (~2.8 KB free).
-  - RUN 4: compilers, VM, bytecode at 0xF000, POU list, tape, SD card (`src/sd.asm`). It is uncontended,
-    which tape timing needs (~3.6 KB free).
+  - RUN 4: compilers (also `src/st_comp.asm`), VM, bytecode at 0xF000, POU list, tape, SD card
+    (`src/sd.asm`). It is uncontended, which tape timing needs (~0.3 KB free; 0xF800-0xFDFC above
+    `BCODE_END` is still unused).
   - DATA 1: the popup save buffer and the clipboard (`clip_buf`, filled by `src/clip.asm`).
   - DEMO 3: `src/tools.asm` (cross references, watch / force page of the simulation, Help texts),
     `src/clip.asm` (mark / copy / cut / paste, called by the editors with `BCALL cl_cmd` / `mk_draw`),
-    `src/wexpr.asm`, `src/mouse.asm`, `src/ur4.asm`, `src/trend.asm`, `menu_cmd` / `menu_active` (menu commands, check marks), the About box with twinkling stars and the top-border scroller (`tl_about`, `bd_*`) and the demo image (~3.7 KB free).
-  - FBD 6: the FBD editor (~7.5 KB free).
+    `src/wexpr.asm`, `src/mouse.asm`, `src/ur4.asm`, `src/trend.asm`, `menu_cmd` / `menu_active` (menu commands, check marks), the About box with twinkling stars and the top-border scroller (`tl_about`, `bd_*`) and the demo image (~1.1 KB free).
+  - FBD 6: the FBD editor and the ST editor `src/st_edit.asm` (~2.8 KB free).
   - SPARE 7: undo / redo (`src/undo.asm`): the code, the history records growing up from `UM_REC`, and
     the shadow copy of the project ending at the IM2 stub. The tape load copies the project to `UM_BAK`
     (= `UM_REC`) and calls `um_reset`.
@@ -218,6 +219,25 @@ editor and key for users.
     rows are handled like preset cells by `fb_prow`. Placing an FBD block only chooses the operator
     (`wx_opsel`); the values are asked one at a time on their cells (`wx_value`). A block right behind a compute result takes D as its
     A (`fc_link` in fbd_comp.asm, the same when placed).
+- **Structured Text** (LANG_ST):
+  - Body: line records `[len][K_STXT][indent][text]` (no 0). The text is stored as typed, only
+    normalised (keywords upper case, one space between tokens), so names are resolved when compiling;
+    a later VAR / END_VAR declaration (reserved keywords today) only changes the name lookup.
+  - `src/st_lex.asm`: the tokenizer and the keyword table, included twice inside `MODULE ste` (FBD bank,
+    the editor) and `MODULE stc` (RUN bank, the compiler); keyword ids `KW_*`, token types `T_*`, two-char
+    symbols `S_*` are in defs.asm.
+  - `src/st_edit.asm` (FBD bank): own line editor on the IL principles. `st_render` lays a line out:
+    keywords and comments start on x = 8k+1 so their cells can be coloured (rn_attr); the same layout gives
+    the cursor x and the width check. The indent is derived from the line above (`st_iinfo`, `st_reind`:
+    +1 after THEN / ELSE / DO / OF / REPEAT / an UNTIL line, -1 for END_* / ELSE / ELSIF / UNTIL).
+    `st_sim_row` draws a line for the simulation (cells 0-24) and puts the watched operand in rd_o;
+    `st_xr_line` serves the cross references; `st_add_line` + `st_load_text` (app.asm) load text
+    (demo, tests; the text goes through il_out, fixed memory).
+  - `src/st_comp.asm` (RUN bank): recursive descent over the tokens of all lines. Expressions on the
+    accumulator VM: a single-operand right side is `OP x`, anything else `PUSH op` / right side / `POP`
+    (8 levels). Forward jumps are chained through their arg field and patched (`sc_patchl`). CASE compiles
+    the selector again per label (`sc_mark` / `sc_goto` re-read the token stream). Errors leave via
+    `sc_err` (SP restored), the message is copied to il_out (fixed memory, read by the editor).
 - **Compile and run:**
   - `il_compile` (RUN) compiles every POU to 5-byte bytecode `[op][mode][arg lo][arg hi][arg3]`:
     IL in two passes, LD and FBD column by column with scratch bits S[row] (src/ld_comp.asm,

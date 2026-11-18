@@ -1,8 +1,8 @@
 # ZX-PLC User Manual
 
 ZX-PLC is a PLC programming environment for the **ZX Spectrum 128K** (also +2 / +2A / +3). It edits
-programs in three IEC 61131-3 languages: Instruction List (IL), Ladder Diagram (LD) and Function Block
-Diagram (FBD). It runs them in a built-in simulation with live monitoring, a watch / force table and
+programs in four IEC 61131-3 languages: Instruction List (IL), Ladder Diagram (LD), Function Block
+Diagram (FBD) and Structured Text (ST). It runs them in a built-in simulation with live monitoring, a watch / force table and
 virtual inputs and outputs. Projects are saved to and loaded from tape.
 
 The screenshots in this manual come from the program itself; `make docs` regenerates them.
@@ -17,12 +17,13 @@ The screenshots in this manual come from the program itself; `make docs` regener
 6. [IL editor](#6-il-editor)
 7. [LD editor](#7-ld-editor)
 8. [FBD editor](#8-fbd-editor)
-9. [Symbol editor](#9-symbol-editor)
-10. [Simulation](#10-simulation)
-11. [Watch and force table](#11-watch-and-force-table)
-12. [Tools: undo, copy and paste, cross references, add to watch](#12-tools-undo-copy-and-paste-cross-references-add-to-watch)
-13. [The demo project](#13-the-demo-project)
-14. [Reference](#14-reference)
+9. [ST editor](#9-st-editor)
+10. [Symbol editor](#10-symbol-editor)
+11. [Simulation](#11-simulation)
+12. [Watch and force table](#12-watch-and-force-table)
+13. [Tools: undo, copy and paste, cross references, add to watch](#13-tools-undo-copy-and-paste-cross-references-add-to-watch)
+14. [The demo project](#14-the-demo-project)
+15. [Reference](#15-reference)
 
 ---
 
@@ -184,7 +185,7 @@ Each menu title opens a drop-down list. The first letter of a title or item is i
 |---|---|
 | Sound | key click and error tone on / off |
 | Mouse | Kempston mouse on / off (only when one is found) |
-| UR-4 I/O | real inputs and outputs through a UR-4 interface on / off (only when one is found, see [10](#10-simulation)) |
+| UR-4 I/O | real inputs and outputs through a UR-4 interface on / off (only when one is found, see [11](#11-simulation)) |
 
 ### Help
 
@@ -422,7 +423,58 @@ ENTER opens the picker. On a block input, outputs are not offered:
   * Whatever fed its other inputs is removed.
   * The network then closes up and empty rows below it disappear.
 
-## 9. Symbol editor
+## 9. ST editor
+
+![ST editor (DEMO_ST)](img/st_editor.png)
+
+Structured Text is written line by line, like IL, but a statement may span several lines. The editor
+works like a small text editor:
+
+* Keywords (`IF`, `THEN`, `END_IF`, `AND`, ...) are dark blue and start on a character cell, so the text
+  after a keyword can have a small gap. Comments (`// text` to the end of the line, or `(* text *)`) are
+  dark green.
+* **The indent is automatic:** the line after `THEN`, `ELSE`, `DO`, `OF` or `REPEAT` moves one step to
+  the right, a line starting with `END_IF`, `ELSE`, `ELSIF`, `END_FOR`, `UNTIL`, ... one step back.
+* Leaving a line (ENTER, UP, DOWN, the menu) checks it: unknown characters, an unclosed `(*` comment and
+  unknown names are reported in a popup and the cursor stays on the line. Keywords are stored in upper
+  case and the spaces between the words are normalised. The whole program is checked by the compiler
+  (Run > Run); an error opens the editor at its line, the message is in the status bar.
+* ENTER splits the line at the cursor (at the end: a new empty line below), SS+ENTER opens an empty line
+  below. DELETE deletes the character left of the cursor; on an empty line it removes the line.
+  SS+LEFT / SS+RIGHT go to the start / end of the line, SS+UP / SS+DOWN page.
+* SS+X and SS+W take the operand under (or just before) the cursor.
+
+**Statements**
+
+```
+x := expression;
+IF c THEN ... ELSIF c THEN ... ELSE ... END_IF;
+CASE e OF 1: ...; 2, 3: ...; 4..9: ...; ELSE ... END_CASE;
+FOR i := 1 TO 10 BY 2 DO ... END_FOR;
+WHILE c DO ... END_WHILE;
+REPEAT ... UNTIL c END_REPEAT;
+EXIT;                          (leaves the innermost loop)
+RETURN;                        (ends the POU)
+TON0(IN := Start, PT := T#5s, Q => Lamp);
+SUB1();                        (calls the POU SUB1)
+```
+
+* **Expressions** use the operands of [chapter 5](#5-operands-and-symbols), `( )` and the operators, from
+  the weakest: `OR`, `XOR`, `AND` (`&`), `=` `<>`, `<` `>` `<=` `>=`, `+` `-`, `*` `/` `MOD`, and the
+  unary `NOT` and `-`. Comparisons give BOOL, arithmetic INT (16 bit signed). `NOT` of an INT inverts its
+  bits.
+* **Assignment** targets are outputs, memory bits, INT words, step flags and FB members (`TON0.PT := ...`).
+* **FB call:** `INST(member := expression, ...)` writes the inputs, runs the block and copies the outputs
+  given with `member => target` (up to 4). The outputs can also be read later as `TON0.Q`, `CTU1.CV`.
+  Inputs left out keep their last value.
+* **FOR:** the step after `BY` is a constant (default 1; a negative step counts down). The end value is
+  evaluated before every pass.
+* **CASE** labels are INT constants, lists (`2, 3`) and ranges (`4..9`).
+* A loop that never ends is stopped by the watchdog (30000 instructions per scan).
+* `VAR` ... `END_VAR` and the types `BOOL`, `INT`, `TIME` are reserved for declarations of variables
+  in a later version; today the variables are the operands and their symbols.
+
+## 10. Symbol editor
 
 ![Symbol editor](img/symbols.png)
 
@@ -432,9 +484,10 @@ dark blue), the address (black) and a comment (up to 30 characters, dark green).
 * SPACE moves between the fields; ENTER, UP and DOWN store the row.
 * The empty last row adds a symbol.
 * Clearing the name and the comment removes a symbol, as does Edit > Delete line.
-* Symbols can name inputs, outputs, memory bits, step flags, system flags and FB instances.
+* Symbols can name inputs, outputs, memory bits, INT words (`%MW`), step flags, system flags and FB
+  instances. In ST, named INT words work as variables (`Level := Level + 1;`).
 
-## 10. Simulation
+## 11. Simulation
 
 **Run > Run** compiles all POUs and runs MAIN once per frame. A compile error opens the editor of that POU at
 the faulty line or element; the message is shown in the status bar.
@@ -452,6 +505,11 @@ the faulty line or element; the message is shown in the status bar.
   * In FBD, the names of TRUE operands and the insides of TRUE blocks are green:
 
     ![Simulation of DEMO_FBD](img/sim_fbd.png)
+
+  * ST lines show the value of the variable they assign (`x := ...`), of the single operand of
+    `IF x THEN`, `WHILE x DO`, `UNTIL x`, `CASE x OF`, `FOR x := ...`, or the ET of a timer call:
+
+    ![Simulation of DEMO_ST](img/sim_st.png)
 
 * The lower panel shows the 16 inputs (green) and the 16 outputs (red) with their bit numbers. The half
   of the selected byte has a bright paper.
@@ -490,7 +548,7 @@ interface answers, otherwise "No UR-4 interface" is shown. It is off after the s
 * The interface itself (ports, control words, connectors) is described in Czech in
   [manual_ur-4.md](manual_ur-4.md).
 
-## 11. Watch and force table
+## 12. Watch and force table
 
 `W` in the simulation (or **Run > Watch**) shows the watch list of the project. It holds up to 16 operands
 with their symbols and live values and is saved with the project.
@@ -530,7 +588,7 @@ of its instance (`T_Red` for `TON0.ET`); an operand without a symbol keeps its a
 * The inputs keep working (`0`-`7`, `R`), so a program can be tried out and its signals compared in time.
 * Other words (`%MW`, constants) are not drawn. Operands are added on the watch page (`W`).
 
-## 12. Tools: undo, copy and paste, cross references, add to watch
+## 13. Tools: undo, copy and paste, cross references, add to watch
 
 **Undo (SS+U, Edit > Undo)** returns the project to its state before the last key that changed it, for
 example a deleted line, element or POU. Pressed again, it goes further back, step by step.
@@ -543,8 +601,8 @@ is cleared when a project is loaded from tape.
 **Copy and paste.** SS+A (Edit > Mark block) marks the start of a block at the cursor line / row; moving
 the cursor selects the block, shown by a bar at the left screen edge. SS+A again removes the mark.
 SS+D (Edit > Copy) copies the block to the clipboard, Edit > Cut copies it and deletes it. Without a mark
-the current IL line, LD rung or FBD network is taken. SS+F (Edit > Paste) inserts the clipboard in front
-of the cursor line (IL) or in front of the rung / network of the cursor (LD / FBD), also in another POU of
+the current IL / ST line, LD rung or FBD network is taken. SS+F (Edit > Paste) inserts the clipboard in
+front of the cursor line (IL, ST) or in front of the rung / network of the cursor (LD / FBD), also in another POU of
 the same language. The status bar shows what was copied or pasted.
 
 ![A marked block (lines 3-5)](img/clip_mark.png)
@@ -559,7 +617,7 @@ the same language. The status bar shows what was copied or pasted.
 language and comment under a new name.
 
 **Cross references (SS+X, View > Cross references)** list every use of the operand at the cursor. It
-works on an IL line, an LD / FBD element or a symbol; in the POU list it finds the calls of the POU. Each
+works on an IL line, the word at the cursor in ST, an LD / FBD element or a symbol; in the POU list it finds the calls of the POU. Each
 entry shows the POU, the line (or the row and position) and whether the operand is read, written or
 called. ENTER opens the editor at that place.
 
@@ -570,22 +628,24 @@ FB instance it adds the ET of a timer, the CV of a counter, or the Q of the othe
 
 ![Added to watch](img/add_watch.png)
 
-## 13. The demo project
+## 14. The demo project
 
 The demo starts with the program and can be loaded again with File > Open demo. Each part uses its own
 inputs and outputs:
 
 | POU | Function | Inputs | Outputs |
 |---|---|---|---|
-| MAIN | calls the three demos | | |
+| MAIN | calls the four demos | | |
 | DEMO_IL | traffic light as a step sequence (S0.0-S0.4), one TON per step | `0` start, `1` stop | Q0.0-Q0.2 |
 | DEMO_LD | pump with self-holding, fan run-on (TOF), alert memory (P / N contacts, set / reset), blinking lamp (2 x TP) | `4`-`7` | Q0.4-Q0.6 |
 | DEMO_FBD | inlet valve with nested gates and a 2 s run-on, overflow horn (RT, SR), service counter (CTU, after 3 fills) | byte 1: `B`, then `0`-`5` | Q1.0-Q1.2 |
+| DEMO_ST | level bar: each press of Up (R_TRIG) raises Level 0-5, the bar outputs, a FOR sum and a CASE range | `2` up, `3` clear | Q0.3, Q0.7, Q1.3 |
 
 A symbol table names all of them. The watch list contains the traffic light (the ET of each of its four timers followed by its light,
-shown first on the trend page), HighLvl, Valve, Horn, TValve.ET and Fills.CV.
+shown first on the trend page), HighLvl, Valve, Horn, TValve.ET, Fills.CV, Level (DEMO_ST) and the scan
+times.
 
-## 14. Reference
+## 15. Reference
 
 ### Standard function blocks
 
@@ -609,5 +669,8 @@ shown first on the trend page), HighLvl, Valve, Horn, TValve.ET and Fills.CV.
 | Call depth | 8 |
 | Watchdog | 30000 instructions per scan |
 | Edge contacts (P / N) | 32 per project |
+| ST line | 60 characters |
+| ST expression | 8 nested right sides (`a - (b - (c - ...))`) |
+| ST FB call outputs (`=>`) | 4 per call |
 
 For the program structure, memory map and build details see `README.md` and `CLAUDE.md`.

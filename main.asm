@@ -1,5 +1,5 @@
 ; ============================================================
-; ZX-PLC - PLC editor and simulator (IEC 61131-3: IL, LD, FBD)
+; ZX-PLC - PLC editor and simulator (IEC 61131-3: IL, LD, FBD, ST)
 ; ZX Spectrum 128K, Z80 assembler (sjasmplus)
 ; ============================================================
 ; Build:       sjasmplus main.asm            -> zxplc.sna (128K snapshot)

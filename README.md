@@ -2,25 +2,27 @@
 
 <img src="img/zxplc_load.png" width="512" alt="ZX-PLC loading screen">
 
-A PLC programming environment for the **ZX Spectrum 128K** (also +2 / +2A / +3): editors for the three
-IEC 61131-3 languages IL, LD and FBD, a compiler and a simulator, written in Z80 assembler. Programs are
+A PLC programming environment for the **ZX Spectrum 128K** (also +2 / +2A / +3): editors for four
+IEC 61131-3 languages (IL, LD, FBD and ST), a compiler and a simulator, written in Z80 assembler. Programs are
 not downloaded to a real PLC; they run in the built-in simulation with live monitoring.
 
 **[Video tour (YouTube, 11 min)](https://youtu.be/W62mHPIHemU)** · **[Try it in the browser](https://pomaser.github.io/zx_plc/)** · **[User manual with screenshots](docs/MANUAL.md)** · **[Download (releases)](https://github.com/Pomaser/zx_plc/releases)**
 
 ## What it does
 
-* **Three languages:**
+* **Four languages:**
   * Instruction List: a line editor with syntax checking.
   * Ladder Diagram: contacts, coils, branches, boxes.
   * Function Block Diagram: blocks nest and make room for themselves.
+  * Structured Text: IF / CASE / FOR / WHILE / REPEAT, expressions, FB calls; keywords in blue and an
+    automatic indent.
 * **Up to 8 POUs per project:** MAIN calls the others. A project holds up to 12 KB.
 * **Standard function blocks:** TON / TOF / TP timers, CTU / CTD counters, R_TRIG / F_TRIG, SR / RS. Also
   word compare and arithmetic (GT … LT, ADD, SUB, MUL, DIV, MOVE), step flags for sequences, system flags
   and clock pulses.
 * **Simulation:**
   * a scan every 50th of a second, 16 inputs and 16 outputs on an LED panel;
-  * live colouring of the program in all three languages;
+  * live colouring of the program in LD and FBD, live values in IL and ST;
   * a watch / force table, a trend page (time charts of the watched signals and timer / counter progress), step and reset.
 * **Symbols:** names and comments for every address, used everywhere instead of addresses.
 * **A demo project** (traffic light in IL, pump and fan in LD, valve and horn in FBD) opens at the start.
@@ -39,7 +41,7 @@ not downloaded to a real PLC; they run in the built-in simulation with live moni
   * undo and redo over many steps, duplicate a POU;
   * cross references with a jump to each use;
   * Run puts the cursor on the line or element of a compile error.
-* **A real compiler:** IL, LD and FBD are compiled to bytecode for a small virtual machine. LD and FBD go
+* **A real compiler:** IL, LD, FBD and ST are compiled to bytecode for a small virtual machine. LD and FBD go
   column by column, like a PLC evaluates a rung.
 * **The whole 128K in use:**
   * the editors, compilers, VM and tools are spread over the paged memory banks, with calls between them;

@@ -2,7 +2,7 @@
 ; tools.asm - cross references (DEMO bank, called with BCALL)
 ; ============================================================
 ; xref_show lists every use of one operand in all POUs: POU name,
-; line (IL) or row / position (LD, FBD) and Read / Write / Call.
+; line (IL, ST) or row / position (LD, FBD) and Read / Write / Call.
 ; ENTER on an entry opens that POU at that place (xr_jf / xr_jl /
 ; xr_jp in shared.asm are read by the editors when they start).
 ; ============================================================
@@ -1737,7 +1737,7 @@ BD_R    DEFL BD_R+1
 
 bd_msg: db "ZX-PLC   VERSION "
         INCBIN "VERSION"
-        db "   PLC EDITOR AND SIMULATOR FOR ZX SPECTRUM 128K   IEC 61131-3: IL, LD, FBD   ",0
+        db "   PLC EDITOR AND SIMULATOR FOR ZX SPECTRUM 128K   IEC 61131-3: IL, LD, FBD, ST   ",0
 BD_MLEN EQU $-bd_msg-1
 bd_chars: db "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-.:,"
 BD_NCH  EQU $-bd_chars
@@ -1904,7 +1904,7 @@ txt_about:
         INCBIN "VERSION"        ; the release number (file VERSION, no newline)
         db 0
         db "PLC editor and simulator",0
-        db "IEC 61131-3: IL, LD, FBD",0
+        db "IEC 61131-3: IL, LD, FBD, ST",0
         db "for ZX Spectrum 128K",0
         db " ",0
         db "J.Masopust 2026",0

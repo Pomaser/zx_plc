@@ -20,6 +20,7 @@ MENU = "w30 k:CS+SPACE w5 "                   # open the menu bar
 IL = "w30 " + D + "k:ENTER w40 "              # open DEMO_IL
 LD = "w30 " + D * 2 + "k:ENTER w40 "          # open DEMO_LD
 FBD = "w30 " + D * 3 + "k:ENTER w40 "         # open DEMO_FBD
+ST = "w30 " + D * 4 + "k:ENTER w60 "          # open DEMO_ST
 RUN = "k:CS+1 w10 k:R w10 k:R w80 "           # Run > Run
 
 SHOTS = [
@@ -39,10 +40,12 @@ SHOTS = [
     ("fbd_editor", FBD + D + "k:CS+8 w4 k:CS+8 w4 k:CS+8 w20"),
     ("fbd_picker", FBD + D + "k:ENTER w30"),
     ("fbd_pv", FBD + D * 6 + "k:CS+8 w4 " * 5 + "k:T w30"),
+    ("st_editor", ST + D * 3 + "w10"),
     ("symbols", MENU + "k:E w5 k:S w60"),
     ("sim_il", IL + RUN + "k:0 w150"),
     ("sim_ld", LD + RUN + "k:4 w60"),
     ("sim_fbd", FBD + RUN + "k:B w5 k:0 w5 k:2 w60"),
+    ("sim_st", ST + RUN + "w80 k:2 w20 k:2 w20 k:2 w20 k:2 w20 k:2 w20 k:2 w60"),
     ("sim_watch", FBD + RUN + "k:B w5 k:0 w5 k:2 w30 k:W w40 " + D * 4 + "k:F w40"),
     ("sim_trend", IL + "k:CS+SPACE w5 k:V w5 k:S w40 " + RUN + "k:G w20 k:0 w600"),
     ("xref", IL + D + "k:SS+X w60"),
