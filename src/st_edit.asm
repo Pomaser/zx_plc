@@ -192,7 +192,11 @@ st_editor:
 
         ; ---- ENTER: the line is split at the cursor, the rest goes to a
         ;      new line below (cursor at its start)
-.enter: ld hl,se_buf
+.enter: ld a,(st_pos)            ; (not in front of VAR on line 0)
+        or a
+        call z,.var0
+        jp z,.loop
+        ld hl,se_buf
         ld a,(st_pos)
         ld e,a
         ld d,0
@@ -269,6 +273,24 @@ st_editor:
         dec a
         call st_redraw_from
         jp .loop
+.var0:  ld hl,(st_cur)           ; Z = the cursor is on line 0 = VAR (beep)
+        ld a,h
+        or l
+        jr nz,.v0n
+        ld hl,se_buf
+        ld (ste.lx_p),hl
+        call ste.lx_next
+        ld a,(ste.lx_type)
+        cp T_KW
+        jr nz,.v0n
+        ld a,(ste.lx_kw)
+        cp KW_VAR
+        jr nz,.v0n
+        call beep
+        xor a
+        ret
+.v0n:   or 1
+        ret
 .tolast:                        ; a split line: the new line after its end
         ld a,(st_split)
         or a
@@ -605,7 +627,9 @@ st_editor:
         ld a,2
         BCALL mk_draw
         ret
-.mins:  ld de,(st_cur)          ; Edit > Insert line: an empty line above
+.mins:  call .var0              ; (not above VAR on line 0)
+        jp z,.loop
+        ld de,(st_cur)          ; Edit > Insert line: an empty line above
         ld hl,st_nothing
         ld a,(st_ind)
         call st_ins_line
@@ -1128,6 +1152,21 @@ st_norm:
         ret nz
 .nc:    call sn_semi            ; (no ";" after END_x)
         jp z,.l
+        ld a,(ste.lx_type)      ; VAR ...: only on line 0
+        cp T_KW
+        jr nz,.nv
+        ld a,(ste.lx_kw)
+        sub KW_VAR
+        cp 4
+        jr nc,.nv
+        ld hl,(st_cur)
+        ld a,h
+        or l
+        jr z,.nv
+        ld hl,err_st_var
+        scf
+        ret
+.nv:
         ld hl,(sn_out)          ; a space in front (not at the start)
         ld de,st_tmp
         or a
@@ -2714,6 +2753,7 @@ err_st_lines: db "Max. 999 lines",0
 err_st_char: db "Invalid character",0
 err_st_cmt:  db "Comment not closed",0
 err_st_name: db "Unknown name",0
+err_st_var:  db "VAR only at the start",0
 st_nothing:  db 0
 
 st_pou:    db 0xFF

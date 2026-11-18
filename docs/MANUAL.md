@@ -496,7 +496,8 @@ SUB1();                        (calls the POU SUB1)
 
 ![Folded VAR block and the declaration popup](img/st_vars.png)
 
-A POU can declare its own variables in a `VAR` block at its very start, one declaration per line:
+A POU can declare its own variables in a `VAR` block at its very start (the editor refuses `VAR` on any
+other line and a new line above it), one declaration per line:
 
 ```
 VAR
