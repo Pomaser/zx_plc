@@ -45,7 +45,7 @@ not downloaded to a real PLC; they run in the built-in simulation with live moni
   * Run puts the cursor on the line or element of a compile error.
 * **A real compiler:** IL, LD, FBD and ST are compiled to bytecode for a small virtual machine. LD and FBD go
   column by column, like a PLC evaluates a rung.
-* **The whole 128K in use:**
+* **The whole 128K in use** (see the [memory map](#memory-map)):
   * the editors, compilers, VM and tools are spread over the paged memory banks, with calls between them;
   * a small core, the runtime data and the 12 KB project stay in fixed memory.
 * **Real inputs and outputs:** a UR-4 interface (8255) connects 16 inputs and 8 outputs to the
@@ -56,6 +56,13 @@ not downloaded to a real PLC; they run in the built-in simulation with live moni
   * with a divMMC (esxDOS) also as `.PLC` files on the SD card, chosen from a list;
   * the program tape is packed with ZX0 and loads in under 4 minutes;
   * an animated loading screen (the PLC switches from STOP to RUN, its LEDs blink).
+
+## Memory map
+
+![ZX-PLC memory map](docs/img/memory_map.svg)
+
+The 64 KB address space, the fixed code in detail and the six paged RAM banks with their modules.
+`tools/mkmemmap.py` draws it from the symbols of the build (`zxplc.sym`).
 
 ## Running it
 
