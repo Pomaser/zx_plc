@@ -162,7 +162,7 @@ NARRATION = {
     "st1": (
         "Now the new language: Structured Text. The palette again: new POU, RAMP, "
         "language S. It will ramp the speed of the motor up.",
-        "Teď nový jazyk: strukturovaný text. Zase paleta: nová POU, RAMP, jazyk S. "
+        "Teď nový jazyk: strukturovaný text. Zase paleta příkazů: nová POU, RAMP, jazyk S. "
         "Bude rozjíždět rychlost motoru."),
     "st2": (
         "The ST editor helps a lot. A keyword turns blue and upper case as you type. "
@@ -190,7 +190,7 @@ NARRATION = {
     "st6": (
         "Here a semicolon is missing. Run, from the palette: the compiler opens the "
         "line, and the status bar says what is wrong.",
-        "Tady chybí středník. Run z palety: překladač otevře řádek a stavový řádek "
+        "Tady chybí středník. Run z palety příkazů: překladač otevře řádek a stavový řádek "
         "řekne, co je špatně."),
     "st7": (
         "Fixed. View, Addresses shows the same code with the addresses, View, Symbols "
