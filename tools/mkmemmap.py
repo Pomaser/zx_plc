@@ -17,18 +17,21 @@ from xml.sax.saxutils import escape
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.join(HERE, "..")
 
-# ---- palette (muted, one hue per kind of content)
+# ---- palette: the ZX Spectrum colours, normal (D7) and BRIGHT (FF); one colour per kind of
+#      content, neighbouring modules of the same kind alternate normal / bright
 C = {
-    "sys":   "#3D4451",   # ROM, screen, system
-    "core":  "#5A6B85",   # fixed code
-    "edit":  "#4E79A7",   # editors and screens
-    "comp":  "#3F8F86",   # compilers, VM, runtime
-    "tool":  "#B8862B",   # tools and services
-    "data":  "#8C96A3",   # buffers, work areas
-    "proj":  "#7A6BA8",   # the user's project and its copies
-    "im2":   "#262A31",   # IM2 vector table + JP isr
+    "sys":   ("#0000D7", "#0000FF"),   # ROM, screen, system: blue
+    "core":  ("#D700D7", "#FF00FF"),   # fixed code: magenta
+    "edit":  ("#00D7D7", "#00FFFF"),   # editors and screens: cyan
+    "comp":  ("#00D700", "#00FF00"),   # compilers, VM, runtime: green
+    "tool":  ("#D7D700", "#FFFF00"),   # tools and services: yellow
+    "data":  ("#D7D7D7", "#FFFFFF"),   # buffers, work areas: white
+    "proj":  ("#D70000", "#FF0000"),   # the user's project and its copies: red
+    "im2":   ("#000000", "#000000"),   # IM2 vector table + JP isr: black (outlined)
 }
-BG, PANEL, LINE, TEXT, MUTED = "#F6F7F9", "#FFFFFF", "#DDE1E7", "#1F2430", "#6B7280"
+INK = {"sys": "#FFFFFF", "core": "#FFFFFF", "proj": "#FFFFFF", "im2": "#FFFFFF"}   # else black
+BG, PANEL, LINE, TEXT, MUTED = "#D7D7D7", "#000000", "#000000", "#000000", "#3A3A3A"
+PTEXT, PMUTED = "#FFFFFF", "#A8A8A8"           # text on the black panels
 SANS = "Inter, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
 MONO = "'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace"
 
@@ -134,8 +137,8 @@ def main():
     a('<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d" '
       'font-family="%s">' % (W, H, W, H, SANS))
     a('<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" '
-      'patternTransform="rotate(45)"><rect width="6" height="6" fill="#FFFFFF"/>'
-      '<line x1="0" y1="0" x2="0" y2="6" stroke="#C9CED6" stroke-width="1.6"/></pattern></defs>')
+      'patternTransform="rotate(45)"><rect width="6" height="6" fill="#000000"/>'
+      '<line x1="0" y1="0" x2="0" y2="6" stroke="#4A4A4A" stroke-width="1.6"/></pattern></defs>')
     a('<rect width="%d" height="%d" fill="%s"/>' % (W, H, BG))
 
     # ---- title
@@ -144,17 +147,27 @@ def main():
     a('<text x="56" y="92" font-size="15" fill="%s">ZX Spectrum 128K · 64 KB address space of the Z80 '
       '· eight 16 KB RAM banks, paged in at C000 through port 7FFD · build %s</text>' % (MUTED, escape(version)))
 
+    last = {"kind": None, "b": 1}
+
+    def column():
+        last["kind"], last["b"] = None, 1
+
     def seg(x, w, y0, y1, label, kind, size, mono_addr=None, small=False):
         h = y1 - y0
-        fill = "url(#hatch)" if kind == "free" else C[kind]
-        stroke = ' stroke="#C9CED6" stroke-width="1"' if kind == "free" else ""
+        if kind == last["kind"]:                # the same kind again: the other brightness
+            last["b"] ^= 1
+        else:
+            last["kind"], last["b"] = kind, 0
+        fill = "url(#hatch)" if kind == "free" else C[kind][last["b"]]
+        stroke = ' stroke="#4A4A4A" stroke-width="1"' if kind == "free" else \
+            ' stroke="#6A6A6A" stroke-width="1"' if kind == "im2" else ""
         a('<rect x="%.1f" y="%.1f" width="%.1f" height="%.1f" fill="%s"%s/>' % (x, y0, w, max(h, 0.8), fill, stroke))
-        if kind != "free" and h > 0.8:
-            a('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="#FFFFFF" stroke-opacity="0.55" '
+        if kind not in ("free", "im2") and h > 0.8:
+            a('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="#000000" stroke-opacity="0.6" '
               'stroke-width="1"/>' % (x, y0, x + w, y0))
         if not label:
             return
-        col = MUTED if kind == "free" else "#FFFFFF"
+        col = PMUTED if kind == "free" else INK.get(kind, "#000000")
         if h >= 30:
             a('<text x="%.1f" y="%.1f" font-size="12.5" font-weight="600" fill="%s">%s</text>'
               % (x + 9, y0 + h / 2 - 2, col, escape(label)))
@@ -170,29 +183,30 @@ def main():
           % (x, y, w, h, PANEL, LINE))
 
     def head(x, y, title, sub):
-        a('<text x="%.1f" y="%.1f" font-size="15" font-weight="700" fill="%s">%s</text>' % (x, y - 14, TEXT, title))
-        a('<text x="%.1f" y="%.1f" font-size="11.5" fill="%s" font-family="%s">%s</text>' % (x, y + 3, MUTED, MONO, sub))
+        a('<text x="%.1f" y="%.1f" font-size="15" font-weight="700" fill="%s">%s</text>' % (x, y - 14, PTEXT, title))
+        a('<text x="%.1f" y="%.1f" font-size="11.5" fill="%s" font-family="%s">%s</text>' % (x, y + 3, PMUTED, MONO, sub))
 
     # ---- column 1: the 64 KB address space
     X1, W1 = 120, 150
     panel(40, TOP - 66, 300, HGT + 90)
     head(56, TOP - 22, "Address space", "0000–FFFF")
     ys = lambda adr: TOP + adr / 0x10000 * HGT
+    column()
     for s0, s1, lab, kind in space:
         seg(X1, W1, ys(s0), ys(s1), lab, kind, kb(s1 - s0))
     for adr in (0x0000, 0x4000, 0x5E00, 0x8A00, 0x9000, 0xC000, 0x10000):
         y = ys(adr)
-        a('<line x1="%d" y1="%.1f" x2="%d" y2="%.1f" stroke="%s"/>' % (X1 - 8, y, X1, y, MUTED))
+        a('<line x1="%d" y1="%.1f" x2="%d" y2="%.1f" stroke="%s"/>' % (X1 - 8, y, X1, y, PMUTED))
         a('<text x="%d" y="%.1f" font-size="11" text-anchor="end" fill="%s" font-family="%s">%s</text>'
-          % (X1 - 12, y + 4, MUTED, MONO, "%04X" % min(adr, 0xFFFF)))
+          % (X1 - 12, y + 4, PMUTED, MONO, "%04X" % min(adr, 0xFFFF)))
     # brackets: which RAM bank is behind each 16 KB of the address space
     for a0, a1, lab in ((0x0000, 0x4000, "ROM"), (0x4000, 0x8000, "bank 5"), (0x8000, 0xC000, "bank 2"),
                         (0xC000, 0x10000, "banks 0–7")):
         y0, y1 = ys(a0) + 3, ys(a1) - 3
         bx = X1 + W1 + 10
-        a('<path d="M%d %.1f h5 V%.1f h-5" fill="none" stroke="#AEB4BE"/>' % (bx, y0, y1))
+        a('<path d="M%d %.1f h5 V%.1f h-5" fill="none" stroke="%s"/>' % (bx, y0, y1, PMUTED))
         a('<text transform="translate(%d %.1f) rotate(-90)" font-size="10.5" text-anchor="middle" '
-          'letter-spacing="0.6" fill="%s">%s</text>' % (bx + 18, (y0 + y1) / 2, MUTED, lab.upper()))
+          'letter-spacing="0.6" fill="%s">%s</text>' % (bx + 18, (y0 + y1) / 2, PMUTED, lab.upper()))
 
     # ---- column 2: the core in detail
     X2, W2 = 420, 190
@@ -200,16 +214,17 @@ def main():
     head(396, TOP - 22, "Fixed code and data", "5E00–8FFF")
     c0, c1 = 0x5E00, 0x9000
     yc = lambda adr: TOP + (adr - c0) / (c1 - c0) * HGT
+    column()
     for s0, s1, lab, kind in core:
         seg(X2, W2, yc(s0), yc(s1), lab, kind, kb(s1 - s0))
     for adr in (0x5E00, 0x8A00, 0x9000):
         y = yc(adr)
         a('<text x="%d" y="%.1f" font-size="11" text-anchor="end" fill="%s" font-family="%s">%04X</text>'
-          % (X2 - 8, y + 4, MUTED, MONO, adr))
+          % (X2 - 8, y + 4, PMUTED, MONO, adr))
     # zoom lines from column 1
     for adr_a, adr_b in ((0x5E00, 0x5E00), (0x9000, 0x9000)):
         a('<line x1="%d" y1="%.1f" x2="%d" y2="%.1f" stroke="%s" stroke-dasharray="3 3"/>'
-          % (X1 + W1 + 34, ys(adr_a), X2 - 44, yc(adr_b), "#AEB4BE"))
+          % (X1 + W1 + 34, ys(adr_a), X2 - 44, yc(adr_b), "#808080"))
 
     # ---- columns 3: the paged banks
     X3, W3, G3 = 700, 144, 14
@@ -218,6 +233,7 @@ def main():
     for i, (bank, name, segs) in enumerate(banks):
         x = X3 + i * (W3 + G3)
         head(x, TOP - 22, "%s · %s" % (bank, name), "C000–FFFF")
+        column()
         for s0, s1, lab, kind in segs:
             seg(x, W3, yb(s0), yb(s1), lab if kind != "im2" else None, kind, kb(s1 - s0))
 
@@ -228,9 +244,12 @@ def main():
              ("proj", "Project data"), ("im2", "IM2 vectors"), ("free", "Free")]
     x = 56
     for kind, lab in items:
-        fill = "url(#hatch)" if kind == "free" else C[kind]
-        a('<rect x="%d" y="%d" width="14" height="14" rx="3" fill="%s" stroke="#C9CED6" stroke-width="%s"/>'
-          % (x, ly - 11, fill, "1" if kind == "free" else "0"))
+        if kind == "free":
+            a('<rect x="%d" y="%d" width="14" height="14" fill="url(#hatch)" stroke="#4A4A4A"/>' % (x, ly - 11))
+        else:                                   # normal | bright
+            a('<rect x="%d" y="%d" width="7" height="14" fill="%s" stroke="#000000" stroke-width="0.6"/>'
+              '<rect x="%d" y="%d" width="7" height="14" fill="%s" stroke="#000000" stroke-width="0.6"/>'
+              % (x, ly - 11, C[kind][0], x + 7, ly - 11, C[kind][1]))
         a('<text x="%d" y="%d" font-size="13" fill="%s">%s</text>' % (x + 21, ly, TEXT, lab))
         x += 34 + 7.3 * len(lab)
     free = "Free: core %s · bank 0 %s · bank 4 %s · bank 6 %s · bank 3 %s" % (
