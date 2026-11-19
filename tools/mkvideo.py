@@ -162,6 +162,8 @@ class Recorder(Spectrum):
         self.cache = {}
         self.rnd = random.Random(1)
         self.speed = 1                      # every N-th frame is recorded
+        self.badge = False                  # a fast-forward mark while speed > 1
+        self.glide_px = 6                   # mouse glide: pixels per frame
         self.tick = 0
         self.rec_frames = []                # the emulated frames in the video
         self.tape_audio = []                # per video frame: EAR levels or None
@@ -185,7 +187,23 @@ class Recorder(Spectrum):
             self.rec_frames.append(self.frames)
             self.tape_audio.append(self.ear_levels() if self.tape else None)
             if self.sink:
-                self.sink(self.rgb())
+                img = self.rgb()
+                if self.badge and self.speed > 1:
+                    img = self.ff_badge(img)
+                self.sink(img)
+
+    def ff_badge(self, img):
+        """a white ">>" in the top right border: the video runs faster here"""
+        B = self.BORDER
+        W = 256 + 2 * B
+        b = bytearray(img)
+        for y in range(9):
+            h = 4 - abs(y - 4)                  # triangle: width 0..4..0
+            for t in (0, 6):
+                for x in range(h + 1):
+                    i = ((7 + y) * W + W - 22 + t + x) * 3
+                    b[i:i + 3] = b"\xff\xff\xff"
+        return bytes(b)
 
     def ear_levels(self):
         """the tape signal (EAR) of the last frame, one level per audio sample"""
@@ -273,9 +291,10 @@ class Recorder(Spectrum):
             Spectrum.type(self, ch)
             self.run(self.rnd.randint(0, 1))
 
-    def glide(self, x, y, px=6):
+    def glide(self, x, y, px=None):
         """moves the pointer smoothly (ease in / out) to screen pixel x, y,
-        about px pixels per frame"""
+        about px pixels per frame (default glide_px)"""
+        px = px or self.glide_px
         x0, y0 = self.px, self.py
         dist = math.hypot(x - x0, y - y0)
         n = max(4, int(dist / px))

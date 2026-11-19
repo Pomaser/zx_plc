@@ -57,7 +57,12 @@ editor and key for users.
   in `.scratch/piper/` (`python -m piper.download_voices en_US-ryan-high`). Tuning: `--shots DIR`
   (PNGs + cue times, seconds), `--only "Chapter title"` (`--draft`: 720p, fast), `--script-only`.
   `--tts elevenlabs --el-voice VOICE_ID` uses the ElevenLabs API instead (outputs `zxplc_tour_el.*`,
-  `PRONOUNCE_EL`, `--el-samples ID,...`). The API key is read only from `$ELEVENLABS_API_KEY` or
+  `PRONOUNCE_EL`, `--el-samples ID,...`, `--el-speed` = voice_settings.speed, part of the cache key
+  when not 1.0). `--scenario MODULE` picks the scenario (default `yt_scenario`; the second, faster tour
+  is `yt_scenario2`: ST, palette, completion, inline ST values; a scenario may set `PAUSE` (frames
+  after a cue), `GLIDE_PX` (mouse speed) and `BADGE` (a ">>" in the top border while `x:N` > 1)),
+  `--name PREFIX` the output names (v2: `--name zxplc_tour2`, voice `15CVCzDByBinCIoCblXo`,
+  `--el-speed 1.05`). The API key is read only from `$ELEVENLABS_API_KEY` or
   `.scratch/elevenlabs.key` (git-ignored); never write it into a tracked file or print it.
 - Releases (`gh release create vX.Y`, assets `zxplc.tap`, `zxplc.sna`, and `zxplc_demo.mp4` when the UI
   changed): the release number is in the file `VERSION` (no newline; Help > About includes it with

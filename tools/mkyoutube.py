@@ -42,7 +42,23 @@ import wave
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import mkvideo                      # noqa: E402
 from mkvideo import Recorder, ay_render, FILTERS, RATE   # noqa: E402
-from yt_scenario import SCENARIO, NARRATION, PRONOUNCE, PRONOUNCE_EL   # noqa: E402
+import importlib                    # noqa: E402
+
+SCENARIO = NARRATION = PRONOUNCE = PRONOUNCE_EL = None
+GLIDE_PX = 6                        # mouse glide speed (go:)
+BADGE = False                       # the ">>" mark in fast-forward parts
+
+
+def load_scenario(name):
+    """the scenario module (tools/<name>.py): SCENARIO, NARRATION, PRONOUNCE(_EL)
+    and optionally PAUSE, GLIDE_PX, BADGE"""
+    global SCENARIO, NARRATION, PRONOUNCE, PRONOUNCE_EL, PAUSE, GLIDE_PX, BADGE
+    m = importlib.import_module(name)
+    SCENARIO, NARRATION = m.SCENARIO, m.NARRATION
+    PRONOUNCE, PRONOUNCE_EL = m.PRONOUNCE, m.PRONOUNCE_EL
+    PAUSE = getattr(m, "PAUSE", 20)
+    GLIDE_PX = getattr(m, "GLIDE_PX", 6)
+    BADGE = getattr(m, "BADGE", False)
 
 ROOT = mkvideo.ROOT
 SCR = os.path.join(ROOT, ".scratch")
@@ -64,7 +80,7 @@ PAUSE = 20                          # frames after a cue before ws goes on
 # $ELEVENLABS_API_KEY or .scratch/elevenlabs.key, never written anywhere else)
 EL_KEY_FILE = os.path.join(SCR, "elevenlabs.key")
 EL_API = "https://api.elevenlabs.io/v1"
-EL = {"model": "eleven_multilingual_v2", "stability": 0.5, "similarity": 0.75}
+EL = {"model": "eleven_multilingual_v2", "stability": 0.5, "similarity": 0.75, "speed": 1.0}
 
 
 def spoken(text, el=False):
@@ -126,6 +142,8 @@ def tts(text, voice, cache, scale):
     s = spoken(text, el)
     tag = ("%s|%s|%s|%s" % (voice, EL["model"], EL["stability"], EL["similarity"])) if el \
         else "%s|%s" % (voice, scale)
+    if el and EL["speed"] != 1.0:           # (1.0: the cache keys of the first tour)
+        tag += "|%s" % EL["speed"]
     h = hashlib.sha1(("%s|%s" % (tag, s)).encode()).hexdigest()[:16]
     path = os.path.join(cache, h + ".wav")
     if not os.path.exists(path):
@@ -133,8 +151,9 @@ def tts(text, voice, cache, scale):
             raw = path + ".el.mp3"
             mp3 = el_request("/text-to-speech/%s?output_format=mp3_44100_128" % voice[3:], {
                 "text": s, "model_id": EL["model"],
-                "voice_settings": {"stability": EL["stability"],
-                                   "similarity_boost": EL["similarity"]}})
+                "voice_settings": dict({"stability": EL["stability"],
+                                        "similarity_boost": EL["similarity"]},
+                                       **({"speed": EL["speed"]} if EL["speed"] != 1.0 else {}))})
             open(raw, "wb").write(mp3)
         else:
             raw = path + ".piper.wav"
@@ -363,6 +382,9 @@ def voice_track(cues, nframes):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("-d", "--dir", default=os.path.join(SCR, "youtube"))
+    ap.add_argument("--scenario", default="yt_scenario", help="the scenario module in tools/")
+    ap.add_argument("--name", default="zxplc_tour", help="the prefix of the output files")
+    ap.add_argument("--el-speed", type=float, default=1.0, help="ElevenLabs speech speed (0.7-1.2)")
     ap.add_argument("--voice", default="en_US-ryan-high", help="Piper voice model")
     ap.add_argument("--tts", choices=("piper", "elevenlabs"), default="piper")
     ap.add_argument("--el-voice", default=None, help="ElevenLabs voice_id")
@@ -380,8 +402,10 @@ def main():
     ap.add_argument("--shots", default=None, help="no video: PNGs at shot:NAME + the cue times")
     ap.add_argument("--script-only", action="store_true", help="only script.md (cue texts + lengths)")
     a = ap.parse_args()
+    load_scenario(a.scenario)
     os.makedirs(a.dir, exist_ok=True)
-    EL.update(model=a.el_model, stability=a.el_stability, similarity=a.el_similarity)
+    EL.update(model=a.el_model, stability=a.el_stability, similarity=a.el_similarity,
+              speed=a.el_speed)
     if a.el_voices:
         el_voices()
         return
@@ -415,8 +439,8 @@ def main():
                     cues.append((cmd[4:], t, smp))
                     t += len(smp) * 50 // RATE
         chs = []
-        write_script(os.path.join(a.dir, "script%s.md" % sfx), cues, chs, timed=False)
-        print("cues: %d, speech %.1f min -> %s" % (len(cues), t / 3000, os.path.join(a.dir, "script%s.md" % sfx)))
+        write_script(os.path.join(a.dir, "%s_script%s.md" % (a.name, sfx)), cues, chs, timed=False)
+        print("cues: %d, speech %.1f min -> %s" % (len(cues), t / 3000, os.path.join(a.dir, "%s_script%s.md" % (a.name, sfx))))
         return
 
     sna = os.path.join(SCR, "reset128.sna") if tour.intro and not a.only else os.path.join(ROOT, "zxplc.sna")
@@ -426,6 +450,7 @@ def main():
     if a.shots:
         os.makedirs(a.shots, exist_ok=True)
         z = TourRecorder(sna, a.scale, None)
+        z.glide_px, z.badge = GLIDE_PX, BADGE
         z.noborder = True
         z.ur4 = True
         tour.play(z, a.shots)
@@ -440,7 +465,7 @@ def main():
     if W * scale > ow or H * scale > oh:
         sys.exit("scale too big for %dx%d" % (ow, oh))
     vf = FILTERS[a.filter].format(s=scale) + ",pad=%d:%d:(ow-iw)/2:(oh-ih)/2:color=0x101014" % (ow, oh)
-    out = os.path.join(a.dir, "zxplc_tour" + sfx + ("_" + re.sub(r"\W", "", a.only) if a.only else "") + ".mp4")
+    out = os.path.join(a.dir, a.name + sfx + ("_" + re.sub(r"\W", "", a.only) if a.only else "") + ".mp4")
     silent = out + ".video.mp4"
     ff = subprocess.Popen(
         ["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24",
@@ -449,6 +474,7 @@ def main():
         (["-crf", "28", "-preset", "ultrafast"] if a.draft else ["-crf", "16", "-preset", "slow", "-g", "100"]) +
         [silent], stdin=subprocess.PIPE)
     z = TourRecorder(sna, scale, ff.stdin.write)
+    z.glide_px, z.badge = GLIDE_PX, BADGE
     z.ur4 = True
     tour.play(z)
     ff.stdin.close()
@@ -477,10 +503,10 @@ def main():
         os.remove(p)
     write_srt(base + ".en.srt", tour.cues, 0)
     write_srt(base + ".cs.srt", tour.cues, 1)
-    with open(os.path.join(a.dir, ("chapters%s.txt" if not a.only else "chapters_only%s.txt") % sfx), "w") as f:
+    with open(os.path.join(a.dir, a.name + ("_chapters%s.txt" if not a.only else "_chapters_only%s.txt") % sfx), "w") as f:
         for fr, t in tour.chapters:
             f.write("%s %s\n" % (ts(fr / 50, False), t))
-    write_script(os.path.join(a.dir, ("script%s.md" if not a.only else "script_only%s.md") % sfx),
+    write_script(os.path.join(a.dir, a.name + ("_script%s.md" if not a.only else "_script_only%s.md") % sfx),
                  tour.cues, tour.chapters)
     print("written:", out)
 
