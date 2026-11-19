@@ -68,8 +68,15 @@ st_editor:
 .okc:   call st_load
         call st_fix_top
 .full:  call st_redraw_all
-        call xr_errmsg          ; (after a jump to a compile error)
+        ld a,(xr_err)           ; (after a jump to a compile error: its
+        ld (st_errk),a          ; message stays until a key)
+        call xr_errmsg
 .loop:  call .mkd
+        ld hl,st_errk
+        ld a,(hl)
+        ld (hl),0
+        or a
+        jr nz,.nost
         call st_word_at         ; the status bar: the word at the cursor
         ld hl,st_tail
         ld de,cp_text
@@ -77,7 +84,7 @@ st_editor:
         ld hl,cp_text
         ld a,(cur_pou)
         BCALL st_symline
-        call st_key
+.nost:  call st_key
         cp K_ENTER
         jp z,.enter
         cp K_SSENTER
@@ -2941,6 +2948,7 @@ st_fh:     dw 0                 ; folded VAR block: hidden lines (0: none)
 st_fcnt:   db 0
 st_redr:   db 0
 st_dcok:   db 0
+st_errk:   db 0                 ; 1: the compile error message is shown
 st_ac0:    db 0
 sn_inb:    db 0
 sn_name:   ds 32

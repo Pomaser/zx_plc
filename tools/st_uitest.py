@@ -391,6 +391,9 @@ def t_errors(ui):
     ui.play(to_list() + main_call("ER") + run() + "shot:er_run1 ")
     check("errors: unknown name", ui.compile_error() == ("Unknown name: X", 3),
           ui.compile_error())
+    check("errors: the message in the status bar", "Unknown name: X" in ui.status_left(),
+          repr(ui.status_left()))
+
 
 
 def t_varpaste(ui):
@@ -414,6 +417,18 @@ def t_varpaste(ui):
     ui.play(to_list() + main_call("EV") + run() + "shot:ev_run ")
     check("varpaste: the stray declaration is a compile error",
           ui.compile_error()[1] == 6, ui.compile_error())
+
+
+def t_semicolon(ui):
+    """a missing ";", Run from the palette: the editor opens at the error
+    and the status bar shows the message"""
+    s = new_st("SC") + T("%MW1 := 1") + E + T("%MW2 := 2;") + U
+    ui.play(s + to_list() + main_call("SC") + PAL + T("run") + "k:ENTER w300 shot:sc_err ")
+    msg, line = ui.compile_error()
+    check("semicolon: compile error", msg.endswith("expected") and line in (1, 2),
+          (msg, line))
+    check("semicolon: the message in the status bar", msg in ui.status_left(),
+          repr(ui.status_left()))
 
 
 def t_toolong(ui):
@@ -484,7 +499,7 @@ def t_palmouse(ui):
 
 TESTS = {"long": t_long, "edit": t_edit, "clip": t_clip, "autodecl": t_autodecl,
          "manual": t_manual, "compl": t_compl, "autorun": t_autorun,
-         "errors": t_errors, "varpaste": t_varpaste, "toolong": t_toolong,
+         "errors": t_errors, "semicolon": t_semicolon, "varpaste": t_varpaste, "toolong": t_toolong,
          "view": t_view, "palette": t_palette, "palmouse": t_palmouse}
 
 

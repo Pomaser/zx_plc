@@ -134,6 +134,7 @@ CORE_END:
         INCLUDE "src/il_edit.asm"
         INCLUDE "src/sym_edit.asm"
         INCLUDE "src/ld_edit.asm"
+        INCLUDE "src/st_view.asm"   ; ST: symbols / addresses, status bar
     IFNDEF TEST
     IFNDEF MKDEMO
         DEFINE WITH_SIM
