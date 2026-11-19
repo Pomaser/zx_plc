@@ -451,7 +451,12 @@ works like a small text editor:
 * ENTER splits the line at the cursor (at the end: a new empty line below), SS+ENTER opens an empty line
   below. DELETE deletes the character left of the cursor; on an empty line it removes the line.
   SS+LEFT / SS+RIGHT go to the start / end of the line, SS+UP / SS+DOWN page.
-* SS+X and SS+W take the operand under (or just before) the cursor.
+* SS+X and SS+W take the operand under (or just before) the cursor; the status bar shows its symbol and
+  comment (for a local variable its type).
+* **Symbols / addresses:** an operand that has an address is stored as that address (`%MW0`,
+  `%IX0.2`, `TOF1.PT`), whatever was typed, so the text follows a renamed symbol. View > Symbols /
+  Addresses switches how the lines are shown and edited (`Level := Level + 1;` or
+  `%MW0 := %MW0 + 1;`), as in IL. Local variables keep their names.
 * **Name completion: SS+SPACE** (Ctrl+Space in the browser) completes the name in front of the cursor.
   ![Name completion](img/st_compl.png)
   * Without a dot it offers the local variables of the POU (with their type) and then the symbols in

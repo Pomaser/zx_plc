@@ -82,7 +82,7 @@ editor and key for users.
   per image, `--noborder`). Update the manual and the scripts when the UI changes.
 - `python3 tools/fixjr.py main.asm`: builds and converts every out-of-range `jr` to `jp` in the source,
   then prints the remaining errors. Run it after edits that make code longer.
-- `python3 tools/xref.py --check "pou:R,app:E,il_edit:E,sym_edit:E,ld_edit:E,sim:E,demo:E,il_comp:R,vm:R,ld_comp:R,fbd_comp:R,st_comp:R,st_var:R,tape:R,tests:E,fbd_edit:F,st_edit:F,tools:D,clip:D,wexpr:D,mouse:D,undo:S,ur4:D,trend:D,sd:R,complete:D"`:
+- `python3 tools/xref.py --check "pou:R,app:E,il_edit:E,sym_edit:E,ld_edit:E,sim:E,st_view:E,demo:E,il_comp:R,vm:R,ld_comp:R,fbd_comp:R,st_comp:R,st_var:R,tape:R,tests:E,fbd_edit:F,st_edit:F,tools:D,clip:D,wexpr:D,mouse:D,undo:S,ur4:D,trend:D,sd:R,complete:D"`:
   reports labels referenced across paged banks without `BCALL`. Unlisted modules are core. The
   `run_tests` / `demo_build` hits in main.asm are expected. Extend the map when a module moves.
 - Headless emulator: `.scratch/venv/bin/python tools/zxrun.py zxplc.sna -f 30 -s "<script>"`
@@ -231,8 +231,13 @@ editor and key for users.
     (`wx_opsel`); the values are asked one at a time on their cells (`wx_value`). A block right behind a compute result takes D as its
     A (`fc_link` in fbd_comp.asm, the same when placed).
 - **Structured Text** (LANG_ST):
-  - Body: line records `[len][K_STXT][indent][text]` (no 0). The text is stored as typed, only
-    normalised (keywords upper case, one space between tokens), so names are resolved when compiling.
+  - Body: line records `[len][K_STXT][indent][text]` (no 0). The text is stored normalised (keywords
+    upper case, one space between tokens) and with every operand that has an address as its IEC
+    address (`st_canon`); names are resolved when compiling. `src/st_view.asm` (EDIT bank, BCALL from
+    the editor through fixed buffers rd_c -> popup_buf): `st_xform` shows a line after View > Symbols /
+    Addresses (il_fmt_one; locals kept; C if longer than 60: then the stored text is used),
+    `st_canon` = st_xform with View = Addresses (st_commit / st_add_line), `st_symline` = the status
+    bar text (rec_buf) of the word at the cursor.
   - `src/st_lex.asm`: the tokenizer and the keyword table, included twice inside `MODULE ste` (FBD bank,
     the editor) and `MODULE stc` (RUN bank, the compiler); keyword ids `KW_*`, token types `T_*`, two-char
     symbols `S_*` are in defs.asm.

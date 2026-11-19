@@ -70,6 +70,13 @@ st_editor:
 .full:  call st_redraw_all
         call xr_errmsg          ; (after a jump to a compile error)
 .loop:  call .mkd
+        call st_word_at         ; the status bar: the word at the cursor
+        ld hl,st_tail
+        ld de,cp_text
+        call put_str0
+        ld hl,cp_text
+        ld a,(cur_pou)
+        BCALL st_symline
         call st_key
         cp K_ENTER
         jp z,.enter
@@ -121,7 +128,7 @@ st_editor:
         ld b,a
         jp .mkc
 .kc:    cp 32
-        jr c,.loop
+        jp c,.loop
         cp 128
         jp nc,.loop
         cp ' '                  ; a space after a keyword: in upper case
@@ -926,16 +933,44 @@ st_del_line:
 ; ---- st_load: line st_cur -> se_buf / st_ind, cursor at the end
 st_load:
         xor a
-        ld (se_buf),a
+        ld (rd_c),a
         ld de,(st_cur)
         call st_line_addr
-        ld de,se_buf
+        ld de,rd_c
         ld a,0
         call nc,st_rec_text
         ld (st_ind),a
+        call st_xf              ; after View > Symbols / Addresses
+        ld de,se_buf
+        call put_str0
         call st_len
         ld (st_pos),a
         ret
+
+; st_xf: rd_c = a line -> HL = popup_buf = it after View (st_view.asm)
+st_xf:  ld hl,rd_c
+        ld de,popup_buf
+        ld a,(cur_pou)
+        BCALL st_xform
+        ld hl,popup_buf
+        ret nc
+        ld hl,rd_c              ; (too long converted: as stored)
+        ret
+
+; st_canon_tmp: st_tmp -> its stored form (operands as addresses,
+;      st_view.asm); too long that way: unchanged
+st_canon_tmp:
+        ld hl,st_tmp
+        ld de,rd_c
+        call put_str0
+        ld hl,rd_c
+        ld de,popup_buf
+        ld a,(cur_pou)
+        BCALL st_canon
+        ret c
+        ld hl,popup_buf
+        ld de,st_tmp
+        jp put_str0
 
 ; ---- st_commit: checks and normalises se_buf and stores it as line
 ;      st_cur; the lines below get their indent. A line with a control
@@ -951,7 +986,8 @@ st_commit:
         call ui_error
         scf
         ret
-.ok:    call st_brk
+.ok:    call st_canon_tmp       ; operands stored as addresses
+        call st_brk
         sbc a,a
         ld (st_brkf),a
         ld hl,st_tmp            ; record [len][K_STXT][indent][text]
@@ -2074,10 +2110,10 @@ rn_fld:
         cp 4
         ret nc
         ld hl,ste.lx_word       ; the name -> fixed memory
-        ld de,popup_buf
+        ld de,cp_text
         call put_str0
         ld a,(cur_pou)
-        ld hl,popup_buf
+        ld hl,cp_text
         BCALL st_lvaddr         ; a local: HL = address, B = type
         jr c,.gl
         ld c,1
@@ -2090,7 +2126,7 @@ rn_fld:
         jr z,.ty
         ld e,VM_MW+0x60
         jr .ty
-.gl:    ld hl,popup_buf
+.gl:    ld hl,cp_text
         call cp_operand
         ret c
         ld a,(cp_mode)
@@ -2515,9 +2551,11 @@ st_draw_row:
         jr .go
 .oth2:  call st_line_addr
         jp c,.none
-        ld de,st_tmp2
+        ld de,rd_c
         call st_rec_text
-        ld hl,st_tmp2
+        ld (sr_ind),a
+        call st_xf              ; after View > Symbols / Addresses
+        ld a,(sr_ind)
 .go:    ld (sr_txt),hl
         ld (sr_ind),a
         ld a,(sr_tonly)
@@ -2833,9 +2871,8 @@ st_add_line:
         call st_count
         ld hl,(lt_p)
         ld de,st_tmp
-        call put_str
-        xor a
-        ld (de),a
+        call put_str0
+        call st_canon_tmp       ; operands stored as addresses
 .l:     ld hl,(st_cur)          ; (st_brk: the VAR block test of line st_n)
         push hl
         ld hl,(st_n)

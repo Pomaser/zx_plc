@@ -124,6 +124,17 @@ class UI:
         """the cursor line of the ST editor (FBD bank 6)"""
         return int.from_bytes(self.z.bank_bytes(6, self.sym("st_cur"), 2), "little")
 
+    def fbd_str(self, name, n=64):
+        b = self.z.bank_bytes(6, self.sym(name), n)
+        return bytes(b).split(b"\0")[0].decode("latin1")
+
+    def status_left(self):
+        """the text of the left status bar part (st_left -> fixed memory)"""
+        a = int.from_bytes(self.mem(self.sym("st_left"), 2), "little")
+        if not a:
+            return ""
+        return bytes(self.mem(a, 60)).split(b"\0")[0].decode("latin1")
+
     def compile_error(self):
         """(message, line 1-based) of the last compile error"""
         a = int.from_bytes(self.mem(self.sym("il_err"), 2), "little")
@@ -247,7 +258,7 @@ def t_edit(ui):
     s += DEL * 9 + T("%MW10 := 1;") + U
     ui.play(s + "w20 shot:edit ")
     exp = [(0, "%MW1 :="), (0, "5+1;"), (0, "%MW2 := 8;"), (0, "%MW4 := 1;"),
-           (0, "IF %mx0.0"), (0, "THEN"), (1, "%MW9 := 3;"), (0, "END_IF"),
+           (0, "IF %MX0.0"), (0, "THEN"), (1, "%MW9 := 3;"), (0, "END_IF"),
            (0, "%MW10 := 1;")]
     compare("edit: stored lines", ui.st_lines("ED"), exp)
     ui.play(UNDO + "shot:edit_undo ")
@@ -348,7 +359,7 @@ def t_compl(ui):
     ui.play(s + "w20 shot:cm ")
     got = ui.st_lines("CM")
     exp = [(0, "VAR"), (1, "speed : INT;"), (1, "spare : BOOL;"), (0, "END_VAR"),
-           (0, "Level := spare;"), (0, "TValve.PT := TRUE;"), (0, "Total := 0;"),
+           (0, "%MW0 := spare;"), (0, "TOF1.PT := TRUE;"), (0, "%MW1 := 0;"),
            (0, "%MW1 := 1;")]
     compare("compl: stored lines", got, exp)
 
@@ -412,9 +423,37 @@ def t_toolong(ui):
           repr(got))
 
 
+def t_view(ui):
+    """operands are stored as addresses; View > Symbols / Addresses changes
+    how they are shown (and edited); the status bar shows the symbol"""
+    s = new_st("VW")
+    s += T("var") + E + T("n : int;") + D + SE
+    s += T("Level := Level + 1; n := 2;") + E + T("UpEdge(CLK := Up);") + U + "w20 "
+    s += HOME + R + R + "w20 "                                  # on "%MW0"
+    ui.play(s)
+    exp = [(0, "VAR"), (1, "n : INT;"), (0, "END_VAR"),
+           (0, "%MW0 := %MW0 + 1; n := 2;"), (0, "RT1(CLK := %IX0.2);")]
+    compare("view: stored as addresses", ui.st_lines("VW"), exp)
+    check("view: addresses shown", ui.fbd_str("se_buf") == "%MW0 := %MW0 + 1; n := 2;",
+          ui.fbd_str("se_buf"))
+    st = ui.status_left()
+    check("view: status bar = symbol + comment", "Level" in st and "Level 0-5" in st, repr(st))
+    ui.play(MENU + "k:H w8 k:V w8 k:S w100 shot:view_sym ")      # View > Symbols
+    check("view: symbols shown", ui.fbd_str("se_buf") == "Level := Level + 1; n := 2;",
+          ui.fbd_str("se_buf"))
+    ui.play(D + "w30 ")
+    check("view: FB + input as symbols", ui.fbd_str("se_buf") == "UpEdge(CLK := Up);",
+          ui.fbd_str("se_buf"))
+    compare("view: storage unchanged", ui.st_lines("VW"), exp)
+    ui.play(U + "w30 " + END + L + L + L + L + "w20 ")             # on "n"
+    st = ui.status_left()
+    check("view: status bar = local", "local INT" in st, repr(st))
+
+
 TESTS = {"long": t_long, "edit": t_edit, "clip": t_clip, "autodecl": t_autodecl,
          "manual": t_manual, "compl": t_compl, "autorun": t_autorun,
-         "errors": t_errors, "varpaste": t_varpaste, "toolong": t_toolong}
+         "errors": t_errors, "varpaste": t_varpaste, "toolong": t_toolong,
+         "view": t_view}
 
 
 def main():
