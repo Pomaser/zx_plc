@@ -64,7 +64,13 @@ editor and key for users.
   `--name PREFIX` the output names (v2: `--name zxplc_tour2`, voice `15CVCzDByBinCIoCblXo`,
   `--el-speed 1.05`). `--lang cs` speaks the Czech texts (the scenario's `PRONOUNCE_CS`, Czech
   chapter titles from `CHAPTERS_CS`; the Czech v2: `--name zxplc_tour2_cs`, voice
-  `MpbYQvoTmXjHkaxtLiSh`). The API key is read only from `$ELEVENLABS_API_KEY` or
+  `MpbYQvoTmXjHkaxtLiSh`). `tools/mkdub.py` instead adds a dubbed Czech track to a rendered video: it
+  replays the scenario without video for the cue times (the video's voice from the cache), puts each
+  Czech cue at its English start or right after the previous one (sped up at most 1.25x, delay caught
+  up in the pauses), mixes the AY sound and writes an mp4 with both audio tracks and both subtitle
+  tracks (mov_text; Czech timed to the Czech voice): `--video .scratch/youtube/zxplc_tour2_el.mp4
+  --el-voice 15CVCzDByBinCIoCblXo --el-speed 1.05 --dub-voice MpbYQvoTmXjHkaxtLiSh` ->
+  `zxplc_tour2_el_csdub.mp4`. The API key is read only from `$ELEVENLABS_API_KEY` or
   `.scratch/elevenlabs.key` (git-ignored); never write it into a tracked file or print it.
 - Releases (`gh release create vX.Y`, assets `zxplc.tap`, `zxplc.sna`, and `zxplc_demo.mp4` when the UI
   changed): the release number is in the file `VERSION` (no newline; Help > About includes it with
