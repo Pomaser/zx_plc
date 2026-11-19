@@ -416,9 +416,17 @@ ac_draw:
         ld hl,ac_sel
         cp (hl)
         jr nz,.n
-        ld a,(pt_row)           ; the selected row: inverted
+        ld a,(pt_row)           ; the selected row: inverted, 2 px from the
+        ld b,a                  ; frame
+        ld a,(win_bx)
+        add a,2
+        ld c,a
+        ld a,(win_bw)
+        sub 4
+        ld d,a
+        ld hl,0x0008
         ld e,PX_XOR
-        call ac_span
+        call px_span
 .n:     ld hl,ac_r
         inc (hl)
         jr .l
