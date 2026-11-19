@@ -36,7 +36,7 @@ any emulator of the ZX Spectrum 128K. The program starts with the **demo project
 
 On a real ZX Spectrum 128K / +2 / +2A / +3, load `zxplc.tap` from the
 [releases](https://github.com/Pomaser/zx_plc/releases) with *Tape Loader* in the 128 menu (or `LOAD ""`). The
-tape takes under 4 minutes, because its blocks are packed with ZX0. The loading screen shows the PLC.
+tape takes about 5 minutes, because its blocks are packed with ZX0. The loading screen shows the PLC.
 When everything is loaded, its display changes from STOP to RUN, the LEDs start blinking and "Press any
 key to start" appears.
 

@@ -54,7 +54,7 @@ not downloaded to a real PLC; they run in the built-in simulation with live moni
 * **Tape and SD card:**
   * projects are saved and loaded as standard ROM-format files, with a safe fallback when loading fails;
   * with a divMMC (esxDOS) also as `.PLC` files on the SD card, chosen from a list;
-  * the program tape is packed with ZX0 and loads in under 4 minutes;
+  * the program tape is packed with ZX0 and loads in about 5 minutes;
   * an animated loading screen (the PLC switches from STOP to RUN, its LEDs blink).
 
 ## Memory map
