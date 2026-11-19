@@ -176,6 +176,15 @@ kb_get:
         ld a,1
         ld (um_arm),a
         pop af
+        ld b,0                  ; SS+E: EDIT, the menu opens the palette
+        cp K_PAL
+        jr nz,.ap
+        inc b
+        ld a,K_EDIT
+.ap:    push af
+        ld a,b
+        ld (pal_req),a
+        pop af
         ret
 
 ; ---- kb_wait: waits for a queued key, A = code
@@ -232,7 +241,7 @@ kt_caps:
 kt_sym:
         db 0,':',K_XREF,'?','/'
         db K_MARK,0,K_COPY,K_PASTE,0
-        db 0,K_WATCH,0,'<','>'
+        db 0,K_WATCH,K_PAL,'<','>'
         db '!','@','#','$','%'
         db '_',')','(',0x27,'&'
         db '"',';',K_INS,K_UNDO,K_REDO

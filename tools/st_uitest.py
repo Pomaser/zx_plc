@@ -40,7 +40,7 @@ def T(text):
 
 
 class UI:
-    def __init__(self, shots=None, mouse=False):
+    def __init__(self, shots=None, mouse=True):
         self.z = Spectrum(SNA)
         self.z.mouse = mouse
         self.z.noborder = False
@@ -134,6 +134,10 @@ class UI:
         if not a:
             return ""
         return bytes(self.mem(a, 60)).split(b"\0")[0].decode("latin1")
+
+    def sim_running(self):
+        """the simulation screen is in RUN (sm_run, EDIT bank)"""
+        return self.z.bank_bytes(0, self.sym("sm_run"), 1)[0] != 0
 
     def compile_error(self):
         """(message, line 1-based) of the last compile error"""
@@ -450,10 +454,38 @@ def t_view(ui):
     check("view: status bar = local", "local INT" in st, repr(st))
 
 
+PAL = "k:SS+E w60 "
+
+
+def t_palette(ui):
+    """SS+E: the command palette on every screen: POUs and menu commands,
+    filtered by a part of the name"""
+    # POU list: "dem", the second one (DEMO_LD) -> its editor
+    ui.play(PAL + T("dem") + "shot:pal_filter " + D + "k:ENTER w100 shot:pal_pou ")
+    check("palette: POU opened", ui.mem(ui.sym("cur_pou"))[0] == ui.slot_of("DEMO_LD"),
+          ui.mem(ui.sym("cur_pou"))[0])
+    # BREAK: no command, the screen restored
+    ui.play(PAL + "k:CS+SPACE w40 shot:pal_break ")
+    check("palette: BREAK keeps the POU", ui.mem(ui.sym("cur_pou"))[0] == ui.slot_of("DEMO_LD"))
+    # a letter with no match is refused: "runq" stays "run"
+    ui.play(PAL + T("runq") + "shot:pal_run ")
+    ui.play("k:ENTER w300 shot:pal_sim ")                # Run > Run
+    check("palette: Run runs the simulation", ui.mw(0) >= 0 and ui.sim_running(),
+          ui.sim_running())
+
+
+def t_palmouse(ui):
+    """a click on an entry of the palette"""
+    ui.play("w60 k:CS+1 w10 k:H w10 k:O w10 k:M w30 ")    # Options > Mouse
+    ui.play(PAL + T("st") + "w20 at:100,28 w10 cl:L w100 shot:pal_click ")
+    check("palette: click opens DEMO_ST", ui.mem(ui.sym("cur_pou"))[0] == ui.slot_of("DEMO_ST"),
+          ui.mem(ui.sym("cur_pou"))[0])
+
+
 TESTS = {"long": t_long, "edit": t_edit, "clip": t_clip, "autodecl": t_autodecl,
          "manual": t_manual, "compl": t_compl, "autorun": t_autorun,
          "errors": t_errors, "varpaste": t_varpaste, "toolong": t_toolong,
-         "view": t_view}
+         "view": t_view, "palette": t_palette, "palmouse": t_palmouse}
 
 
 def main():

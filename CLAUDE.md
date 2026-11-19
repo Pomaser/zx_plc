@@ -203,6 +203,12 @@ editor and key for users.
     the menu is open (Run > Reset E, Edit > Paste P, POU > Rename R are accepted). A new item must not
     take R in the File / Edit / View menus (EDIT, R, R starts the program).
   - The menu bar title (`menu_pou`) shows the POU name, or Symbols / Watch / Trend (`mp_alt`).
+  - Command palette (SS+E = `K_PAL`, Ctrl+E in the browser): `kb_get` turns K_PAL into K_EDIT and sets
+    `pal_req`, so every screen opens "the menu"; `menu_run` then calls `BCALL pal_run`
+    (src/complete.asm) instead of the drop-downs: the list window of the name completion (`ac_ui`,
+    `ac_pal` = substring filter, a letter without match refused) with every POU (kind 4) and every
+    menu item (kind 3, from `menu_top` / `mi_*`); it returns the item's command, or `cur_pou` +
+    `CMD_EDIT` for a POU. Any other key clears `pal_req`.
 - **Project format** (src/project.asm, defs.asm):
   - A header with "ZXPLC" and P_LEN, then a table of 8 POU slots + a hidden slot 8 (the symbol table),
     32 B each: name, language, length, comment, plus a hidden slot 9 (watch list, PROJ_VER 2;

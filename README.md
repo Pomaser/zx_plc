@@ -38,6 +38,7 @@ not downloaded to a real PLC; they run in the built-in simulation with live moni
 * **Kempston mouse:** detected automatically and switched on in the menu. A pointer, and clicks in menus,
   lists, all editors and on the simulator's LEDs.
 * **Comfort of a modern IDE:**
+  * a command palette (SS+E, Ctrl+E in the browser): type a part of any command or POU name;
   * mark / copy / cut / paste, also between POUs;
   * undo and redo over many steps, duplicate a POU;
   * cross references with a jump to each use;

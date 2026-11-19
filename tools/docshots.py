@@ -41,6 +41,7 @@ SHOTS = [
     ("fbd_picker", FBD + D + "k:ENTER w30"),
     ("fbd_pv", FBD + D * 6 + "k:CS+8 w4 " * 5 + "k:T w30"),
     ("st_editor", ST + D * 3 + "w60"),
+    ("palette", "w40 k:SS+E w60 t:co w40"),
     ("st_compl", ST + D * 4 + "k:SS+ENTER w30 t:T w5 k:SS+SPACE w60 " + D + "w20"),
     ("st_vars", ST + D * 4 + "k:SS+ENTER w30 t:count~:=~count~+~1; w5 " + D + "w40"),
     ("symbols", MENU + "k:E w5 k:S w60"),

@@ -84,6 +84,15 @@ The cursor keys are CAPS SHIFT + 5 / 6 / 7 / 8, DELETE is CAPS SHIFT + 0. Combin
 | SS + A | mark the start of a block (again: remove the mark) |
 | SS + D | copy the block (or the current line / rung / network) |
 | SS + F | paste in front of the cursor |
+| SS + E | command palette (Ctrl+E in the browser) |
+| SS + SPACE | ST: complete a name (Ctrl+Space in the browser) |
+
+**Command palette (SS+E).** On every screen SS+E opens a list of all POUs and all menu commands. Typing
+a part of a name narrows it (`co` finds Copy, Controls and Rename/Comment...; `dem` the demo POUs), UP /
+DOWN select, ENTER or a click runs the command or opens the POU in its editor, BREAK closes the list.
+A letter that fits no entry is refused.
+
+![Command palette](img/palette.png)
 
 **Help > Controls** shows a short list of the keys:
 

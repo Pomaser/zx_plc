@@ -431,7 +431,14 @@ menu_inv_item:
 
 ; ---- menu_run: interactive menu. A = command or 0 (cancelled)
 menu_run:
-        BCALL ms_msel           ; (opened by a click on a title)
+        ld a,(pal_req)          ; SS+E: the command palette (complete.asm)
+        or a
+        jr z,.np
+        xor a
+        ld (pal_req),a
+        BCALL pal_run
+        ret
+.np:    BCALL ms_msel           ; (opened by a click on a title)
         jr c,.m0
         ld (menu_sel),a
 .m0:    ld a,(menu_sel)
@@ -571,6 +578,7 @@ menu_run:
         jp menu_inv_title
 
 menu_sel:  db 0
+pal_req:   db 0             ; 1: the last key was SS+E (kb_get)
 view_sym:  db 0             ; 1 = show symbols, 0 = show addresses (default)
 drop_list: dw 0
 drop_n:    db 0

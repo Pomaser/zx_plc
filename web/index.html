@@ -52,7 +52,8 @@
     <tr><td><kbd>Esc</kbd> or <kbd>Tab</kbd></td><td>open / close the menu (BREAK / EDIT)</td></tr>
     <tr><td><kbd>Shift</kbd></td><td>CAPS SHIFT</td></tr>
     <tr><td><kbd>Ctrl</kbd></td><td>SYMBOL SHIFT (SS); e.g. <kbd>Ctrl</kbd>+<kbd>U</kbd> undo,
-      <kbd>Ctrl</kbd>+<kbd>Y</kbd> redo, <kbd>Ctrl</kbd>+<kbd>Space</kbd> complete a name (ST)</td></tr>
+      <kbd>Ctrl</kbd>+<kbd>Y</kbd> redo, <kbd>Ctrl</kbd>+<kbd>Space</kbd> complete a name (ST),
+      <kbd>Ctrl</kbd>+<kbd>E</kbd> command palette</td></tr>
     <tr><td>Arrows, <kbd>Backspace</kbd>, <kbd>Enter</kbd></td><td>cursor keys, DELETE, ENTER</td></tr>
     <tr><td><kbd>%</kbd> <kbd>!</kbd> <kbd>$</kbd> <kbd>(</kbd> <kbd>)</kbd> &hellip;</td>
       <td>typed as on a PC keyboard (sent as SS + the Spectrum key); operands are e.g. <code>%IX0.0</code></td></tr>
@@ -96,7 +97,8 @@
   }
   window.addEventListener('keydown', e => {
     if (e.zxSynth || e.metaKey || e.altKey) return;
-    if (e.ctrlKey && e.key === ' ') e.preventDefault();   // Ctrl+Space = SS+SPACE (ST completion)
+    if (e.ctrlKey && (e.key === ' ' || e.key === 'e' || e.key === 'E'))
+      e.preventDefault();   // Ctrl+Space / Ctrl+E = SS+SPACE / SS+E (completion, palette)
     let mod, key;
     if (e.key in CS) { mod = 16; key = CS[e.key]; }
     else if (e.key in SS && !e.ctrlKey) { mod = 17; key = SS[e.key]; }

@@ -82,8 +82,15 @@ ac_run:
         jp ac_keep
 .some:  dec a
         jp z,ac_take            ; one candidate: at once
-        ; ---- the window
-        ld a,(ac_n)
+        call ac_ui
+        jp c,ac_keep
+        jp ac_take
+
+; ---- ac_ui: the list window (ac_list / ac_vis / ac_n, the filter row
+;      ac_pre + ac_flt) below / above row ac_crow: letters, digits and _
+;      filter, DELETE, UP / DOWN, a click; NC: ENTER / SS+SPACE / a click
+;      took entry ac_sel, C: BREAK / EDIT (or completion: nothing fits)
+ac_ui:  ld a,(ac_n)
         cp AC_ROWS
         jr c,.r
         ld a,AC_ROWS
@@ -122,7 +129,7 @@ ac_run:
         cp K_DEL
         jr z,.del
         cp K_MOUSE
-        jr z,.mouse
+        jp z,.mouse
         call ac_wch             ; a letter / digit / _: the filter grows
         jr nc,.key
         ld hl,ac_flt
@@ -136,11 +143,20 @@ ac_run:
         ld (hl),a
         inc hl
         ld (hl),0
+        push hl
         call ac_filter
+        pop hl
         ld a,(ac_n)
         or a
-        jr z,.close             ; (no name fits: the text stays typed)
-        jr .redo
+        jr nz,.redo
+        ld a,(ac_pal)           ; nothing fits: the completion closes (the
+        or a                    ; text stays typed), the palette refuses it
+        jr z,.close
+        dec hl
+        ld (hl),0
+        call ac_filter
+        call beep
+        jp .key
 .del:   ld hl,ac_flt
         call strlen
         or a
@@ -158,14 +174,14 @@ ac_run:
         jr .key
 .up:    ld a,(ac_sel)
         or a
-        jr z,.key
+        jp z,.key
         dec a
         jr .mv
 .down:  ld a,(ac_sel)
         inc a
         ld hl,ac_n
         cp (hl)
-        jr nc,.key
+        jp nc,.key
 .mv:    ld (ac_sel),a
         ld hl,ac_top            ; keep it in the visible rows
         cp (hl)
@@ -194,9 +210,12 @@ ac_run:
         jr nc,.close
         ld (ac_sel),a
 .take:  call win_close
-        jr ac_take
+        or a
+        ret
 .close: call win_close
-        ; fall through
+        scf
+        ret
+
 ; ac_keep: no choice: il_out = prefix + the filter typed (C)
 ac_keep:
         ld hl,ac_flt
@@ -257,7 +276,13 @@ ac_name:
         inc hl
         ld d,(hl)
         ex de,hl                ; HL = the name in the project / a table
-        dec a
+        ld c,' '                ; (a local "Name : TYPE", a POU name: up to " ")
+        cp 3
+        jr nz,.k1
+        inc hl                  ; (a menu item [cmd][key]: the label at +2,
+        inc hl                  ; with spaces)
+        ld c,0
+.k1:    dec a
         jr nz,.cp
         inc hl                  ; (a symbol record: the name at +3)
         inc hl
@@ -267,7 +292,7 @@ ac_name:
 .l:     ld a,(hl)
         or a
         jr z,.e
-        cp ' '                  ; (a local: "Name : TYPE")
+        cp c
         jr z,.e
         cp ':'
         jr z,.e
@@ -300,20 +325,31 @@ ac_filter:
         cp (hl)
         ret nc
         call ac_name
+.s:     push hl
         ld de,ac_flt
 .c:     ld a,(de)
         or a
-        jr z,.yes
+        jr z,.y0
         call to_upper
         ld b,a
         ld a,(hl)
         call to_upper
         cp b
-        jr nz,.n
+        jr nz,.n0
         inc hl
         inc de
         jr .c
-.yes:   ld a,(ac_n)
+.n0:    pop hl                  ; the palette: anywhere in the name
+        ld a,(ac_pal)
+        or a
+        jr z,.n
+        ld a,(hl)
+        inc hl
+        or a
+        jr nz,.s
+        jr .n
+.y0:    pop hl
+        ld a,(ac_n)
         ld e,a
         ld d,0
         ld hl,ac_vis
@@ -398,6 +434,10 @@ ac_info:
         inc hl
         or a
         jr z,.loc
+        cp 3
+        jr z,.item
+        cp 4
+        jr z,.pou
         dec a
         jr z,.sym
         ld a,(hl)               ; a member: 0 BOOL, 1 TIME, 2 INT
@@ -408,6 +448,39 @@ ac_info:
         dec a
         ret z
         ld hl,txt_ac_int
+        ret
+.item:  ld a,(hl)               ; a menu item: its title
+        add a,a
+        add a,a
+        ld l,a
+        ld h,0
+        ld de,menu_top
+        add hl,de
+        ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
+        ret
+.pou:   ld a,(hl)               ; a POU: its language
+        call pou_lang
+        ld l,a
+        add a,a
+        add a,l
+        ld l,a
+        ld h,0
+        ld de,lang_names
+        add hl,de
+        ld de,ac_nbuf
+        ld bc,3
+        ldir
+        ex de,hl
+        ld (hl),0
+        dec hl
+        ld a,(hl)
+        cp ' '
+        jr nz,.p1
+        ld (hl),0
+.p1:    ld hl,ac_nbuf
         ret
 .sym:   ex de,hl                ; a symbol: its address, e.g. %MW0
         inc hl
@@ -662,6 +735,96 @@ ac_members:
         djnz .m
         ret
 
+; ============================================================
+; command palette (SS+E, Ctrl+E): every POU and every menu command in
+; the list window; menu_run calls it instead of the drop-downs when the
+; key set pal_req (keyboard.asm)
+; ============================================================
+
+; ---- pal_run: -> A = the command chosen (a POU: cur_pou = it, CMD_EDIT),
+;      0 = none
+pal_run:
+        ld a,1
+        ld (ac_pal),a
+        xor a
+        ld (ac_pre),a
+        ld (ac_flt),a
+        ld (ac_sel),a
+        ld (ac_cnt),a
+        ld b,a                  ; the POUs
+.p:     push bc
+        ld a,b
+        call pou_entry
+        ld a,(hl)
+        or a
+        jr z,.pn
+        ld c,b
+        ld a,4
+        call ac_add
+.pn:    pop bc
+        inc b
+        ld a,b
+        cp MAX_POU
+        jr c,.p
+        xor a                   ; the menu items
+        ld (pc_t),a
+.t:     ld a,(pc_t)
+        cp MENU_N
+        jr nc,.go
+        add a,a
+        add a,a
+        ld l,a
+        ld h,0
+        ld de,menu_top+2
+        add hl,de
+        ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
+.i:     ld a,(hl)
+        or a
+        jr z,.tn
+        ld (pc_p),hl
+        ld a,(pc_t)
+        ld c,a
+        ld a,3
+        call ac_add
+        ld hl,(pc_p)
+        inc hl
+        inc hl
+.sk:    ld a,(hl)
+        inc hl
+        or a
+        jr nz,.sk
+        jr .i
+.tn:    ld hl,pc_t
+        inc (hl)
+        jr .t
+.go:    call ac_filter
+        ld a,1                  ; below the menu bar
+        ld (ac_crow),a
+        call ac_ui
+        ld a,0
+        ld (ac_pal),a
+        ret c
+        ld a,(ac_sel)
+        call ac_vnam            ; (-> ac_e)
+        ld hl,(ac_e)
+        ld a,(hl)
+        inc hl
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        inc hl
+        cp 4
+        jr z,.pou
+        ld a,(de)               ; a menu item: its command
+        ret
+.pou:   ld a,(hl)               ; a POU: its editor
+        ld (cur_pou),a
+        ld a,CMD_EDIT
+        ret
+
 ; ac_cmp: HL, DE = names -> C if HL < DE (ignoring case)
 ac_cmp: ld a,(de)
         call to_upper
@@ -735,6 +898,9 @@ txt_ac_bool: db "BOOL",0
 txt_ac_int:  db "INT",0
 txt_ac_time: db "TIME",0
 ac_slot: db 0
+ac_pal:  db 0                   ; 1: the command palette (pal_run)
+pc_t:    db 0
+pc_p:    dw 0
 ac_crow: db 0
 ac_rows: db 0
 ac_sel:  db 0
