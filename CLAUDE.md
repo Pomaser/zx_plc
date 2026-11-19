@@ -93,6 +93,9 @@ editor and key for users.
   The page loads `zxplc.tap?<time>.tap` (past the browser cache; JSSpeccy needs the `.tap` ending).
 - `make docs`: regenerates the screenshots of `docs/MANUAL.md` (`tools/docshots.py`: one zxrun key script
   per image, `--noborder`). Update the manual and the scripts when the UI changes.
+- `python3 tools/mkmemmap.py [zxplc.sym] [docs/img/memory_map.svg]`: redraws the memory map infographic
+  (64 KB address space, the core in detail, the paged banks with their modules) from the symbols of
+  the build; run it after `make` when modules move or grow.
 - `python3 tools/fixjr.py main.asm`: builds and converts every out-of-range `jr` to `jp` in the source,
   then prints the remaining errors. Run it after edits that make code longer.
 - `python3 tools/xref.py --check "pou:R,app:E,il_edit:E,sym_edit:E,ld_edit:E,sim:E,st_view:E,demo:E,il_comp:R,vm:R,ld_comp:R,fbd_comp:R,st_comp:R,st_var:R,tape:R,tests:E,fbd_edit:F,st_edit:F,tools:D,clip:D,wexpr:D,mouse:D,undo:S,ur4:D,trend:D,sd:R,complete:D"`:
