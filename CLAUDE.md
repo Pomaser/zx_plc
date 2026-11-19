@@ -22,6 +22,13 @@ editor and key for users.
   - Tests live in `src/tests.asm` and are split by `IF TPART==1/2` because of space in the EDIT bank.
   - The test builds and the demo builder (`-DMKDEMO`) leave out `src/sim.asm` (`WITH_SIM` in main.asm,
     `scr_run` is a stub there) to make room in the EDIT bank.
+- `make uitest`: UI tests of the ST editor (`tools/st_uitest.py`, a few seconds): key scripts played into
+  `zxplc.sna` (a new ST POU per test: typing a longer program with completion / splitting / folding,
+  corrections + undo / redo, clipboard, auto-declaration, a typed VAR block, name completion,
+  compile errors, a too long line), then the stored lines (indent + text) are read from PROJ and the
+  results of Run from RT / the compile error (`il_err`, `cp_line` via zxplc.sym). `--shots DIR`
+  saves the checkpoint screenshots, test names select tests. Menu macros open the menu with EDIT and
+  go through Help (H is no item hotkey) to the wanted title.
 - `make run`: runs the build in Fuse.
 - `make tap`: `zxplc.tap` (tools/mktap.py: BASIC, then a machine code loader that copies itself over the
   BASIC line (0x5CCB). It loads the loading screen `img/zxplc_load.scr` (its source `img/zxplc_load.json` is

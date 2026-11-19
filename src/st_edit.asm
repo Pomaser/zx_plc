@@ -1325,7 +1325,12 @@ st_norm:
         cp T_SYM
         jr nz,.p
         ld a,(ste.lx_sym)
-        cp '('
+        cp ';'                  ; VAR block: the next declaration's name
+        jr nz,.p0
+        ld a,(sn_inb)
+        ld (hl),a
+        jr .p
+.p0:    cp '('
         jr z,.p1
         cp ','
         jr nz,.p

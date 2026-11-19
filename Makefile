@@ -32,6 +32,10 @@ test: zxplc_test1.sna zxplc_test2.sna
 	@for t in 1 2; do $(PYTHON) tools/zxrun.py zxplc_test$$t.sna -f 1200 --peek 5B00:3 | tee .test.out; \
 	  grep -q "^.. 00 A5" .test.out || { echo "TESTS FAILED (part $$t)"; exit 1; }; done; echo "TESTS OK"
 
+# UI tests of the ST editor (key scripts in the emulator, tools/st_uitest.py)
+uitest: zxplc.sna
+	$(PYTHON) tools/st_uitest.py
+
 run: zxplc.sna
 	fuse zxplc.sna &
 
