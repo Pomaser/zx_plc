@@ -62,7 +62,9 @@ editor and key for users.
   is `yt_scenario2`: ST, palette, completion, inline ST values; a scenario may set `PAUSE` (frames
   after a cue), `GLIDE_PX` (mouse speed) and `BADGE` (a ">>" in the top border while `x:N` > 1)),
   `--name PREFIX` the output names (v2: `--name zxplc_tour2`, voice `15CVCzDByBinCIoCblXo`,
-  `--el-speed 1.05`). The API key is read only from `$ELEVENLABS_API_KEY` or
+  `--el-speed 1.05`). `--lang cs` speaks the Czech texts (the scenario's `PRONOUNCE_CS`, Czech
+  chapter titles from `CHAPTERS_CS`; the Czech v2: `--name zxplc_tour2_cs`, voice
+  `MpbYQvoTmXjHkaxtLiSh`). The API key is read only from `$ELEVENLABS_API_KEY` or
   `.scratch/elevenlabs.key` (git-ignored); never write it into a tracked file or print it.
 - Releases (`gh release create vX.Y`, assets `zxplc.tap`, `zxplc.sna`, and `zxplc_demo.mp4` when the UI
   changed): the release number is in the file `VERSION` (no newline; Help > About includes it with

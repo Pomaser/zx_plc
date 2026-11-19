@@ -45,6 +45,8 @@ from mkvideo import Recorder, ay_render, FILTERS, RATE   # noqa: E402
 import importlib                    # noqa: E402
 
 SCENARIO = NARRATION = PRONOUNCE = PRONOUNCE_EL = None
+PRONOUNCE_CS, CHAPTERS_CS = [], {}
+LANG = 0                            # the spoken language: 0 English, 1 Czech (--lang)
 GLIDE_PX = 6                        # mouse glide speed (go:)
 BADGE = False                       # the ">>" mark in fast-forward parts
 
@@ -53,7 +55,10 @@ def load_scenario(name):
     """the scenario module (tools/<name>.py): SCENARIO, NARRATION, PRONOUNCE(_EL)
     and optionally PAUSE, GLIDE_PX, BADGE"""
     global SCENARIO, NARRATION, PRONOUNCE, PRONOUNCE_EL, PAUSE, GLIDE_PX, BADGE
+    global PRONOUNCE_CS, CHAPTERS_CS
     m = importlib.import_module(name)
+    PRONOUNCE_CS = getattr(m, "PRONOUNCE_CS", [])
+    CHAPTERS_CS = getattr(m, "CHAPTERS_CS", {})
     SCENARIO, NARRATION = m.SCENARIO, m.NARRATION
     PRONOUNCE, PRONOUNCE_EL = m.PRONOUNCE, m.PRONOUNCE_EL
     PAUSE = getattr(m, "PAUSE", 20)
@@ -85,7 +90,7 @@ EL = {"model": "eleven_multilingual_v2", "stability": 0.5, "similarity": 0.75, "
 
 def spoken(text, el=False):
     """the text as the TTS should say it (the PRONOUNCE regex replacements)"""
-    for k, v in (PRONOUNCE_EL if el else PRONOUNCE):
+    for k, v in (PRONOUNCE_CS if LANG else PRONOUNCE_EL if el else PRONOUNCE):
         text = re.sub(k, v, text)
     return text
 
@@ -257,7 +262,7 @@ class Tour:
             if not z.rec:
                 return True
             cid = cmd[4:]
-            smp = tts(NARRATION[cid][0], self.voice, self.cache, self.scale)
+            smp = tts(NARRATION[cid][LANG], self.voice, self.cache, self.scale)
             self.cues.append((cid, self.now(), smp))
             self.cur = self.now() + (len(smp) * 50 + RATE - 1) // RATE
             return True
@@ -385,6 +390,8 @@ def main():
     ap.add_argument("--scenario", default="yt_scenario", help="the scenario module in tools/")
     ap.add_argument("--name", default="zxplc_tour", help="the prefix of the output files")
     ap.add_argument("--el-speed", type=float, default=1.0, help="ElevenLabs speech speed (0.7-1.2)")
+    ap.add_argument("--lang", choices=("en", "cs"), default="en",
+                    help="the spoken language (cs: the Czech texts, PRONOUNCE_CS, CHAPTERS_CS)")
     ap.add_argument("--voice", default="en_US-ryan-high", help="Piper voice model")
     ap.add_argument("--tts", choices=("piper", "elevenlabs"), default="piper")
     ap.add_argument("--el-voice", default=None, help="ElevenLabs voice_id")
@@ -403,6 +410,8 @@ def main():
     ap.add_argument("--script-only", action="store_true", help="only script.md (cue texts + lengths)")
     a = ap.parse_args()
     load_scenario(a.scenario)
+    global LANG
+    LANG = 1 if a.lang == "cs" else 0
     os.makedirs(a.dir, exist_ok=True)
     EL.update(model=a.el_model, stability=a.el_stability, similarity=a.el_similarity,
               speed=a.el_speed)
@@ -435,7 +444,7 @@ def main():
         for line in SCENARIO:
             for cmd in line.split():
                 if cmd.startswith("say:"):
-                    smp = tts(NARRATION[cmd[4:]][0], a.voice, tour.cache, a.speed)
+                    smp = tts(NARRATION[cmd[4:]][LANG], a.voice, tour.cache, a.speed)
                     cues.append((cmd[4:], t, smp))
                     t += len(smp) * 50 // RATE
         chs = []
@@ -505,7 +514,7 @@ def main():
     write_srt(base + ".cs.srt", tour.cues, 1)
     with open(os.path.join(a.dir, a.name + ("_chapters%s.txt" if not a.only else "_chapters_only%s.txt") % sfx), "w") as f:
         for fr, t in tour.chapters:
-            f.write("%s %s\n" % (ts(fr / 50, False), t))
+            f.write("%s %s\n" % (ts(fr / 50, False), CHAPTERS_CS.get(t, t) if LANG else t))
     write_script(os.path.join(a.dir, a.name + ("_script%s.md" if not a.only else "_script_only%s.md") % sfx),
                  tour.cues, tour.chapters)
     print("written:", out)
