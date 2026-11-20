@@ -656,7 +656,7 @@ of its instance (`T_Red` for `TON0.ET`); an operand without a symbol keeps its a
 
 * The samples are taken from the start of the simulation, also while another page is shown. The newest
   is at the right edge; when the chart is full it moves to the left.
-* `W` switches to the watch page, `G` back to the program.
+* `W` switches to the watch page, `M` (or `G`) back to the monitor (the program).
 * `Z` changes the time window of the chart: 4 s, 20 s (the default) or 100 s. The history starts again.
 * The inputs keep working (`0`-`7`, `R`), so a program can be tried out and its signals compared in time.
 * Other words (`%MW`, constants) are not drawn. Operands are added on the watch page (`W`).

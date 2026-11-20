@@ -193,12 +193,12 @@ scr_run:
 .letter:
         call to_upper
         ld b,1
-        cp 'M'                  ; M on the watch page: back to the monitor
+        cp 'M'                  ; M on the watch / trend page: back to the monitor
         jr nz,.nm
         ld a,(sm_page)
-        dec a
-        jp nz,.loop
-        ld a,'W'
+        or a
+        jp z,.loop
+        ld b,a                  ; (the page we are on: toggles it off)
         jr .pg
 .nm:    cp 'W'                  ; W: program / watch page
         jr z,.pg
@@ -1170,7 +1170,7 @@ txt_sm_run:   db "RUN",0
 txt_sm_stop:  db "STOP",0
 txt_sm_true:  db "TRUE",0
 txt_wt_hint:  db ST_INV,"E",ST_INV,"N",ST_INV,"T",ST_INV,"E",ST_INV,"R","Edit ",ST_INV,"F","orce ",ST_INV,"D",ST_INV,"E",ST_INV,"L","ete ",ST_INV,"T","rend ",ST_INV,"M","onitor",0
-txt_tr_hint:  db ST_INV,"0",ST_INV,"-",ST_INV,"7","In ",ST_INV,"R","un ",ST_INV,"Z","oom ",ST_INV,"W","atch",0
+txt_tr_hint:  db ST_INV,"0",ST_INV,"-",ST_INV,"7","In ",ST_INV,"R","un ",ST_INV,"Z","oom ",ST_INV,"W","atch ",ST_INV,"M","onitor",0
 txt_sm_hint:  db ST_INV,"0",ST_INV,"-",ST_INV,"7In ",ST_INV,"S",ST_INV,"S",ST_INV,"+",ST_INV,"nSet ",ST_INV,"Byte",ST_INV,"Run/Stop",ST_INV,"Step R",ST_INV,"Eset ",ST_INV,"Watch",0
 txt_sm_nomon: db "No IL or LD POU to monitor.",0
 
