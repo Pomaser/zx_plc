@@ -88,7 +88,9 @@ def layout(sym):
             (f("src/sim.asm"), sym["EDIT_END"], "Simulation screen", "edit"),
             (sym["EDIT_END"], IM2, "free", "free")]),
         ("Bank 1", "DATA", [
-            (0xC000, sym["clip_buf"], "Popup save area", "data"),
+            (0xC000, f("src/il_check.asm"), "Popup save area", "data"),
+            (f("src/il_check.asm"), f("src/globals.asm"), "IL line check", "edit"),
+            (f("src/globals.asm"), sym["DATA_END"], "Global declarations", "edit"),
             (sym["clip_buf"], IM2, "Clipboard", "data")]),
         ("Bank 3", "DEMO", [
             (0xC000, f("src/clip.asm"), "Watch, xref, help", "tool"),
@@ -109,7 +111,7 @@ def layout(sym):
             (sym["RUN_END"], 0xF000, "free", "free"),
             (0xF000, 0xF800, "Bytecode", "data"),
             (0xF800, 0xFC00, "ST tokenizer", "comp"),
-            (0xFC00, IM2, "ST locals", "data")]),
+            (0xFC00, IM2, "Globals, ST locals", "data")]),
         ("Bank 6", "FBD", [
             (0xC000, f("src/st_edit.asm"), "FBD editor", "edit"),
             (f("src/st_edit.asm"), sym["FBD_END"], "ST editor", "edit"),
