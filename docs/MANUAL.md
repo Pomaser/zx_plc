@@ -156,6 +156,7 @@ Each menu title opens a drop-down list. The first letter of a title or item is i
 | Redo | redo the undone change (also SS+Y) |
 | Add to watch | add the operand at the cursor to the watch list (also SS+W) |
 | Symbols | the symbol editor |
+| Globals | the global variables (name, type, initial value) |
 | Insert line | insert an empty line / row |
 | Delete line | delete the current line / row |
 | Mark block | mark the start of a block (also SS+A) |
@@ -292,6 +293,9 @@ esxDOS `SYS` folder.
   steps of its byte, which makes step sequences easy (see DEMO_IL).
 * **Symbols** (Edit > Symbols) give operands names. A symbol can be typed instead of an address
   anywhere.
+* **Global variables** (Edit > Globals) are named variables without an address: `BOOL`, `BYTE`
+  (0-255) or `INT`. They are used by their name in IL, LD, FBD and ST, see
+  [Global variables](#global-variables).
 * The time base is 20 ms (one scan per frame).
 
 ## 6. IL editor
@@ -559,6 +563,26 @@ dark blue), the address (black) and a comment (up to 30 characters, dark green).
 * Symbols can name inputs, outputs, memory bits, INT words (`%MW`), step flags, system flags and FB
   instances. In ST, named INT words work as variables (`Level := Level + 1;`).
 
+### Global variables
+
+![Global variables](img/globals.png)
+
+**Edit > Globals** is the same editor for the global variables of the project. A row is
+`Name : TYPE [:= value]` and a comment:
+
+* Type the name, then `:` (or SPACE) and the type: `bool`, `byte` or `int`, optionally followed by an
+  initial value, e.g. `byte:=10`. It is stored as `BYTE := 10`. Without a value a variable starts at
+  0 / FALSE.
+* `BOOL` takes `TRUE` / `FALSE`, `BYTE` 0 to 255 (it wraps: 255 + 1 = 0), `INT` -32768 to 32767.
+* The name can be used in every language instead of an address: `LD Speed`, a contact `Run`, a
+  compare block `Speed > 100`, `Speed := Speed + 1;` in ST. LD / FBD contacts and coils take `BOOL`
+  variables, word operands any type.
+* The values are shown in the simulation, can be added to the watch list (SS+W) and forced there.
+* Run and Reset set the initial values again.
+* Up to 64 globals; together with the ST local variables they share 126 words.
+* IL, LD and FBD keep a reference to the variable, so renaming it changes them too. ST keeps the name
+  as text: after a rename, correct the ST lines (the compiler reports the old name).
+
 ## 11. Simulation
 
 **Run > Run** compiles all POUs and runs MAIN once per frame. A compile error opens the editor of that POU at
@@ -739,12 +763,13 @@ times.
 | POU name / comment | 8 / 20 characters |
 | Symbol name / comment | 8 / 30 characters |
 | Watch list | 16 operands |
+| Global variables | 64 (`BOOL`, `BYTE`, `INT`), name 8 characters |
 | Call depth | 8 |
 | Watchdog | 30000 instructions per scan |
 | Edge contacts (P / N) | 32 per project |
 | ST line | 60 characters |
 | ST expression | 8 nested right sides (`a - (b - (c - ...))`) |
 | ST FB call outputs (`=>`) | 4 per call |
-| ST local variables | 126 in all POUs together |
+| ST local variables | 126 in all POUs together (minus the global variables) |
 
 For the program structure, memory map and build details see `README.md` and `CLAUDE.md`.

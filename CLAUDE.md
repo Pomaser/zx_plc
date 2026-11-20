@@ -23,7 +23,7 @@ editor and key for users.
   - The test builds and the demo builder (`-DMKDEMO`) leave out `src/sim.asm` (`WITH_SIM` in main.asm,
     `scr_run` is a stub there) to make room in the EDIT bank.
 - `make uitest`: UI tests of the ST editor (`tools/st_uitest.py`, a few seconds): key scripts played into
-  `zxplc.sna` (a new ST POU per test: typing a longer program with completion / splitting / folding,
+  `zxplc.sna` (a new ST POU per test: typing a longer program with completion / splitting / folding, the Globals page,
   corrections + undo / redo, clipboard, auto-declaration, a typed VAR block, name completion,
   compile errors, a too long line), then the stored lines (indent + text) are read from PROJ and the
   results of Run from RT / the compile error (`il_err`, `cp_line` via zxplc.sym). `--shots DIR`
@@ -98,7 +98,7 @@ editor and key for users.
   the build; run it after `make` when modules move or grow.
 - `python3 tools/fixjr.py main.asm`: builds and converts every out-of-range `jr` to `jp` in the source,
   then prints the remaining errors. Run it after edits that make code longer.
-- `python3 tools/xref.py --check "pou:R,app:E,il_edit:E,sym_edit:E,ld_edit:E,sim:E,st_view:E,demo:E,il_comp:R,vm:R,ld_comp:R,fbd_comp:R,st_comp:R,st_var:R,tape:R,tests:E,fbd_edit:F,st_edit:F,tools:D,clip:D,wexpr:D,mouse:D,undo:S,ur4:D,trend:D,sd:R,complete:D,il_check:A"`:
+- `python3 tools/xref.py --check "pou:R,app:E,il_edit:E,sym_edit:E,ld_edit:E,sim:E,st_view:E,demo:E,il_comp:R,vm:R,ld_comp:R,fbd_comp:R,st_comp:R,st_var:R,tape:R,tests:E,fbd_edit:F,st_edit:F,tools:D,clip:D,wexpr:D,mouse:D,undo:S,ur4:D,trend:D,sd:R,complete:D,il_check:A,globals:A"`:
   reports labels referenced across paged banks without `BCALL`. Unlisted modules are core. The
   `run_tests` / `demo_build` hits in main.asm are expected. Extend the map when a module moves.
 - Headless emulator: `.scratch/venv/bin/python tools/zxrun.py zxplc.sna -f 30 -s "<script>"`
@@ -118,7 +118,7 @@ editor and key for users.
 ## Memory architecture (128K)
 - **Fixed memory:**
   - 0x5B00 TEST_RES; the stack below 0x5E00.
-  - Core code at 0x5E00. The build prints the free space: about 580 B are left. New code goes into
+  - Core code at 0x5E00. The build prints the free space: about 260 B are left. New code goes into
     the banks; the menu tables and texts (src/menu.asm) are core too (the command dispatcher
     `menu_cmd` is in the DEMO bank, tools.asm).
   - RT runtime data at 0x8A00. These are EQUs in `src/vm.asm`: I/Q (2 bytes each, %IX0.0-1.7)/M/MW, FB instances, scratch bits,
@@ -132,7 +132,8 @@ editor and key for users.
   - RUN 4: compilers (also `src/st_comp.asm`, `src/st_var.asm`), VM, bytecode at 0xF000, POU list, tape,
     SD card (`src/sd.asm`). It is uncontended, which tape timing needs (~0.4 KB free). Above `BCODE_END`:
     0xF800-0xFBFF the ST tokenizer of the compiler, 0xFC00 / 0xFD00 the ST locals (LV_INIT / LV_BASE).
-  - DATA 1: the popup save buffer, `src/il_check.asm` (the IL line check `il_check` / `il_check_label`,
+  - DATA 1: the popup save buffer, `src/globals.asm` (declarations of the global variables),
+    `src/il_check.asm` (the IL line check `il_check` / `il_check_label`,
     called through `il_chk` / `il_chk_label` in il_edit.asm, which copy the texts to fixed memory first)
     and the clipboard (`clip_buf`, filled by `src/clip.asm`, at least 12 KB; the build prints the free
     space as "DATA").
@@ -255,6 +256,22 @@ editor and key for users.
     rows are handled like preset cells by `fb_prow`. Placing an FBD block only chooses the operator
     (`wx_opsel`); the values are asked one at a time on their cells (`wx_value`). A block right behind a compute result takes D as its
     A (`fc_link` in fbd_comp.asm, the same when placed).
+- **Global variables** (Edit > Globals, `CMD_GLOBALS`):
+  - A global is a record of the symbol table with area `AR_GV` (= AR_LV | 0x40), index = its number g
+    (0..GV_MAX-1, a new one gets the number after the highest, `gv_new`) and its declaration after the
+    name: `[len][AR_GV][g][name 0][type][init lo][init hi][comment]` (type GT_BOOL 0 / GT_INT 1 /
+    GT_BYTE 3, + GT_INIT 0x80 if an init value was given). AR_GV records sort after all symbols;
+    `sym_range` gives the symbol editor its part (`sy_gmode` 0 symbols / 1 globals, set by `cmd_target`).
+    `sym_store` writes `sym_decl` into a global's record, `sym_cmt` skips it, `gv_find` reads it.
+  - The value is the word LV_BASE + 2g (RUN bank); the ST locals follow the globals (`lv_first` starts at
+    `gv_top`), `gv_init` (st_var.asm) writes the init values to LV_INIT when compiling. Operands keep
+    [AR_GV][g] (IL / LD / FBD records), so a rename or type change keeps them; ST stores the name as
+    text and resolves it through `op_parse` (`sc_gvop`: AR_LV + type * 16). `cp_operand_core` maps it
+    to VM_MB (bit 0) / VM_MW / VM_MBY (BYTE, the low byte, a VM mode). `op_format` prints the name.
+  - The editor is sym_edit.asm with `sy_gmode` = 1: the address column holds "TYPE [:= value]"
+    (`gv_parse` / `gv_fmt` / `gv_fmtd` in `src/globals.asm`, DATA bank, on copies in fixed memory),
+    the comment starts at SY_GX_COMM; ':' after the name goes on to the type.
+  - The simulation reads PLC data from 0xC000 up through `rt_byte` (core, pages the RUN bank).
 - **Structured Text** (LANG_ST):
   - Body: line records `[len][K_STXT][indent][text]` (no 0). The text is stored normalised (keywords
     upper case, one space between tokens) and with every operand that has an address as its IEC

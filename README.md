@@ -26,6 +26,8 @@ not downloaded to a real PLC; they run in the built-in simulation with live moni
   * live colouring of the program in LD and FBD, live values in IL and ST;
   * a watch / force table, a trend page (time charts of the watched signals and timer / counter progress), step and reset.
 * **Symbols:** names and comments for every address, used everywhere instead of addresses.
+* **Global variables:** named BOOL / BYTE / INT variables without an address (Edit > Globals), with an
+  optional initial value, used by name in IL, LD, FBD and ST.
 * **A demo project** (traffic light in IL, pump and fan in LD, valve and horn in FBD) opens at the start.
 
 ## Unusual for a Spectrum program

@@ -105,6 +105,19 @@ class UI:
             i += n
         return out
 
+    def globals(self):
+        """[(name, g, type byte, init, comment)] of the AR_GV symbol records"""
+        b, i, out = self.body(8), 0, []
+        while i < len(b):
+            n = b[i]
+            if b[i + 1] == 0x4F:
+                rec = b[i + 3:i + n]
+                name, rest = rec.split(b"\0", 1)
+                out.append((name.decode(), b[i + 2], rest[0], rest[1] | rest[2] << 8,
+                            rest[3:].decode("latin1")))
+            i += n
+        return out
+
     def mw(self, n):
         return int.from_bytes(self.mem(RT_MW + 2 * n, 2), "little", signed=True)
 
@@ -171,6 +184,29 @@ def run():
 
 # ============================================================ tests
 RESULTS = []
+
+
+def t_globals(ui):
+    """Edit > Globals: declarations typed (':' to the type, normalised), a bad
+    init value refused, the globals used in ST, their values after Run"""
+    s = "k:CS+SPACE w5 k:E w10 k:G w40 "
+    s += T("speed:int:=7") + "k:SPACE w10 " + T("motor speed") + E
+    s += T("on:bool") + E
+    s += T("bt:byte:=300") + E + "shot:gv_bad k:ENTER w30 " + DEL * 3 + T("250") + E
+    ui.play(s + "w20 shot:gv ")
+    got = ui.globals()
+    exp = [("Speed", 0, 0x81, 7, "Motor speed"), ("On", 1, 0x00, 0, ""), ("Bt", 2, 0x83, 250, "")]
+    compare("globals: records", got, exp)
+    s = to_list() + new_st("GV") + T("speed := speed + 1;") + E + T("on := TRUE;") + E
+    s += T("bt := bt + 10;") + E
+    ui.play(s + to_list() + main_call("GV") + run())
+    lv = ui.z.bank_bytes(4, 0xFD00, 6)
+    sp = int.from_bytes(lv[0:2], "little")
+    check("globals: Speed counts from 7", sp > 7, sp)
+    check("globals: On = TRUE", lv[2] == 1, lv[2])
+    k = sp - 7                  # scans so far: Bt = (250 + 10 k) mod 256, high byte 0
+    check("globals: Bt BYTE wraps (250 + 10 per scan)", k > 1 and lv[5] == 0 and
+          lv[4] in ((250 + 10 * k) % 256, (250 + 10 * (k - 1)) % 256), (k, lv[4:6].hex()))
 
 
 def check(name, cond, info=""):
@@ -500,7 +536,7 @@ def t_palmouse(ui):
 TESTS = {"long": t_long, "edit": t_edit, "clip": t_clip, "autodecl": t_autodecl,
          "manual": t_manual, "compl": t_compl, "autorun": t_autorun,
          "errors": t_errors, "semicolon": t_semicolon, "varpaste": t_varpaste, "toolong": t_toolong,
-         "view": t_view, "palette": t_palette, "palmouse": t_palmouse}
+         "view": t_view, "palette": t_palette, "palmouse": t_palmouse, "globals": t_globals}
 
 
 def main():
