@@ -1168,7 +1168,7 @@ txt_sm_stop:  db "STOP",0
 txt_sm_true:  db "TRUE",0
 txt_wt_hint:  db ST_INV,"E",ST_INV,"N",ST_INV,"T",ST_INV,"E",ST_INV,"R","Edit ",ST_INV,"F","orce ",ST_INV,"D",ST_INV,"E",ST_INV,"L","ete ",ST_INV,"T","rend ",ST_INV,"M","onitor",0
 txt_tr_hint:  db ST_INV,"0",ST_INV,"-",ST_INV,"7","In ",ST_INV,"R","un ",ST_INV,"Z","oom ",ST_INV,"W","atch ",ST_INV,"M","onitor",0
-txt_sm_hint:  db ST_INV,"0",ST_INV,"-",ST_INV,"7In ",ST_INV,"S",ST_INV,"S",ST_INV,"+",ST_INV,"nSet ",ST_INV,"Byte",ST_INV,"Run|Stop",ST_INV,"Step R",ST_INV,"Eset ",ST_INV,"Watch",0
+txt_sm_hint:  db ST_INV,"0",ST_INV,"-",ST_INV,"7In ",ST_INV,"S",ST_INV,"S",ST_INV,"+",ST_INV,"nSet ",ST_INV,"Byte",ST_INV,"RunStop",ST_INV,"Step R",ST_INV,"Eset ",ST_INV,"Watch",0
 txt_sm_nomon: db "No IL or LD POU to monitor.",0
 
 sim_tog:    dw 0              ; toggled inputs I0, I1
