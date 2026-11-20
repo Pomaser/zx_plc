@@ -712,6 +712,31 @@ il_del_line:
         ld (il_n),hl
         jp status_right
 
+; ---- il_chk: HL = mnemonic, DE = operand (EDIT bank texts too) -> il_check
+;      (DATA bank) on copies in fixed memory (popup_buf, rd_o)
+il_chk:
+        push de
+        ld de,popup_buf
+        call il_cpy
+        pop hl
+        ld de,rd_o
+        call il_cpy
+        ld hl,popup_buf
+        ld de,rd_o
+        BCALL il_check
+        ret
+; il_chk_label: HL = text -> il_check_label on a copy in rd_o
+il_chk_label:
+        ld de,rd_o
+        call il_cpy
+        ld hl,rd_o
+        BCALL il_check_label
+        ret
+il_cpy: call put_str
+        xor a
+        ld (de),a
+        ret
+
 ; ---- il_commit: validates the edit buffer and stores it as line il_cur
 ;      C = error (message shown)
 il_commit:
@@ -725,7 +750,7 @@ il_commit:
         jr z,.label
         ld hl,ed_m
         ld de,ed_o
-        call il_check
+        call il_chk
         jp c,.err
         ld a,(il_outlen)        ; binary instruction
         ld c,a
@@ -735,7 +760,7 @@ il_commit:
         ldir
         jr .blen
 .label: ld hl,ed_m
-        call il_check_label
+        call il_chk_label
         jp c,.err
         ld hl,il_out
         jr .build
@@ -1737,7 +1762,7 @@ il_load_text:
         inc hl
         ex de,hl
 .te:    ld hl,rec_buf+2
-        call il_check
+        call il_chk
         ret c
         ld a,(il_outlen)
         ld c,a

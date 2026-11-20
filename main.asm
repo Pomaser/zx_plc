@@ -182,7 +182,10 @@ RUN2_END:
 ; ---- DATA bank ----------------------------------------------
         MMU 3, BANK_DATA, BANKED
 win_save: ds 9*WIN_MAXC     ; cells saved under a popup window
+        INCLUDE "src/il_check.asm"  ; IL instruction check (BCALL)
+DATA_END:
 clip_buf:                   ; the clipboard (clip.asm), up to the IM2 stub
+        DISPLAY "DATA:  free: ",/D,IM2_JP-clip_buf-(PROJ_END-PROJ)
         ASSERT IM2_JP-clip_buf >= PROJ_END-PROJ
         IM2STUB
 

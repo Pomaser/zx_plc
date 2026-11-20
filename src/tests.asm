@@ -298,10 +298,10 @@ il_tests:
         cp '/'
         jr z,.lab               ; "/" marks a label test
         ld de,(t_val)
-        call il_check
+        call il_chk
         jr .chk
 .lab:   ld hl,(t_val)
-        call il_check_label
+        call il_chk_label
         jr c,.err
         ld hl,il_out
         jr .cmp
@@ -801,7 +801,7 @@ sym_tests:
         ; IL accepts the symbol, stores the address
         ld hl,t_ld
         ld de,t_sym_startl
-        call il_check
+        call il_chk
         call t_nc
         call t_detok            ; shown as the symbol
         ld hl,t_buf
@@ -850,7 +850,7 @@ sym_tests:
         call t_nc
         ld hl,t_ld
         ld de,t_sym_dly_et
-        call il_check
+        call il_chk
         call t_nc
         ld a,(il_out+1)
         cp AR_FBM+0x30          ; member 3 (ET)

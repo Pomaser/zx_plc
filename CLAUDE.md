@@ -98,7 +98,7 @@ editor and key for users.
   the build; run it after `make` when modules move or grow.
 - `python3 tools/fixjr.py main.asm`: builds and converts every out-of-range `jr` to `jp` in the source,
   then prints the remaining errors. Run it after edits that make code longer.
-- `python3 tools/xref.py --check "pou:R,app:E,il_edit:E,sym_edit:E,ld_edit:E,sim:E,st_view:E,demo:E,il_comp:R,vm:R,ld_comp:R,fbd_comp:R,st_comp:R,st_var:R,tape:R,tests:E,fbd_edit:F,st_edit:F,tools:D,clip:D,wexpr:D,mouse:D,undo:S,ur4:D,trend:D,sd:R,complete:D"`:
+- `python3 tools/xref.py --check "pou:R,app:E,il_edit:E,sym_edit:E,ld_edit:E,sim:E,st_view:E,demo:E,il_comp:R,vm:R,ld_comp:R,fbd_comp:R,st_comp:R,st_var:R,tape:R,tests:E,fbd_edit:F,st_edit:F,tools:D,clip:D,wexpr:D,mouse:D,undo:S,ur4:D,trend:D,sd:R,complete:D,il_check:A"`:
   reports labels referenced across paged banks without `BCALL`. Unlisted modules are core. The
   `run_tests` / `demo_build` hits in main.asm are expected. Extend the map when a module moves.
 - Headless emulator: `.scratch/venv/bin/python tools/zxrun.py zxplc.sna -f 30 -s "<script>"`
@@ -118,7 +118,7 @@ editor and key for users.
 ## Memory architecture (128K)
 - **Fixed memory:**
   - 0x5B00 TEST_RES; the stack below 0x5E00.
-  - Core code at 0x5E00. The build prints the free space: about 115 B are left. New code goes into
+  - Core code at 0x5E00. The build prints the free space: about 580 B are left. New code goes into
     the banks; the menu tables and texts (src/menu.asm) are core too (the command dispatcher
     `menu_cmd` is in the DEMO bank, tools.asm).
   - RT runtime data at 0x8A00. These are EQUs in `src/vm.asm`: I/Q (2 bytes each, %IX0.0-1.7)/M/MW, FB instances, scratch bits,
@@ -132,7 +132,10 @@ editor and key for users.
   - RUN 4: compilers (also `src/st_comp.asm`, `src/st_var.asm`), VM, bytecode at 0xF000, POU list, tape,
     SD card (`src/sd.asm`). It is uncontended, which tape timing needs (~0.4 KB free). Above `BCODE_END`:
     0xF800-0xFBFF the ST tokenizer of the compiler, 0xFC00 / 0xFD00 the ST locals (LV_INIT / LV_BASE).
-  - DATA 1: the popup save buffer and the clipboard (`clip_buf`, filled by `src/clip.asm`).
+  - DATA 1: the popup save buffer, `src/il_check.asm` (the IL line check `il_check` / `il_check_label`,
+    called through `il_chk` / `il_chk_label` in il_edit.asm, which copy the texts to fixed memory first)
+    and the clipboard (`clip_buf`, filled by `src/clip.asm`, at least 12 KB; the build prints the free
+    space as "DATA").
   - DEMO 3: `src/tools.asm` (cross references, watch / force page of the simulation, Help texts),
     `src/clip.asm` (mark / copy / cut / paste, called by the editors with `BCALL cl_cmd` / `mk_draw`),
     `src/wexpr.asm`, `src/mouse.asm`, `src/ur4.asm`, `src/trend.asm`, `src/complete.asm` (ST name
