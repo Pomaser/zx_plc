@@ -65,7 +65,11 @@ cmd_target:
         jr z,.set
         cp CMD_SYMBOLS
         ld b,SCR_SYM
-        jr z,.set
+        ld c,0                  ; (sy_gmode: symbols)
+        jr z,.sym
+        inc c                   ; (globals)
+        cp CMD_GLOBALS
+        jr z,.sym
         cp CMD_KEYS
         ret nc
 .run:   ld (sim_pending),a      ; Run/Step/Reset/Watch, executed by the RUN screen
@@ -73,6 +77,9 @@ cmd_target:
 .set:   ld a,b
         ld (cur_screen),a
         ret
+.sym:   ld a,c
+        ld (sy_gmode),a
+        jr .set
 .pou:   ld (pou_pending),a      ; POU action, executed by the POU screen
         ld b,SCR_POU
         jr .set
@@ -183,6 +190,7 @@ RUN2_END:
         MMU 3, BANK_DATA, BANKED
 win_save: ds 9*WIN_MAXC     ; cells saved under a popup window
         INCLUDE "src/il_check.asm"  ; IL instruction check (BCALL)
+        INCLUDE "src/globals.asm"   ; global variable declarations (BCALL)
 DATA_END:
 clip_buf:                   ; the clipboard (clip.asm), up to the IM2 stub
         DISPLAY "DATA:  free: ",/D,IM2_JP-clip_buf-(PROJ_END-PROJ)

@@ -1287,13 +1287,21 @@ ed_field_info:
         ld bc,SYM_NMAX*256+SY_X_NAME
         ld d,SY_X_ADDR-2
         ret
-.sc:    ld hl,ed_c
-        ld bc,SYM_CMAX*256+SY_X_COMM
+.sc:    call sy_xc
+        ld c,a
+        ld hl,ed_c
+        ld b,SYM_CMAX
         ld d,IL_X_MAX
         ret
-.sa:    ld hl,ed_o
+.sa:    call sy_xc              ; address / declaration of a global
+        sub 2
+        ld d,a
+        ld hl,ed_o
         ld bc,8*256+SY_X_ADDR
-        ld d,SY_X_COMM-2
+        ld a,(sy_gmode)
+        or a
+        ret z
+        ld b,16
         ret
 
 ; ---- ed_insert: A = char -> inserted at ed_pos; C = full / too wide

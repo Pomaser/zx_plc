@@ -12,11 +12,23 @@
 SY_X_NAME EQU 28            ; cells 3-9
 SY_X_ADDR EQU 80            ; cells 10-14
 SY_X_COMM EQU 120           ; cells 15-31
+SY_GX_COMM EQU 152          ; globals: declaration cells 10-18, comment 19-31
 
 scr_sym:
         call screen_begin
-        ld a,1                  ; "Symbols" instead of the POU name
-        ld (mp_alt),a
+        ld a,(sy_gmode)         ; another list than last time: from its top
+        ld hl,sy_lmode
+        cp (hl)
+        ld (hl),a
+        jr z,.same
+        ld hl,0
+        ld (sy_cur),hl
+        ld (sy_top),hl
+.same:  or a                    ; "Symbols" / "Globals" instead of the POU name
+        ld a,1
+        jr z,.t
+        ld a,4
+.t:     ld (mp_alt),a
         call menu_pou
         ; the IL editor state is borrowed while the symbol editor runs
         ld hl,(il_cur)
@@ -79,7 +91,17 @@ scr_sym:
         jr c,.loop
         cp 128
         jr nc,.loop
-        cp ' '
+        cp ':'                  ; globals: "Name :" goes on to the type
+        jr nz,.nc
+        ld a,(ed_field)
+        cp F_MNEM
+        ld a,':'
+        jr nz,.ins
+        ld a,(sy_gmode)
+        or a
+        ld a,':'
+        jp nz,.toaddr
+.nc:    cp ' '
         jr nz,.ins
         ld a,(ed_field)
         cp F_MNEM
@@ -139,12 +161,14 @@ scr_sym:
         pop hl
         jp c,.loop
         jp .move
-.mf:    ld a,(ms_cx)            ; the field: name, address, comment
+.mf:    call sy_xc              ; the field: name, address, comment
+        ld c,a
+        ld a,(ms_cx)
         ld b,F_MNEM
-        cp 80
+        cp SY_X_ADDR
         jr c,.mf1
         inc b
-        cp 120
+        cp c
         jr c,.mf1
         inc b
 .mf1:   ld a,(ed_field)
@@ -367,7 +391,11 @@ scr_sym:
         jr nz,.nx
 .x0:    ld (tl_cmd),a
         ld hl,ed_o              ; address of the symbol
-        call op_parse
+        ld a,(sy_gmode)
+        or a
+        jr z,.x2
+        ld hl,ed_m              ; (a global: its name)
+.x2:    call op_parse
         jr nc,.x1
         xor a
 .x1:    BCALL tl_run
@@ -412,6 +440,19 @@ sy_norm_addr:
         ld a,(hl)
         or a
         ret z
+        ld a,(sy_gmode)
+        or a
+        jr z,.sym
+        call sy_gparse          ; a global: "byte:=1" -> "BYTE := 1"
+        ret c
+        ld hl,sym_decl
+        ld de,popup_buf
+        BCALL gv_fmtd
+        ld hl,popup_buf
+        ld de,ed_o
+        call il_cpy
+        jp sy_draw_edit
+.sym:
         call op_parse
         ret c
         ld b,a
@@ -452,7 +493,7 @@ sy_norm_addr:
 
 ; ---- sy_count: il_n = number of symbols + 1 (empty row for a new one)
 sy_count:
-        call sym_first
+        call sym_range
         ld bc,1
 .l:     push bc
         call sym_at_end
@@ -508,7 +549,7 @@ sy_rec: ld hl,(sy_newpos)
 .below: ld b,d
         ld c,e
         push bc
-        call sym_first
+        call sym_range
         pop bc
 .l:     push bc
         call sym_at_end
@@ -532,6 +573,8 @@ sy_split:
         ld (sy_end),hl
         pop hl
         inc hl
+        ld a,(hl)
+        ld (sy_ar),a
         inc hl
         inc hl
         ld de,(sp_m)
@@ -541,6 +584,8 @@ sy_split:
         inc de
         or a
         jr nz,.n
+        ld a,(sy_ar)
+        call sym_cmt            ; (a global: past its declaration)
         ld de,(sp_c)
 .c:     push hl
         ld bc,(sy_end)
@@ -560,7 +605,17 @@ sy_split:
 ; ---- sy_rec_text: HL = record -> address to (sp_o), name/comment via sy_split
 sy_rec_text:
         push hl
-        inc hl
+        ld a,(sy_gmode)
+        or a
+        jr z,.adr
+        ld de,popup_buf         ; a global: its declaration
+        BCALL gv_fmt
+        ld hl,popup_buf
+        ld de,(sp_o)
+        call il_cpy
+        pop hl
+        jr sy_split
+.adr:   inc hl
         ld a,(hl)
         inc hl
         ld c,(hl)
@@ -639,7 +694,29 @@ sy_commit:
         jp z,.done
         call .delold
         jp .stored
-.addr:  ld a,(ed_o)
+.addr:  ld a,(sy_gmode)
+        or a
+        jr z,.adr0
+        ld a,(ed_m)             ; a global: name, declaration, its number
+        or a
+        ld hl,err_sy_noname
+        jp z,.err
+        call sy_gparse
+        jp c,.verr
+        ld a,(sy_old)
+        or a
+        ld a,(sy_oidx)
+        ld c,a
+        jr nz,.gold
+        call gv_new
+        ld hl,err_gv_many
+        jp c,.err
+.gold:  ld a,c
+        ld (sy_nidx),a
+        ld a,AR_GV
+        ld (sy_narea),a
+        jp .val
+.adr0:  ld a,(ed_o)
         or a
         ld hl,err_sy_noaddr
         jp z,.err
@@ -721,12 +798,14 @@ sy_commit:
         call sym_store
         ret c
         ; the row of the stored record
+        call sym_range          ; (changes DE)
+        push hl
         ld a,(sy_nidx)
         ld c,a
         ld a,(sy_narea)
         call sym_find_addr
         ex de,hl
-        call sym_first
+        pop hl
         ld bc,0
 .pos:   or a
         sbc hl,de
@@ -855,15 +934,27 @@ sy_draw_row:
         ld c,3
         ld de,0x0700+ATTR_MNEM
         call scr_fill_attr
+        call sy_xc              ; cells 10.. black, the comment cells green
+        rrca
+        rrca
+        rrca
+        and 31
+        push af
+        sub 10
+        ld d,a
+        ld e,ATTR_NORMAL
         ld a,(dr_row)
         ld b,a
         ld c,10
-        ld de,0x0500+ATTR_NORMAL
         call scr_fill_attr
+        pop af
+        ld c,a
+        neg
+        add a,32
+        ld d,a
+        ld e,ATTR_COMMENT
         ld a,(dr_row)
         ld b,a
-        ld c,15
-        ld de,0x1100+ATTR_COMMENT
         call scr_fill_attr
         ld a,(dr_row)
         ld (pt_row),a
@@ -922,7 +1013,7 @@ sy_draw_row:
         ld (pt_x),a
         ld hl,(dr_o)
         call pt_puts
-        ld a,SY_X_COMM
+        call sy_xc
         ld (pt_x),a
         ld hl,(dr_c)
         call pt_puts
@@ -950,6 +1041,8 @@ sy_draw_row:
         ret
 
 err_sy_noaddr: db "Address required",0
+err_sy_noname: db "Name required",0
+err_gv_many:   db "Too many globals",0
 err_sy_addr:   db "Invalid address (I, Q, M, S, FB)",0
 err_sy_used:   db "Address already defined",0
 
@@ -964,5 +1057,25 @@ sy_dirty: db 0
 sy_old:   db 0
 sy_oarea: db 0
 sy_oidx:  db 0
+sy_ar:    db 0
+sy_lmode: db 0
+
+; sy_xc: A = x of the comment column (symbols / globals)
+sy_xc:  ld a,(sy_gmode)
+        or a
+        ld a,SY_X_COMM
+        ret z
+        ld a,SY_GX_COMM
+        ret
+
+; sy_gparse: the declaration ed_o -> sym_decl (gv_parse on a copy in
+;      rd_o); C = error (il_err)
+sy_gparse:
+        ld hl,ed_o
+        ld de,rd_o
+        call il_cpy
+        ld hl,rd_o
+        BCALL gv_parse
+        ret
 sy_narea: db 0
 sy_nidx:  db 0

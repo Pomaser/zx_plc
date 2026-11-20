@@ -303,6 +303,7 @@ sim_pending: db 0
 pou_pending: db 0
 
 ; ---- from pou.asm
+sy_gmode:      db 0         ; symbol editor: 0 symbols, 1 globals (Edit > Globals)
 err_bad_name:  db "Invalid name",0
 err_reserved:  db "Reserved name",0
 err_name_used: db "Name already used",0

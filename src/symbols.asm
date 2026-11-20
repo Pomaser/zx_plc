@@ -327,6 +327,51 @@ gv_top:
 .e:     ld a,b
         ret
 
+; ---- sym_range: the records of the symbol editor (sy_gmode 0: the
+;      symbols, 1: the globals) -> HL = first, sf_end = end
+sym_range:
+        call sym_first
+        push hl
+.l:     call sym_at_end         ; the first global (or the end)
+        jr nc,.e
+        inc hl
+        ld a,(hl)
+        dec hl
+        cp AR_GV
+        jr z,.e
+        call sym_next
+        jr .l
+.e:     pop de
+        ld a,(sy_gmode)
+        or a
+        ret nz                  ; globals: from there to the end
+        ld (sf_end),hl          ; symbols: up to there
+        ex de,hl
+        ret
+
+; ---- gv_new: -> NC: C = a free global number; C: all used
+gv_new:
+        call gv_top             ; after the highest one (no reuse of a
+        ld c,a                  ; number that may still be referenced)
+        cp GV_MAX
+        jr nc,.low
+.fr:    or a
+        ret
+.low:   ld c,0                  ; then the lowest free one
+.l:     push bc
+        call gv_find
+        pop bc
+        jr c,.fr
+        inc c
+        ld a,c
+        cp GV_MAX
+        jr c,.l
+        scf                     ; all used
+        ret
+
+err_gv_type: db "Type: BOOL, BYTE or INT",0
+err_gv_val:  db "Invalid init value",0
+
 ; HL = address in the symbol table -> DE = offset (keeps HL, BC)
 sym_offset:
         push bc

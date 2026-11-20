@@ -100,13 +100,13 @@ run_tests:
         call ptext_tests
         call il_tests
         call gv_tests
+        call undo_tests
     ELSE
         call vm_tests
         call sym_tests
         call ld_tests
         call fbd_tests
         call clip_tests
-        call undo_tests
         call st_tests
     ENDIF
         ; ---- result
@@ -510,7 +510,7 @@ vm_tests:
 
 ; NC -> pass
     ENDIF
-    IF TPART==2
+    IF TPART==1
 ; ---- undo / redo over several steps
 undo_tests:
         BCALL um_reset
