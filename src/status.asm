@@ -115,15 +115,11 @@ st_print:
         ld (pt_x),a
 .tab1:  inc hl
         jr .l
-.inv:   ld a,(pt_x)             ; one inverted char (its width + 1 px)
-        ld (st_x0),a
-        inc a                   ; 1 px margin on the left
-        ld (pt_x),a
-        ld a,(hl)
-        inc hl
-        call st_desc
-        call pt_putc
+.inv:   ld a,(st_in)            ; key hint: inverted from the first ST_INV to the
+        xor 1                   ; second one (1 px margin on the left)
+        ld (st_in),a
         ld a,(pt_x)
+        jr nz,.ib
         push hl
         ld hl,st_x0
         sub (hl)
@@ -134,6 +130,10 @@ st_print:
         ld e,PX_XOR
         call px_span
         pop hl
+        jr .l
+.ib:    ld (st_x0),a
+        inc a
+        ld (pt_x),a
         jr .l
 .on:    ld a,(pt_x)             ; inverted box: 2 px margin around the name
         ld (st_x0),a
@@ -171,6 +171,7 @@ st_print:
         ret
 
 st_x0:  db 0
+st_in:  db 0
 
 ; st_desc: A = char -> A = its short-descender glyph for g j p q y (the
 ;          status bar drops the glyph's last line); keeps BC, DE, HL

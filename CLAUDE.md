@@ -211,7 +211,7 @@ editor and key for users.
   - The status bar has two parts: `status_left` with the `st_left` text, and `status_right` (from cell
     `st_rcol`, reset by `screen_begin`; the simulation moves it right for its key hints). Each redraws
     only when its text changes. `st_left` markers: ST_SYM/ST_SYME = inverted symbol name,
-    ST_TAB = column, ST_INV = the next char only inverted (key hints of the simulation). The simulation hints must fit left of cell SM_RCOL (26) and differ per page
+    ST_TAB = column, ST_INV = start / end of an inverted key letter (key hints of the simulation). The simulation hints must fit left of cell SM_RCOL (26) and differ per page
     (program / watch: T Trend / trend: W Watch).
   - Menu tables (src/menu.asm): `command, hotkey, label`. The hotkey is not shown; it must match the
     item name (normally its first letter; the user rejected unrelated letters). The open drop-down takes
