@@ -3411,7 +3411,8 @@ fb_set_state:
         cp VM_MB
         ret nz
         ld hl,(cp_arg)
-        ld a,(cp_arg3)
+        call rt_byte
+        ld hl,cp_arg3
         and (hl)                ; state of the variable (a negation is
         ld e,ATTR_NORMAL        ; shown only by the o)
         jr z,.set

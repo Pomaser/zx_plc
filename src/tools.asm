@@ -992,13 +992,17 @@ wt_value:
         ld a,(cp_mode)
         cp VM_MB
         jr z,.b
+        cp VM_MBY               ; (a BYTE global: as a word)
+        jr z,.wd
         cp VM_MW
         ld a,0
         ret nz
-        ld hl,(cp_arg)
-        ld e,(hl)
+.wd:    ld hl,(cp_arg)
+        call rt_byte            ; (globals: in the RUN bank)
+        ld e,a
         inc hl
-        ld d,(hl)
+        call rt_byte
+        ld d,a
         ld a,(cp_istime)
         or a
         ld a,2
@@ -1006,7 +1010,8 @@ wt_value:
         inc a
         ret
 .b:     ld hl,(cp_arg)
-        ld a,(cp_arg3)
+        call rt_byte
+        ld hl,cp_arg3
         and (hl)
         ld de,0
         jr z,.f

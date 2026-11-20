@@ -49,6 +49,27 @@ bcall_:
         ret
 bt_jp:  jp 0
 
+; ---- rt_byte: HL = address of PLC data -> A = its byte; addresses from
+;      0xC000 (the globals / ST locals at LV_BASE) are read in the RUN bank
+;      (keeps BC, DE, HL)
+rt_byte:
+        ld a,h
+        cp 0xC0
+        jr nc,.r
+        ld a,(hl)
+        ret
+.r:     push bc
+        ld a,(cur_bank)
+        ld b,a
+        ld a,BANK_RUN
+        call bank_set
+        ld c,(hl)
+        ld a,b
+        call bank_set
+        ld a,c
+        pop bc
+        ret
+
 ; ---- data_in / data_out: page the DATA bank in and back (keep all registers)
 data_in:
         push af

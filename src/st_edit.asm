@@ -2140,6 +2140,8 @@ rn_fld:
         ld e,a
         cp VM_MB
         jr z,.g1
+        cp VM_MBY               ; (a BYTE global)
+        jr z,.g1
         cp VM_MW
         ret nz
         ld a,(cp_istime)

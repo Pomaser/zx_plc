@@ -774,6 +774,8 @@ sim_mon_op:
         ld a,(cp_mode)
         cp VM_MB
         jr z,.ok
+        cp VM_MBY               ; (a BYTE global: shown as a word)
+        jr z,.ok
         cp VM_MW
         ret nz
 .ok:    call sim_desc_addr
@@ -931,15 +933,17 @@ sim_chk:
         and 0x1F
 .nb:    cp VM_MB
         jr nz,.w
-        ld a,(ix+3)
-        and (hl)
+        call rt_byte            ; (a global: in the RUN bank)
+        and (ix+3)
         ld de,0
         jr z,.cmp
         inc e
         jr .cmp
-.w:     ld e,(hl)
+.w:     call rt_byte
+        ld e,a
         inc hl
-        ld d,(hl)
+        call rt_byte
+        ld d,a
 .cmp:   bit 7,(ix+0)
         jr nz,.draw
         ld a,(ix+4)

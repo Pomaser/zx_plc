@@ -1091,7 +1091,8 @@ ld_set_state:
         cp VM_MB
         jr nz,.set
         ld hl,(cp_arg)
-        ld a,(cp_arg3)
+        call rt_byte            ; (a global: in the RUN bank)
+        ld hl,cp_arg3
         and (hl)
         ld a,(ld_t)
         jr z,.f
