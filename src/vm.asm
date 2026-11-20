@@ -71,6 +71,7 @@ VM_MB     EQU 1
 VM_MW     EQU 2
 VM_MIB    EQU 3
 VM_MII    EQU 4
+VM_MBY    EQU 6             ; BYTE: arg = address (the byte, read as 0-255)
 VM_N      EQU 0x80
 
 OP_END    EQU 0
@@ -325,6 +326,8 @@ vm_val: ld a,(vm_mode)
         jr z,.mib
         cp VM_MODE_CR
         jr z,.cr
+        cp VM_MBY
+        jr z,.mby
         ld hl,(vm_arg)          ; immediate INT
         ld a,1
         jr .neg
@@ -346,6 +349,11 @@ vm_val: ld a,(vm_mode)
 .mib:   ld hl,(vm_arg)
         ld h,0
         xor a
+        jr .neg
+.mby:   ld hl,(vm_arg)
+        ld l,(hl)
+        ld h,0
+        ld a,1
         jr .neg
 .cr:    ld hl,(vm_tval)
         ld a,(vm_ttype)
@@ -376,6 +384,8 @@ vm_store:
         ld a,(vm_mode)
         cp VM_MB
         jr z,.mb
+        cp VM_MBY
+        jr z,.mby
         cp VM_MW
         ret nz
         ex de,hl
@@ -411,6 +421,10 @@ vm_store:
         ret
 .clr:   cpl
         and (hl)
+        ld (hl),a
+        ret
+.mby:   ld a,l                  ; BYTE: the low byte only (wraps at 256)
+        ld hl,(vm_arg)
         ld (hl),a
         ret
 

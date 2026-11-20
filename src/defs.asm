@@ -197,6 +197,7 @@ CMD_UR4         EQU 36          ; Options > UR-4 I/O (on / off)
 CMD_TREND       EQU 37          ; Run > Trend: the simulation with the trend page
 CMD_LOAD_SD     EQU 38          ; File > Load SD... (tape_load with A = this)
 CMD_SAVE_SD     EQU 39          ; File > Save SD... (tape_save with A = this)
+CMD_GLOBALS     EQU 40          ; Edit > Globals: the symbol editor on the globals
 
 ; ---- status bar text markers (st_left): symbol name shown inverted
 ST_SYM      EQU 1           ; start of the symbol name
@@ -261,7 +262,14 @@ AR_SW       EQU 14          ; system word %SWn (read only, TIME): 0 last, 1 max,
 N_SW        EQU 3
 AR_LV       EQU 15          ; ST local variable: index = LV index (all
                             ; POUs), area bits 4-5 = type 0 BOOL 1 INT 2 TIME
+AR_GV       EQU AR_LV|0x40  ; global variable: index = its number g (= LV index
+                            ; g); name, type and init value in its symbol record
 AR_MASK     EQU 0x0F
+GT_BOOL     EQU 0           ; types of the globals (as the ST local types,
+GT_INT      EQU 1           ; 2 = TIME is not offered)
+GT_BYTE     EQU 3
+GT_INIT     EQU 0x80        ; type byte flag: an init value was given
+GV_MAX      EQU 64          ; global numbers 0..GV_MAX-1
 
 N_IN        EQU 8
 N_Q         EQU 8

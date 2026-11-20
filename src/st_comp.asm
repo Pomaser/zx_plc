@@ -163,6 +163,8 @@ sc_word:
         or a
         jr nz,.unk
         ld a,b
+        cp AR_GV                ; a global: as a local with LV index g
+        call z,sc_gvop
         ld (sc_oa),a
         ld a,c
         ld (sc_oi),a

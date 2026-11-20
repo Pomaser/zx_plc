@@ -65,7 +65,9 @@ il_check:
         ret c
         call ilc_operand
         ret c
-.wr:    cp AR_Q
+.wr:    cp AR_LV                ; a global
+        jp z,ilc_done
+        cp AR_Q
         jp z,ilc_done
         cp AR_M
         jp z,ilc_done

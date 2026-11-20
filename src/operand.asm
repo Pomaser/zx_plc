@@ -587,7 +587,15 @@ op_format:
         ld a,b
         ld (op_style),a
         ld a,(op_area)
-        and AR_MASK
+        cp AR_GV                ; a global: always its name
+        jr nz,.ngv
+        push de
+        call sym_name_of
+        pop de
+        jp nc,.str_end
+        ld hl,s_qq
+        jp .str_end
+.ngv:   and AR_MASK
         cp AR_SW+1
         jr c,.ok
         xor a

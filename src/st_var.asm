@@ -135,6 +135,9 @@ sc_lvmode:
         and 0x30
         ld bc,VM_MB*256+1
         jr z,.s
+        ld bc,VM_MBY*256+0
+        cp 0x30                 ; BYTE (a global)
+        jr z,.s
         ld bc,VM_MW*256+0
 .s:     ld e,a
         ld a,c
@@ -149,12 +152,28 @@ sc_lvmode:
 .t:     ld (cp_istime),a
         ret
 
+; ---- sc_gvop: C = global number -> A = AR_LV + type * 16 (C kept)
+sc_gvop:
+        push bc
+        call gv_find
+        pop bc
+        ld hl,err_il_op
+        jp c,sc_err
+        and 0x03
+        rlca
+        rlca
+        rlca
+        rlca
+        or AR_LV
+        ret
+
 ; ---- lv_first: A = slot -> A = the first LV index of its locals (the
 ;      locals of the ST POUs in the slots before it come first)
 lv_first:
         ld (lf_n),a
-        xor a
+        call gv_top             ; the globals come first (LV index = g)
         ld (lf_sum),a
+        xor a
         ld (lf_s),a
 .l:     ld a,(lf_s)
         ld hl,lf_n
@@ -174,6 +193,34 @@ lv_first:
         inc (hl)
         jr .l
 .e:     ld a,(lf_sum)
+        ret
+
+; ---- gv_init: the initial values of the globals -> LV_INIT (compiling)
+gv_init:
+        ld c,0
+.l:     push bc
+        call gv_find
+        jr c,.n
+        ld hl,0
+        bit 7,a                 ; (GT_INIT)
+        jr z,.z
+        ex de,hl
+.z:     ex de,hl
+        pop bc
+        push bc
+        ld l,c
+        ld h,0
+        add hl,hl
+        ld bc,LV_INIT
+        add hl,bc
+        ld (hl),e
+        inc hl
+        ld (hl),d
+.n:     pop bc
+        inc c
+        ld a,c
+        cp GV_MAX
+        jr c,.l
         ret
 
 ; ---- lv_reset: the locals get their initial values (after compiling,

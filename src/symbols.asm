@@ -3,6 +3,9 @@
 ; ============================================================
 ; Body of the hidden POU slot SYM_SLOT, records sorted by (area, index):
 ;   [len][area][index][name...0][comment...]
+; Globals (area AR_GV, index = g) come last and carry their declaration
+; after the name: [len][AR_GV][g][name...0][type][init lo][init hi][comment...]
+; (type = GT_* + GT_INIT if an init value was given).
 ; Names: identifier, max 8 chars, case kept, compared case-insensitively.
 ; ============================================================
 SYM_NMAX EQU 8
@@ -173,6 +176,8 @@ sym_validate:
         jr z,.sym
         cp AR_SX
         jr z,.sym
+        cp AR_LV                ; (a global)
+        jr z,.sym
         cp AR_FBI
         jr nz,.res
 .sym:   ; a symbol (or address) of the same name: fine only if it is our own
@@ -206,7 +211,16 @@ sym_store:
         xor a
         ld (de),a
         inc de
-        pop hl
+        ld a,(sv_area)          ; a global (with a name): its declaration
+        cp AR_GV
+        jr nz,.nd
+        ld a,(rec_buf+3)
+        or a
+        jr z,.nd
+        ld hl,sym_decl
+        ld bc,3
+        ldir
+.nd:    pop hl
         call put_str
         ex de,hl
         ld de,rec_buf
@@ -259,6 +273,60 @@ sym_store:
         scf
         ret
 
+; ---- sym_cmt: HL = past the name's 0 of a record of area A -> HL = its
+;      comment (a global's declaration skipped); keeps BC, DE
+sym_cmt:
+        cp AR_GV
+        ret nz
+        inc hl
+        inc hl
+        inc hl
+        ret
+
+; ---- gv_find: C = global number -> NC: A = type byte, DE = init value,
+;      HL = record; C: no such global
+gv_find:
+        ld a,AR_GV
+        call sym_find_addr
+        ret c
+        push hl
+        inc hl
+        inc hl
+.n:     inc hl
+        ld a,(hl)
+        or a
+        jr nz,.n
+        inc hl
+        ld a,(hl)
+        inc hl
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        pop hl
+        or a                    ; (NC)
+        ret
+
+; ---- gv_top: A = 1 + the highest global number (0: no globals)
+gv_top:
+        call sym_first
+        ld b,0
+.l:     call sym_at_end
+        jr nc,.e
+        inc hl
+        ld a,(hl)
+        inc hl
+        cp AR_GV
+        jr nz,.n
+        ld a,(hl)
+        inc a
+        ld b,a
+.n:     dec hl
+        dec hl
+        call sym_next
+        jr .l
+.e:     ld a,b
+        ret
+
 ; HL = address in the symbol table -> DE = offset (keeps HL, BC)
 sym_offset:
         push bc
@@ -282,3 +350,4 @@ sf_name: dw 0
 sv_area: db 0
 sv_idx:  db 0
 sv_name: dw 0
+sym_decl: ds 3              ; sym_store: the declaration of a global

@@ -91,6 +91,8 @@ cp_operand_core:
         jr z,.k
         cp AR_FBM
         jr z,.fbm
+        cp AR_LV
+        jp z,.gv
 .bad:   ld hl,err_il_op
         jp cp_fail
 .i:     ld bc,RT_I              ; byte idx/8, bit idx&7
@@ -135,7 +137,7 @@ cp_operand_core:
         add hl,de
         ld (cp_arg),hl
         ld a,VM_MW
-        jr .done
+        jp .done
 .kb:    ld a,(cp_oidx)
         ld l,a
         ld h,0
@@ -190,6 +192,31 @@ cp_operand_core:
         ld a,1
         ld (cp_istime),a
 .nt:    ld a,VM_MW
+        jr .done
+.gv:    ld a,(cp_oidx)          ; a global: the word LV_BASE + 2g (RUN bank)
+        ld c,a
+        call gv_find
+        jp c,.bad
+        and 0x7F
+        ld b,a
+        ld a,(cp_oidx)
+        add a,a
+        ld l,a
+        ld h,0
+        ld de,LV_BASE
+        add hl,de
+        ld (cp_arg),hl
+        ld a,b
+        or a                    ; BOOL: bit 0 of the word
+        jr nz,.gw
+        inc a
+        ld (cp_arg3),a
+        ld a,VM_MB
+        jr .done
+.gw:    cp GT_BYTE              ; BYTE: its low byte, INT: the word
+        ld a,VM_MW
+        jr nz,.done
+        ld a,VM_MBY
 .done:  ld (cp_mode),a
         ld hl,(cp_ohl)
         or a

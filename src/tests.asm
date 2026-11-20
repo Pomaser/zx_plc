@@ -99,6 +99,7 @@ run_tests:
         call proj_tests
         call ptext_tests
         call il_tests
+        call gv_tests
     ELSE
         call vm_tests
         call sym_tests
@@ -1405,6 +1406,98 @@ t_area:    db 0
 t_idx:     db 0
 t_val:     dw 0
 t_buf:     ds 32
+
+    IF TPART==1
+; ---- globals: Cnt INT := 5, Flag BOOL, Bt BYTE := 250, used in IL and ST
+gv_tests:
+        ld a,LANG_IL
+        call proj_new
+        ld hl,t_gv
+.g:     ld a,(hl)               ; [g][type][lo][hi][name 0]
+        cp 0xFF
+        jr z,.gd
+        ld c,a
+        inc hl
+        ld de,sym_decl
+        ld b,0
+        push bc
+        ld bc,3
+        ldir
+        pop bc
+        push hl
+        ld de,cp_empty
+        ld a,AR_GV
+        call sym_store
+        pop hl
+        call skipstr
+        jr .g
+.gd:    ld hl,t_gvst            ; ST POU "GST" (slot 1)
+        ld a,LANG_ST
+        call pou_add
+        ld hl,t_gvst_p
+        call st_load_text
+        ld hl,t_gv_il
+        xor a
+        call il_load_text
+        call t_nc
+        BCALL il_compile
+        call t_nc
+        BCALL vm_reset
+        ld a,1                  ; I0.0
+        call t_scan_i
+        ld hl,RT_MW
+        ld de,6                 ; Cnt := 5 + 1
+        call t_word
+        ld hl,RT_MW+2
+        ld de,4                 ; Bt := 250 + 10 wraps to 4
+        call t_word
+        ld hl,RT_MW+4
+        ld de,9                 ; ST: Cnt + L (local L := 3)
+        call t_word
+        ld a,(RT_Q)
+        and 1                   ; Flag := I0.0, Q0.0 := Flag
+        cp 1
+        call t_check
+        ld hl,t_gv_fmt          ; a global is printed by its name
+        ld de,t_buf
+        ld a,AR_GV
+        ld c,2
+        ld b,0
+        call op_format
+        ld hl,t_buf
+        ld de,t_gv_bt
+        call strcmp
+        jp t_check
+t_gv:   db 0,GT_INT|GT_INIT,5,0,"Cnt",0
+        db 1,GT_BOOL,0,0,"Flag",0
+        db 2,GT_BYTE|GT_INIT,250,0,"Bt",0
+        db 0xFF
+t_gvst: db "GST     "
+t_gvst_p:
+        db "VAR",0
+        db "L : INT := 3;",0
+        db "END_VAR",0
+        db "%MW2 := Cnt + L;",0
+        db 0xFF
+t_gv_il:
+        db "LD",9,"Cnt",0
+        db "ADD",9,"1",0
+        db "ST",9,"Cnt",0
+        db "ST",9,"%MW0",0
+        db "LD",9,"Bt",0
+        db "ADD",9,"10",0
+        db "ST",9,"Bt",0
+        db "LD",9,"Bt",0
+        db "ST",9,"%MW1",0
+        db "LD",9,"%IX0.0",0
+        db "ST",9,"Flag",0
+        db "LD",9,"Flag",0
+        db "ST",9,"%QX0.0",0
+        db "CAL",9,"GST",0
+        db 0xFF
+t_gv_fmt equ 0
+t_gv_bt: db "Bt",0
+    ENDIF
 
 ; input, expected output ("" = error, "~" = short style)
     IF TPART==1

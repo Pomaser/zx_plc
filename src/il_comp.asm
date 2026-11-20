@@ -62,7 +62,8 @@ il_compile:
         ld a,(hl)
         cp MAX_POU
         jr c,.slot
-        jp lv_reset             ; ST locals: their initial values (NC)
+        call gv_init            ; globals and ST locals: their initial values
+        jp lv_reset             ; (NC)
 
 cp_pou: ld hl,(cp_pc)
         ld (cp_start),hl
