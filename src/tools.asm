@@ -194,6 +194,8 @@ xr_valid:
         ret z
         cp AR_SW
         ret z
+        cp AR_LV                ; a global
+        ret z
         scf
         ret
 
@@ -1450,6 +1452,8 @@ wt_add_op:
         cp AR_SW
         jr z,.ok
         cp AR_FBM
+        jr z,.ok
+        cp AR_LV                ; a global
         jr z,.ok
 .bad:   ld hl,txt_xr_noop
 .err:   call ui_error
