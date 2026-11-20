@@ -631,7 +631,7 @@ with their symbols and live values and is saved with the project.
 * UP / DOWN select a row.
 * ENTER edits the operand of a row. The last row adds one; an empty text removes the row.
 * DELETE removes a row.
-* `T` switches to the trend page, `W` back to the program.
+* `T` switches to the trend page, `M` (or `W`) back to the monitor (the program).
 * `F` forces the selected operand:
   * a BOOL goes forced TRUE, then forced FALSE, then not forced;
   * an INT (`%MW`) asks for a value, and `F` again releases it.
