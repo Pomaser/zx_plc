@@ -96,13 +96,15 @@ st_print:
 .l:     ld a,(hl)
         inc hl
         or a
-        jr z,.e
+        jp z,.e
         cp ST_SYM
         jr z,.on
         cp ST_SYME
         jr z,.off
         cp ST_TAB
         jr z,.tab
+        cp ST_INV
+        jr z,.inv
         call st_desc
         call pt_putc
         jr .l
@@ -112,6 +114,26 @@ st_print:
         ld a,(hl)
         ld (pt_x),a
 .tab1:  inc hl
+        jr .l
+.inv:   ld a,(pt_x)             ; one inverted char (its width + 1 px)
+        ld (st_x0),a
+        inc a                   ; 1 px margin on the left
+        ld (pt_x),a
+        ld a,(hl)
+        inc hl
+        call st_desc
+        call pt_putc
+        ld a,(pt_x)
+        push hl
+        ld hl,st_x0
+        sub (hl)
+        ld d,a
+        ld c,(hl)
+        ld b,ST_ROW
+        ld hl,0x0107
+        ld e,PX_XOR
+        call px_span
+        pop hl
         jr .l
 .on:    ld a,(pt_x)             ; inverted box: 2 px margin around the name
         ld (st_x0),a
@@ -141,9 +163,9 @@ st_print:
         pop hl
         ld a,(pt_x)             ; gap before the comment
         add a,3
-        jr c,.l
+        jp c,.l
         ld (pt_x),a
-        jr .l
+        jp .l
 .e:     xor a
         ld (pt_down),a
         ret

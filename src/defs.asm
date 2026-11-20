@@ -201,6 +201,7 @@ CMD_SAVE_SD     EQU 39          ; File > Save SD... (tape_save with A = this)
 ; ---- status bar text markers (st_left): symbol name shown inverted
 ST_SYM      EQU 1           ; start of the symbol name
 ST_SYME     EQU 2           ; end of it
+ST_INV      EQU 4           ; the next char only inverted (a key hint)
 ST_TAB      EQU 3           ; followed by x: continue at x (if not past it)
 
 ; ---- key codes ----------------------------------------------
