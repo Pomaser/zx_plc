@@ -387,10 +387,10 @@ sim_state:
         or a
         jr z,.s
         ld hl,txt_sm_run
-.s:     ld a,(ur_on)            ; "UR-4 RUN": the outputs are live
+.s:     ld a,(ur_on)            ; "UR4/RUN": the outputs are live
         or a
         jr z,.s2
-        ld de,-5                ; (the "UR-4 " in front of the text)
+        ld de,-4                ; (the "UR4/" in front of the text)
         add hl,de
 .s2:    ld (st_right),hl
         jp status_right
@@ -1157,14 +1157,14 @@ sim_draw_val:
 .p:     ld a,SIM_X_VAL
         jp pt_puts_r
 
-              db "UR-4 "
+              db "UR4/"
 txt_sm_run:   db "RUN",0
-              db "UR-4 "
+              db "UR4/"
 txt_sm_stop:  db "STOP",0
 txt_sm_true:  db "TRUE",0
 txt_wt_hint:  db ST_INV,"E",ST_INV,"N",ST_INV,"T",ST_INV,"E",ST_INV,"R","Edit ",ST_INV,"F","orce ",ST_INV,"D",ST_INV,"E",ST_INV,"L","ete ",ST_INV,"T","rend",0
 txt_tr_hint:  db ST_INV,"0",ST_INV,"-",ST_INV,"7","In ",ST_INV,"R","un ",ST_INV,"Z","oom ",ST_INV,"W","atch",0
-txt_sm_hint:  db ST_INV,"0",ST_INV,"-",ST_INV,"7In ",ST_INV,"S",ST_INV,"S",ST_INV,"+",ST_INV,"nSet ",ST_INV,"Byte",ST_INV,"Run/Stop",ST_INV,"Step R",ST_INV,"Eset",ST_INV,"Watch",0
+txt_sm_hint:  db ST_INV,"0",ST_INV,"-",ST_INV,"7In ",ST_INV,"S",ST_INV,"S",ST_INV,"+",ST_INV,"nSet ",ST_INV,"Byte",ST_INV,"Run/Stop",ST_INV,"Step R",ST_INV,"Eset ",ST_INV,"Watch",0
 txt_sm_nomon: db "No IL or LD POU to monitor.",0
 
 sim_tog:    dw 0              ; toggled inputs I0, I1
