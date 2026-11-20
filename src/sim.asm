@@ -244,10 +244,7 @@ scr_run:
         jr z,.c
         ld b,CMD_STOP
         jr .c
-.nr:    ld b,CMD_STOP
-        cp 'T'
-        jr z,.c
-        ld b,CMD_STEP
+.nr:    ld b,CMD_STEP
         cp 'S'
         jr z,.c
         ld b,CMD_RESET
