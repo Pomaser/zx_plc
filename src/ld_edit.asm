@@ -2150,7 +2150,7 @@ ld_ask_operand:
         ld e,a
         ld a,b
         cp AR_FBI
-        jr nz,.bad
+        jp nz,.bad
         jr .bt
 .nfbk:  ld a,(ld_kind)          ; timer box: an instance of the same FB type
         call ld_isbox
@@ -2184,6 +2184,8 @@ ld_ask_operand:
         and AR_MASK
         cp AR_FBM
         jr z,.fbm
+        cp AR_LV                ; a global: BOOL only
+        jr z,.gv
         cp AR_Q
         jr z,.ok
         cp AR_M
@@ -2223,6 +2225,12 @@ ld_ask_operand:
         ld a,(hl)
         pop bc
         bit 7,a
+        jr z,.ok
+.gv:    push bc
+        call gv_find
+        pop bc
+        jr c,.bad
+        and 3
         jr z,.ok
 .bad:   ld hl,err_ld_op
         call ui_error

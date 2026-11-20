@@ -189,9 +189,11 @@ wx_ask: ld (wx_q),hl
         or a
         jr nz,.bd
         ld a,b
+        cp AR_GV                ; (or a global)
+        jr z,.dg
         cp AR_MW
         jr nz,.bd
-        ld (WD_EXT+7),a
+.dg:    ld (WD_EXT+7),a
         ld a,c
         ld (WD_EXT+8),a
 .ret:   or a
@@ -339,6 +341,8 @@ wx_operand:
         cp AR_SW
         jr z,.ok
         cp AR_FBM
+        jr z,.ok
+        cp AR_LV                ; a global
         jr z,.ok
         cp AR_K16
         jr z,.k

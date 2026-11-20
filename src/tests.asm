@@ -1436,6 +1436,30 @@ gv_tests:
         call pou_add
         ld hl,t_gvst_p
         call st_load_text
+        ld hl,t_gvld            ; LD POU "GLD" (slot 2): Flag -> Q0.1
+        ld a,LANG_LD
+        call pou_add
+        ld (cur_pou),a
+        ld hl,t_gvld_c
+.c:     ld a,(hl)
+        cp 0xFF
+        jr z,.cd
+        ld d,a
+        inc hl
+        ld e,(hl)
+        inc hl
+        ld a,(hl)
+        inc hl
+        ld b,(hl)
+        inc hl
+        ld c,(hl)
+        inc hl
+        push hl
+        BCALL ld_put
+        pop hl
+        jr .c
+.cd:    xor a
+        ld (cur_pou),a
         ld hl,t_gv_il
         xor a
         call il_load_text
@@ -1455,8 +1479,8 @@ gv_tests:
         ld de,9                 ; ST: Cnt + L (local L := 3)
         call t_word
         ld a,(RT_Q)
-        and 1                   ; Flag := I0.0, Q0.0 := Flag
-        cp 1
+        and 3                   ; Flag := I0.0, Q0.0 := Flag, LD: Q0.1 := Flag
+        cp 3
         call t_check
         ld hl,t_gv_fmt          ; a global is printed by its name
         ld de,t_buf
@@ -1494,6 +1518,20 @@ t_gv_il:
         db "LD",9,"Flag",0
         db "ST",9,"%QX0.0",0
         db "CAL",9,"GST",0
+        db "CAL",9,"GLD",0
+        db 0xFF
+t_gvld: db "GLD     "
+t_gvld_c:
+        db 0,0,LT_NO,AR_GV,1
+        db 0,1,LT_WIRE,0,0
+        db 0,2,LT_WIRE,0,0
+        db 0,3,LT_WIRE,0,0
+        db 0,4,LT_WIRE,0,0
+        db 0,5,LT_WIRE,0,0
+        db 0,6,LT_WIRE,0,0
+        db 0,7,LT_WIRE,0,0
+        db 0,8,LT_WIRE,0,0
+        db 0,9,LT_COIL,AR_Q,1
         db 0xFF
 t_gv_fmt equ 0
 t_gv_bt: db "Bt",0
