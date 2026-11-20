@@ -166,6 +166,25 @@ scr_fill_attr:
         jr nz,.l
         ret
 
+; ---- cmt_trim: A = screen row of a comment just drawn up to pt_x -> the cells
+;      after the text become ATTR_NORMAL (the XOR cursors keep their colour)
+cmt_trim:
+        ld b,a
+        ld a,(pt_x)
+        rrca
+        rrca
+        rrca
+        and 31
+        inc a
+        cp 32
+        ret nc
+        ld c,a
+        ld a,32
+        sub c
+        ld d,a
+        ld e,ATTR_NORMAL
+        jp scr_fill_attr
+
 ; ---- scr_clear_rows: B=first row, C=count; attribute cur_attr
 scr_clear_rows:
 .row:   push bc

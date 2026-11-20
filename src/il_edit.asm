@@ -1497,7 +1497,29 @@ il_draw_row:
         ld c,8
         ld d,24
         call scr_fill_attr
-        ; pixels
+        ld a,(dr_kind)          ; a comment is green only where its text is
+        cp K_COMM               ; (the cursors are XOR pixels in the INK)
+        jr nz,.a3
+        ld hl,(dr_c)
+        call pt_width
+        add a,IL_X_MNEM
+        jr c,.a3
+        rrca
+        rrca
+        rrca
+        and 31
+        inc a                   ; the cell after the text keeps the text cursor
+        cp 32
+        jr nc,.a3
+        ld c,a
+        ld a,32
+        sub c
+        ld d,a
+        ld a,(dr_row)
+        ld b,a
+        ld e,ATTR_NORMAL
+        call scr_fill_attr
+.a3:    ; pixels
         ld a,(dr_text)
         or a
         jp nz,.tclr

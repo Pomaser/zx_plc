@@ -2070,7 +2070,7 @@ st_render:
         ld a,1
         ld (rn_gap),a
         jp .tok
-.cmt:   ld a,255
+.cmt:   ld a,(rn_x)             ; (only up to the end of the text)
         ld e,ATTR_COMMENT
         call rn_mark
         jp .tok

@@ -2427,7 +2427,9 @@ fb_draw_row:
         ld hl,txt_fb_sl
         call pt_puts
         ld hl,ld_cbuf
-        jp pt_puts
+        call pt_puts
+        ld a,(fd_srow)
+        jp cmt_trim
 .elems: xor a
         ld (fd_p),a
 .pos:   ld a,(fd_p)

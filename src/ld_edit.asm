@@ -385,7 +385,9 @@ ld_draw_row:
         ld hl,txt_ld_sl
         call pt_puts
         ld hl,ld_cbuf
-        jp pt_puts
+        call pt_puts
+        ld a,(ld_srow)
+        jp cmt_trim
 .elems: xor a
         ld (ld_p),a
 .pos:   ld a,(ld_p)
