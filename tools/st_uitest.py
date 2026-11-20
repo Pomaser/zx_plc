@@ -329,7 +329,7 @@ def t_manual(ui):
     s += T("b : bool := true;") + E
     s += T("t : time := t#1s;") + E
     s += T("c : int; d : int;") + D + D                # split: one per line
-    s += SE + T("%MW1 := a;") + E + T("%MX2.0 := b;") + E + T("%MW2 := t;") + E
+    s += SE + T("%MW5 := a;") + E + T("%MX2.0 := b;") + E + T("%MW6 := t;") + E
     s += T("d := a + 1; %MW3 := d;") + E
     s += T("var") + U + "w20 shot:mv_var2 " + "k:SPACE w20 " + DEL * 3 + U
     ui.play(s + "w20 shot:mv_fold ")
@@ -338,13 +338,13 @@ def t_manual(ui):
     got = ui.st_lines("MV")
     exp = [(0, "VAR"), (1, "a : INT := 7; // seven"), (1, "b : BOOL := true;"),
            (1, "t : TIME := t#1s;"), (1, "c : INT;"), (1, "d : INT;"), (0, "END_VAR"),
-           (0, "%MW1 := a;"), (0, "%MX2.0 := b;"), (0, "%MW2 := t;"),
+           (0, "%MW5 := a;"), (0, "%MX2.0 := b;"), (0, "%MW6 := t;"),
            (0, "d := a + 1; %MW3 := d;"), (0, "")]     # (statements are not split)
     compare("manual: stored lines", got[:len(exp)], exp)
     ui.play(to_list() + main_call("MV") + run() + "shot:mv_run ")
-    check("manual: a = 7", ui.mw(1) == 7, ui.mw(1))
+    check("manual: a = 7", ui.mw(5) == 7, ui.mw(5))
     check("manual: b = TRUE", ui.mx(2, 0) == 1)
-    check("manual: t = 1 s (50 ticks)", ui.mw(2) == 50, ui.mw(2))
+    check("manual: t = 1 s (50 ticks)", ui.mw(6) == 50, ui.mw(6))
     check("manual: d = a + 1", ui.mw(3) == 8, ui.mw(3))
 
 
