@@ -661,6 +661,11 @@ with their symbols and live values and is saved with the project.
   * an INT (`%MW`) asks for a value, and `F` again releases it.
 * Forced values are marked `F`. They hold for the program and for the outputs until the simulation screen
   is left.
+* `V` writes a value **once** (like a prepared value in TwinCAT): a BOOL is inverted at once, a word
+  (INT, BYTE, a timer's ET, a counter's CV) asks for the new value (`T#2s` for a time). The program
+  then goes on with it, so a value the program writes every scan (e.g. an output of a coil) changes
+  back at the next scan; in STOP it stays. A forced entry keeps its forced value. Inputs (set by the
+  keys 0-7) and the system flags / words cannot be written.
 * Time values (ET) and counter values (CV) can be watched, but not forced.
 
 ### Trend

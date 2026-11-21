@@ -186,6 +186,22 @@ def run():
 RESULTS = []
 
 
+def t_watchwrite(ui):
+    """watch page V: one write to a global INT (in STOP), a BOOL output
+    inverted (an input is refused: see the shot ww_in)"""
+    s = "k:CS+SPACE w5 k:E w10 k:G w40 " + T("speed:int") + E + to_list()
+    s += "w30 k:CS+6 w4 k:ENTER w40 " + run() + "k:W w60 "
+    s += "k:CS+0 w30 " + "k:CS+6 w8 " * 16 + "k:ENTER w40 " + T("speed") + "k:ENTER w60 "
+    s += "k:R w40 k:V w40 " + T("1234") + "k:ENTER w60 shot:ww_int "
+    ui.play(s)
+    sp = int.from_bytes(ui.z.bank_bytes(4, 0xFD00, 2), "little")
+    check("watchwrite: Speed := 1234 (STOP)", sp == 1234, sp)
+    q = ui.mem(RT + 2)[0] & 1
+    ui.play("k:CS+7 w8 " * 15 + "k:V w60 shot:ww_bool ")   # %QX0.0 (row 1 after the delete)
+    check("watchwrite: %QX0.0 inverted", (ui.mem(RT + 2)[0] & 1) == q ^ 1)
+    ui.play("k:CS+6 w8 " * 6 + "k:V w60 shot:ww_in ")      # %IX1.3: refused (screenshot)
+
+
 def t_globals(ui):
     """Edit > Globals: declarations typed (':' to the type, normalised), a bad
     init value refused, the globals used in ST, their values after Run"""
@@ -536,7 +552,8 @@ def t_palmouse(ui):
 TESTS = {"long": t_long, "edit": t_edit, "clip": t_clip, "autodecl": t_autodecl,
          "manual": t_manual, "compl": t_compl, "autorun": t_autorun,
          "errors": t_errors, "semicolon": t_semicolon, "varpaste": t_varpaste, "toolong": t_toolong,
-         "view": t_view, "palette": t_palette, "palmouse": t_palmouse, "globals": t_globals}
+         "view": t_view, "palette": t_palette, "palmouse": t_palmouse, "globals": t_globals,
+         "watchwrite": t_watchwrite}
 
 
 def main():

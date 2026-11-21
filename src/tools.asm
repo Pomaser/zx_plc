@@ -1305,6 +1305,8 @@ wt_del: ld a,(wt_n)
 ; wt_force: F: BOOL cycles off -> TRUE -> FALSE -> off; INT asks a value
 wt_force:
         call to_upper
+        cp 'V'
+        jp z,wt_write
         cp 'F'
         ret nz
         ld a,(wt_n)
@@ -1392,12 +1394,90 @@ wt_force:
         call ui_error
         jp wt_draw
 
+; wt_write: V: one write to the selected entry (BOOL inverted, a word asked);
+;      the program goes on with the value (a force keeps its own)
+wt_write:
+        ld a,(wt_n)
+        ld b,a
+        ld a,(wt_sel)
+        cp b
+        ret nc
+        ld (wt_i),a
+        call wt_entry
+        ld a,(hl)               ; inputs (set by the keys / UR-4) and the
+        and AR_MASK             ; system flags / words: not written
+        cp AR_I
+        jp z,.ro
+        cp AR_SM
+        jr z,.ro
+        cp AR_SW
+        jr z,.ro
+        call wt_value
+        or a
+        jr z,.ro
+        ld (wt_k),a
+        dec a
+        jr nz,.ask
+        ld a,e                  ; BOOL: inverted
+        xor 1
+        ld e,a
+        jr .wr
+.ask:   ld hl,txt_wt_wq
+        call popup_open
+        ld a,(win_r)
+        add a,2
+        ld b,a
+        ld a,(win_bx)
+        add a,8
+        ld c,a
+        ld hl,rd_o
+        ld (hl),0
+        ld de,0x0901
+        call ui_input
+        push af
+        call win_close
+        pop af
+        jp c,wt_draw
+        ld hl,rd_o
+        call op_parse
+        jr c,.bad
+        and AR_MASK
+        cp AR_K16
+        jr z,.k
+        cp AR_KT                ; T#... only for a TIME value
+        jr nz,.bad
+        ld a,(wt_k)
+        cp 3
+        jr nz,.bad
+.k:     push de
+        call wt_value           ; (cp_arg, cp_mode again)
+        pop de
+        ld a,(cp_mode)          ; BYTE: 0-255
+        cp VM_MBY
+        jr nz,.wr
+        ld a,d
+        or a
+        jr nz,.bad
+.wr:    ld hl,(cp_arg)
+        ld a,(cp_arg3)
+        ld c,a
+        ld a,(cp_mode)
+        BCALL vm_poke
+        jp wt_draw
+.bad:   ld hl,txt_wt_bad
+        jr .msg
+.ro:    ld hl,txt_wt_ro
+.msg:   call ui_error
+        jp wt_draw
+
 txt_wt_op:   db "Operand",0
 txt_wt_sym:  db "Symbol",0
 txt_wt_val:  db "Value",0
 txt_wt_add:  db "+ ENTER: add an operand",0
 txt_wt_q:    db "Operand to watch:",0," ",0," ",0,0
 txt_wt_vq:   db "Forced value:",0," ",0," ",0,0
+txt_wt_wq:   db "New value:",0," ",0," ",0,0
+txt_wt_ro:   db "Cannot be written",0
 txt_wt_bad:  db "Invalid operand",0
 txt_wt_nof:  db "Only BOOL and INT can be forced",0
 

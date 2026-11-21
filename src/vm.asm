@@ -428,6 +428,16 @@ vm_store:
         ld (hl),a
         ret
 
+; ---- vm_poke: A = mode (VM_MB / VM_MBY / VM_MW), HL = address, C = bit
+;      mask, DE = value -> written once (watch page; BCALL: LV_BASE too)
+vm_poke:
+        ld (vm_mode),a
+        ld (vm_arg),hl
+        ld a,c
+        ld (vm_arg3),a
+        ex de,hl
+        jp vm_store
+
 vm_ld:  call vm_val
         ld (vm_cr),hl
         ld (vm_crt),a

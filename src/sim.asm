@@ -123,6 +123,10 @@ scr_run:
         jr z,.wk
         cp 'f'
         jr z,.wk
+        cp 'v'
+        jr z,.wk
+        cp 'V'
+        jr z,.wk
         cp 'F'
         jr nz,.np
 .wk:    BCALL wt_key
@@ -1170,7 +1174,7 @@ txt_sm_run:   db "RUN",0
               db "UR4/"
 txt_sm_stop:  db "STOP",0
 txt_sm_true:  db "TRUE",0
-txt_wt_hint:  db ST_INV,"ENTER",ST_INV,"Edit ",ST_INV,"F",ST_INV,"orce ",ST_INV,"DEL",ST_INV,"ete ",ST_INV,"T",ST_INV,"rend ",ST_INV,"M",ST_INV,"onitor",0
+txt_wt_hint:  db ST_INV,"ENTER",ST_INV,"Edit ",ST_INV,"F",ST_INV,"orce ",ST_INV,"V",ST_INV,"alue ",ST_INV,"DEL",ST_INV,"ete ",ST_INV,"T",ST_INV,"rend ",ST_INV,"M",ST_INV,"onitor",0
 txt_tr_hint:  db ST_INV,"0-7",ST_INV,"In ",ST_INV,"R",ST_INV,"un ",ST_INV,"Z",ST_INV,"oom ",ST_INV,"W",ST_INV,"atch ",ST_INV,"M",ST_INV,"onitor",0
 txt_sm_hint:  db ST_INV,"0-7",ST_INV,"In ",ST_INV,"SS+n",ST_INV,"Set ",ST_INV,"B",ST_INV,"yte ",ST_INV,"R",ST_INV,"unStop ",ST_INV,"S",ST_INV,"tep R",ST_INV,"E",ST_INV,"set ",ST_INV,"W",ST_INV,"atch",0
 txt_sm_nomon: db "No IL or LD POU to monitor.",0

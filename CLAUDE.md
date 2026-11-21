@@ -23,7 +23,7 @@ editor and key for users.
   - The test builds and the demo builder (`-DMKDEMO`) leave out `src/sim.asm` (`WITH_SIM` in main.asm,
     `scr_run` is a stub there) to make room in the EDIT bank.
 - `make uitest`: UI tests of the ST editor (`tools/st_uitest.py`, a few seconds): key scripts played into
-  `zxplc.sna` (a new ST POU per test: typing a longer program with completion / splitting / folding, the Globals page,
+  `zxplc.sna` (a new ST POU per test: typing a longer program with completion / splitting / folding, the Globals page, watch-page writes,
   corrections + undo / redo, clipboard, auto-declaration, a typed VAR block, name completion,
   compile errors, a too long line), then the stored lines (indent + text) are read from PROJ and the
   results of Run from RT / the compile error (`il_err`, `cp_line` via zxplc.sym). `--shots DIR`
@@ -216,7 +216,8 @@ editor and key for users.
     `st_rcol`, reset by `screen_begin`; the simulation moves it right for its key hints). Each redraws
     only when its text changes. `st_left` markers: ST_SYM/ST_SYME = inverted symbol name,
     ST_TAB = column, ST_INV = start / end of an inverted key letter (key hints of the simulation). The simulation hints must fit left of cell SM_RCOL (26) and differ per page
-    (program / watch: T Trend / trend: W Watch).
+    (program / watch: T Trend / trend: W Watch). Watch page keys (`wt_key`, tools.asm): ENTER edit, F force,
+    V write once (`wt_write` -> `BCALL vm_poke`, RUN bank, so globals work), DEL, T, M.
   - Menu tables (src/menu.asm): `command, hotkey, label`. The hotkey is not shown; it must match the
     item name (normally its first letter; the user rejected unrelated letters). The open drop-down takes
     item hotkeys first, so an item key equal to a title letter (F P E V R O H) hides that title while
