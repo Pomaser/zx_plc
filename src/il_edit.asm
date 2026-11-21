@@ -424,6 +424,8 @@ il_editor:
         ld (il_oldrow),a
         ld hl,(il_cur)
         ld (il_oldln),hl
+        ld hl,(il_top)
+        ld (il_otop),hl
         pop hl
         ld (il_cur),hl
         call il_load
@@ -431,8 +433,17 @@ il_editor:
         or a
         call nz,.mpf
         call il_fix_top
-        jp nz,.full
-        ld a,(il_oldrow)
+        jr z,.mv1
+        ld hl,(il_top)          ; one line further: the rows shifted, only
+        ld de,(il_otop)         ; the old and the new cursor rows drawn
+        xor a
+        ld bc,IL_ROW0*256+IL_ROWS
+        call scr_vscr
+        jp c,.full
+        ld hl,il_oldrow
+        add a,(hl)
+        ld (hl),a
+.mv1:   ld a,(il_oldrow)
         ld b,a
         ld de,(il_oldln)
         call il_draw_row
@@ -1823,6 +1834,7 @@ il_top:    dw 0
 il_end:    dw 0
 il_oldrow: db 0
 il_oldln:  dw 0
+il_otop:  dw 0
 il_ch:     db 0
 il_atstart: db 0
 il_blink:  db 0
