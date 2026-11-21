@@ -114,19 +114,19 @@ SCENARIO = [
     "go!:80,3 cl!:L w30 go!:90,20 cl!:L w30 go:200,150 w20 hold:40",
     "go!:80,3 cl!:L w30 go!:90,12 cl!:L w30 go:200,150 w50",
     # ---- simulation of MAIN (IL): Run > Run, the inputs by clicks on the LEDs
-    "go!:103,3 cl!:L w30 go!:110,12 cl!:L w100",
+    "go!:103,3 cl!:L w30 go!:110,20 cl!:L w100",
     "go:6,174 w20 cl:L w50 cl:L w60 hold:20 w250 shot:sim2 hold:50",
     "cl:L w40 cl:L w60 cl:L w40 cl:L w60 shot:sim3 hold:50",
     "go:22,174 w20 cl:L w60 cl:L w60 hold:30",
     # ---- simulation of LAMP (LD)
     "go!:36,3 cl!:L w30 go!:40,12 cl!:L w60",
     "go:20,36 w15 cl:L w30 cl:L w60",
-    "go!:103,3 cl!:L w30 go!:110,12 cl!:L w100",
+    "go!:103,3 cl!:L w30 go!:110,20 cl!:L w100",
     "go:6,174 w20 cl:L w50 cl:L w120 hold:60",
     # ---- simulation of FAN (FBD): the fan 3 s after the motor, 3 parts counted
     "go!:36,3 cl!:L w30 go!:40,12 cl!:L w60",
     "go:20,44 w15 cl:L w30 cl:L w60",
-    "go!:103,3 cl!:L w30 go!:110,12 cl!:L w100",
+    "go!:103,3 cl!:L w30 go!:110,20 cl!:L w100",
     "go:6,174 w20 cl:L w50 cl:L w180 shot:f1 hold:30",
     "go:38,174 w20 cl:L w30 cl:L w40 cl:L w30 cl:L w40 cl:L w30 cl:L w60 shot:f2 hold:60",
     # ---- the watch page (W), operands added with ENTER on its last row

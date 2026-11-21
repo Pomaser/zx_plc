@@ -10,7 +10,8 @@ MENU_N      EQU 7           ; number of top items
 MENU_X0     EQU 3           ; x of the first title (its inversion starts at x=0)
 MENU_GAP    EQU 7           ; gap between titles
 ATTR_MENU   EQU 0x38        ; black ink, white paper
-WIN_MAXC    EQU 200         ; max cells of a saved window (largest popup: 175)
+WIN_MAXC    EQU 22*13       ; max cells of a saved window (largest: the FBD picker, 13
+                            ; columns x up to 22 rows; the LD picker 14 x 14)
 
 ; ---- top items: title, hotkey, submenu
 menu_top:

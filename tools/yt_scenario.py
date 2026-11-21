@@ -450,7 +450,7 @@ SCENARIO = [
     "say:il7 t:LD~I9.9 w10 k:ENTER w80 shot:il_err1 ws",
     "k:ENTER w20 k:CS+0 k:CS+0 k:CS+0 k:CS+0 k:CS+0 k:CS+0 k:CS+0 w10 shot:il_clr",
     "say:il8 t:JMP~SKIP w10 k:ENTER w60 ws",
-    "say:il9 w20 go!:103,3 cl!:L w30 go!:110,12 cl!:L w100 shot:il_err2",
+    "say:il9 w20 go!:103,3 cl!:L w30 go!:110,20 cl!:L w100 shot:il_err2",
     "w60 k:CS+0 k:CS+0 k:CS+0 k:CS+0 k:CS+0 k:CS+0 k:CS+0 k:CS+0 w10 k:CS+0 w60 shot:il_fixed ws",
     # ================================================================ Symbols
     "ch:Symbols~and~cross~references",
@@ -478,7 +478,7 @@ SCENARIO = [
     "say:ed3 w20 k:SS+U w60 shot:undo k:SS+Y w60 k:SS+U w60 ws",
     # ================================================================ Simulation
     "ch:Simulation",
-    "say:sim1 go!:103,3 cl!:L w30 go!:110,12 cl!:L w100 ws",
+    "say:sim1 go!:103,3 cl!:L w30 go!:110,20 cl!:L w100 ws",
     "say:sim2 w60 go:6,174 w30 ws",
     "cl:L w50 cl:L w60",
     "say:sim3 w100 shot:sim2 ws w100",
@@ -486,11 +486,11 @@ SCENARIO = [
     "go:22,174 w20 cl:L w60 cl:L w60",
     "say:sim5 go!:36,3 cl!:L w30 go!:40,12 cl!:L w60",
     "go:20,36 w15 cl:L w30 cl:L w60",
-    "go!:103,3 cl!:L w30 go!:110,12 cl!:L w100",
+    "go!:103,3 cl!:L w30 go!:110,20 cl!:L w100",
     "go:6,174 w20 cl:L w50 cl:L w60 ws w150",
     "say:sim6 go!:36,3 cl!:L w30 go!:40,12 cl!:L w60",
     "go:20,44 w15 cl:L w30 cl:L w60",
-    "go!:103,3 cl!:L w30 go!:110,12 cl!:L w100",
+    "go!:103,3 cl!:L w30 go!:110,20 cl!:L w100",
     "go:6,174 w20 cl:L w50 cl:L w180 shot:f1 ws",
     "say:sim7 go:38,174 w20 cl:L w30 cl:L w40 cl:L w30 cl:L w40 cl:L w30 cl:L w60 shot:f2 ws",
     # ================================================================ Watch

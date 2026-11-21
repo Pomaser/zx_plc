@@ -88,9 +88,9 @@ def layout(sym):
             (f("src/sim.asm"), sym["EDIT_END"], "Simulation screen", "edit"),
             (sym["EDIT_END"], IM2, "free", "free")]),
         ("Bank 1", "DATA", [
-            (0xC000, f("src/il_check.asm"), "Popup save area", "data"),
-            (f("src/il_check.asm"), f("src/globals.asm"), "IL line check", "edit"),
-            (f("src/globals.asm"), sym["DATA_END"], "Global declarations", "edit"),
+            (0xC000, f("src/globals.asm"), "IL line check", "edit"),
+            (f("src/globals.asm"), sym["win_save"], "Global declarations", "edit"),
+            (sym["win_save"], sym["clip_buf"], "Popup save area", "data"),
             (sym["clip_buf"], IM2, "Clipboard", "data")]),
         ("Bank 3", "DEMO", [
             (0xC000, f("src/clip.asm"), "Watch, xref, help", "tool"),
