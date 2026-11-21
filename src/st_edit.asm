@@ -588,6 +588,8 @@ st_editor:
         ld (st_oldrow),a
         ld hl,(st_cur)
         ld (st_oldln),hl
+        ld hl,(st_top)
+        ld (st_otop),hl
         pop hl
         ld (st_cur),hl
         call st_load
@@ -595,8 +597,17 @@ st_editor:
         or a
         call nz,.mpos
         call st_fix_top
-        jp nz,.full
-        ld a,(st_oldrow)
+        jr z,.mv1
+        ld hl,(st_top)          ; one line further: the rows shifted, not
+        ld de,(st_otop)         ; drawn again (only the old and the new
+        ld a,(st_fold)          ; cursor rows)
+        ld bc,ST_ROW0*256+ST_ROWS
+        call scr_vscr
+        jp c,.full
+        ld hl,st_oldrow
+        add a,(hl)
+        ld (hl),a
+.mv1:   ld a,(st_oldrow)
         ld b,a
         ld de,(st_oldln)
         call st_draw_row
@@ -2346,6 +2357,7 @@ st_fcalc:
 ; ---- st_fix_top: keeps st_cur visible; NZ = st_top or the folding changed
 st_fix_top:
         call st_fcalc
+        ld (st_fold),a          ; (folding changed: not 0)
         push af
         ld hl,(st_top)          ; (never a hidden line)
         call st_d
@@ -2931,6 +2943,8 @@ st_npos:   db 0
 st_ind:    db 0
 st_oldrow: db 0
 st_oldln:  dw 0
+st_otop:   dw 0
+st_fold:   db 0
 st_mpend:  db 0
 st_blink:  db 0
 st_con:    db 0             ; 1: the cursor is drawn

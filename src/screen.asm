@@ -185,6 +185,93 @@ cmt_trim:
         ld e,ATTR_NORMAL
         jp scr_fill_attr
 
+; ---- scr_vscr: after a cursor move, A = 0 (else C: redraw all), HL / DE =
+;      new / old top line, B = first row, C = rows: a move by one line
+;      shifts the rows by one character row (pixels + attributes) instead of
+;      a full redraw -> NC, A = -1 / +1 (how the old cursor row moved); C:
+;      not one line (redraw all)
+scr_vscr:
+        or a
+        jr nz,.full
+        sbc hl,de
+        inc hl                  ; 2: content up, 0: content down
+        ld a,h
+        or a
+        jr nz,.full
+        ld a,l
+        cp 2
+        jr z,.cu
+        or a
+        jr nz,.full
+        ld a,b                  ; down: from the bottom
+        add a,c
+        dec a
+        ld e,a
+        dec a
+        ld d,a
+        dec c
+.dl:    call scr_rowcp
+        dec d
+        dec e
+        dec c
+        jr nz,.dl
+        ld a,1
+        or a
+        ret
+.cu:    ld e,b                  ; up: from the top
+        ld d,b
+        inc d
+        dec c
+.ul:    call scr_rowcp
+        inc d
+        inc e
+        dec c
+        jr nz,.ul
+        ld a,0xFF
+        or a
+        ret
+.full:  scf
+        ret
+
+; scr_rowcp: character row D -> row E (8 pixel lines + attributes; keeps BC, DE)
+scr_rowcp:
+        push bc
+        push de
+        ld b,d
+        ld c,0
+        call pix_addr
+        push hl
+        ld b,e
+        call pix_addr
+        ex de,hl
+        pop hl
+        ld a,8
+.l:     push hl
+        push de
+        ld bc,32
+        ldir
+        pop de
+        pop hl
+        inc h
+        inc d
+        dec a
+        jr nz,.l
+        pop de
+        push de
+        ld b,d
+        ld c,0
+        call attr_addr
+        push hl
+        ld b,e
+        call attr_addr
+        ex de,hl
+        pop hl
+        ld bc,32
+        ldir
+        pop de
+        pop bc
+        ret
+
 ; ---- scr_clear_rows: B=first row, C=count; attribute cur_attr
 scr_clear_rows:
 .row:   push bc
