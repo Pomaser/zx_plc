@@ -2591,7 +2591,7 @@ st_draw_row:
         ld hl,(sr_line)
         inc hl
         ld de,sr_num
-        call st_dec3
+        call dec3
         ld hl,sr_num
         ld a,ST_X_NUM-3*IL_NUM_PITCH
         ld (sr_dx),a
@@ -2608,19 +2608,11 @@ st_draw_row:
         jr .txt
 .tclr:  ld a,(sr_row)           ; text only: clear cells 3-31
         ld b,a
-        ld c,3
-        call pix_addr
-        ld e,8
-.z0:    push hl
-        ld b,29
-        xor a
-.z:     ld (hl),a
-        inc l
-        djnz .z
-        pop hl
-        inc h
-        dec e
-        jr nz,.z0
+        ld c,3*8
+        ld d,29*8
+        ld hl,0x0008
+        ld e,PX_CLR
+        call px_span
 .txt:   ld a,(sr_row)
         ld (pt_row),a
         ld a,1
@@ -2719,28 +2711,6 @@ st_draw_row:
         add hl,de
         ret
 
-; ---- st_dec3: HL = 0..999 -> 3 digits with leading zeros + 0 at (DE)
-st_dec3:
-        ld bc,100
-        call .dig
-        ld bc,10
-        call .dig
-        ld a,l
-        add a,'0'
-        ld (de),a
-        inc de
-        xor a
-        ld (de),a
-        ret
-.dig:   ld a,'0'-1
-.l:     inc a
-        or a
-        sbc hl,bc
-        jr nc,.l
-        add hl,bc
-        ld (de),a
-        inc de
-        ret
 
 ; ---- st_cursor: XORs the 1 px text cursor
 st_cursor:

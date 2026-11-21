@@ -1168,42 +1168,8 @@ il_show_comment:
         call sym_find_addr
         jr c,.show
         ; comment = record text after the name
-        ld e,(hl)
-        ld d,0
-        push hl
-        add hl,de
-        ld (sy_end),hl
-        pop hl
-        inc hl
-        inc hl
-        inc hl
         ld de,il_cmt            ; symbol name (inverted), then the comment
-        ld a,ST_SYM
-        ld (de),a
-        inc de
-.n:     ld a,(hl)
-        inc hl
-        or a
-        jr z,.ne
-        ld (de),a
-        inc de
-        jr .n
-.ne:    ld a,ST_SYME
-        ld (de),a
-        inc de
-.c:     push hl
-        ld bc,(sy_end)
-        or a
-        sbc hl,bc
-        pop hl
-        jr nc,.e
-        ld a,(hl)
-        ld (de),a
-        inc hl
-        inc de
-        jr .c
-.e:     xor a
-        ld (de),a
+        call sym_stext          ; symbol name (inverted), then the comment
         ld hl,il_cmt
         ld (st_left),hl
 .show:  jp status_left
@@ -1643,45 +1609,16 @@ il_draw_row:
 il_draw_row.tclr:
         ld a,(dr_row)
         ld b,a
-        ld c,3
-        call pix_addr
-        ld e,8
-.l:     push hl
-        ld b,29
-        xor a
-.z:     ld (hl),a
-        inc l
-        djnz .z
-        pop hl
-        inc h
-        dec e
-        jr nz,.l
+        ld c,3*8
+        ld d,29*8
+        ld hl,0x0008
+        ld e,PX_CLR
+        call px_span
         ld a,(dr_row)
         ld (pt_row),a
         jp il_draw_row.text
 
-; ---- dec3: HL = 0..999 -> 3 digits with leading zeros + 0 at (DE)
-dec3:
-        ld bc,100
-        call .dig
-        ld bc,10
-        call .dig
-        ld a,l
-        add a,'0'
-        ld (de),a
-        inc de
-        xor a
-        ld (de),a
-        ret
-.dig:   ld a,'0'-1
-.l:     inc a
-        or a
-        sbc hl,bc
-        jr nc,.l
-        add hl,bc
-        ld (de),a
-        inc de
-        ret
+; (dec3: util.asm)
 
 ; ---- il_cursor_toggle: XORs the 1 px text cursor
 il_cursor_toggle:

@@ -2396,42 +2396,8 @@ ld_info:
 .a:     ld a,b
         call sym_find_addr
         jr c,.show
-        ld e,(hl)
-        ld d,0
-        push hl
-        add hl,de
-        ld (sy_end),hl
-        pop hl
-        inc hl
-        inc hl
-        inc hl
         ld de,(ld_infop)
-        ld a,ST_SYM             ; symbol name in dark blue
-        ld (de),a
-        inc de
-.n:     ld a,(hl)
-        inc hl
-        or a
-        jr z,.ne
-        ld (de),a
-        inc de
-        jr .n
-.ne:    ld a,ST_SYME
-        ld (de),a
-        inc de
-.c:     push hl
-        ld bc,(sy_end)
-        or a
-        sbc hl,bc
-        pop hl
-        jr nc,.e
-        ld a,(hl)
-        ld (de),a
-        inc hl
-        inc de
-        jr .c
-.e:     xor a
-        ld (de),a
+        call sym_stext          ; symbol name (inverted), then the comment
         ld hl,ld_infob
         ld (st_left),hl
 .show:  jp status_left

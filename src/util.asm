@@ -40,6 +40,29 @@ utoa16:
         ld (u_flag),a
         ret
 
+; ---- dec3: HL = 0..999 -> 3 digits with leading zeros + 0 at (DE)
+dec3:
+        ld bc,100
+        call .dig
+        ld bc,10
+        call .dig
+        ld a,l
+        add a,'0'
+        ld (de),a
+        inc de
+        xor a
+        ld (de),a
+        ret
+.dig:   ld a,'0'-1
+.l:     inc a
+        or a
+        sbc hl,bc
+        jr nc,.l
+        add hl,bc
+        ld (de),a
+        inc de
+        ret
+
 ; ---- itoa16: HL (signed) -> text at (DE)
 itoa16:
         bit 7,h

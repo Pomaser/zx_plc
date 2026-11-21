@@ -3628,42 +3628,8 @@ fb_info0:
         ld a,b
         call sym_find_addr
         jr c,.show
-        ld e,(hl)
-        ld d,0
-        push hl
-        add hl,de
-        ld (fi_end),hl
-        pop hl
-        inc hl
-        inc hl
-        inc hl
         ld de,(fi_p)
-        ld a,ST_SYM             ; symbol name inverted, then the comment
-        ld (de),a
-        inc de
-.n:     ld a,(hl)
-        inc hl
-        or a
-        jr z,.ne
-        ld (de),a
-        inc de
-        jr .n
-.ne:    ld a,ST_SYME
-        ld (de),a
-        inc de
-.c:     push hl
-        ld bc,(fi_end)
-        or a
-        sbc hl,bc
-        pop hl
-        jr nc,.e
-        ld a,(hl)
-        ld (de),a
-        inc hl
-        inc de
-        jr .c
-.e:     xor a
-        ld (de),a
+        call sym_stext          ; symbol name (inverted), then the comment
         ld hl,FB_INFOB
         ld (st_left),hl
 .show:  jp status_left
@@ -3958,7 +3924,6 @@ fs_p:     db 0
 fs_t:     db 0
 fs_off:   db 0
 fi_p:     dw 0
-fi_end:   dw 0
 fk_cur:   db 0
 fk_list:  dw 0
 fk_ptr:   dw 0

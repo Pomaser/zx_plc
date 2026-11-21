@@ -972,19 +972,11 @@ sy_draw_row:
         or a
         jr z,.full
         ; text-only: clear cells 3-31
-        ld c,3
-        call pix_addr
-        ld e,8
-.cl:    push hl
-        ld b,29
-        xor a
-.z:     ld (hl),a
-        inc l
-        djnz .z
-        pop hl
-        inc h
-        dec e
-        jr nz,.cl
+        ld c,3*8
+        ld d,29*8
+        ld hl,0x0008
+        ld e,PX_CLR
+        call px_span
         jr .text
 .full:  call pt_clear_row
         ld a,(dr_row)

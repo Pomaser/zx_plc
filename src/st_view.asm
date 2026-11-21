@@ -290,43 +290,12 @@ st_symline:
         ld a,AR_FBI
 .f:     call sym_find_addr
         jp c,status_left
-        ld e,(hl)               ; the record end
-        ld d,0
-        push hl
-        add hl,de
-        ld (xf_we),hl
-        pop hl
-        inc hl
-        inc hl
-        inc hl
         ld de,rec_buf
-        ld a,ST_SYM
-        ld (de),a
-        inc de
-.n:     ld a,(hl)
-        inc hl
-        or a
-        jr z,.ne
-        ld (de),a
-        inc de
-        jr .n
-.ne:    ld a,ST_SYME
-        ld (de),a
-        inc de
-.c:     push hl                 ; the comment
-        ld bc,(xf_we)
-        or a
-        sbc hl,bc
-        pop hl
-        jr nc,.fin
-        ld a,(hl)
-        ld (de),a
-        inc hl
-        inc de
-        jr .c
+        call sym_stext          ; symbol name (inverted), then the comment
+        jr .fin2
 .fin:   xor a
         ld (de),a
-        ld hl,rec_buf
+.fin2:  ld hl,rec_buf
         ld (st_left),hl
         jp status_left
 

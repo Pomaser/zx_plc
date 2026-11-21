@@ -283,6 +283,52 @@ sym_cmt:
         inc hl
         ret
 
+; ---- sym_stext: HL = symbol record -> DE: ST_SYM name ST_SYME comment, 0
+;      (the status bar text of a symbol; a global's declaration skipped)
+sym_stext:
+        push de
+        ld e,(hl)
+        ld d,0
+        push hl
+        add hl,de
+        ld (ss_end),hl
+        pop hl
+        inc hl
+        ld a,(hl)
+        ld (ss_ar),a
+        inc hl
+        inc hl
+        pop de
+        ld a,ST_SYM
+        ld (de),a
+        inc de
+.n:     ld a,(hl)
+        inc hl
+        or a
+        jr z,.ne
+        ld (de),a
+        inc de
+        jr .n
+.ne:    ld a,ST_SYME
+        ld (de),a
+        inc de
+        ld a,(ss_ar)
+        call sym_cmt
+.c:     push hl
+        ld bc,(ss_end)
+        or a
+        sbc hl,bc
+        pop hl
+        jr nc,.e
+        ld a,(hl)
+        ld (de),a
+        inc hl
+        inc de
+        jr .c
+.e:     xor a
+        ld (de),a
+        ret
+
 ; ---- gv_find: C = global number -> NC: A = type byte, DE = init value,
 ;      HL = record; C: no such global
 gv_find:
@@ -395,4 +441,6 @@ sf_name: dw 0
 sv_area: db 0
 sv_idx:  db 0
 sv_name: dw 0
-sym_decl: ds 3              ; sym_store: the declaration of a global
+sym_decl: ds 3
+ss_end:  dw 0
+ss_ar:   db 0              ; sym_store: the declaration of a global
