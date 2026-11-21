@@ -55,6 +55,8 @@ cmd_target:
         jr z,.run
         cp CMD_TREND
         jr z,.run
+        cp CMD_LOGIN            ; Online > Login: the RUN screen in STOP
+        jr z,.run
         cp CMD_POU_MANAGE
         ret c
         ld b,SCR_POU

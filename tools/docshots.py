@@ -21,7 +21,7 @@ IL = "w30 " + D + "k:ENTER w40 "              # open DEMO_IL
 LD = "w30 " + D * 2 + "k:ENTER w40 "          # open DEMO_LD
 FBD = "w30 " + D * 3 + "k:ENTER w40 "         # open DEMO_FBD
 ST = "w30 " + D * 4 + "k:ENTER w60 "          # open DEMO_ST
-RUN = "k:CS+1 w10 k:R w10 k:R w80 "           # Run > Run
+RUN = "k:CS+1 w10 k:O w10 k:R w80 "           # Online > Run
 
 SHOTS = [
     ("pou_list", "w40"),
@@ -29,8 +29,8 @@ SHOTS = [
     ("menu_pou", MENU + "k:P w20"),
     ("menu_edit", MENU + "k:E w20"),
     ("menu_view", MENU + "k:V w20"),
-    ("menu_run", MENU + "k:R w20"),
-    ("menu_options", MENU + "k:O w20"),
+    ("menu_online", MENU + "k:O w20"),
+    ("menu_setup", MENU + "k:H w5 k:S w20"),
     ("menu_help", MENU + "k:H w20"),
     ("pou_new", MENU + "k:P w5 k:N w20 t:MOTOR w10"),
     ("pou_lang", MENU + "k:P w5 k:N w20 t:MOTOR w10 k:ENTER w30"),

@@ -50,7 +50,7 @@ scratch and shows the simulation, watch / force, trend, UR-4, tape and SD card.
 To try it at once:
 
 1. Move to `DEMO_IL` with the cursor keys and press ENTER to see its program.
-2. Open the menu with BREAK (CAPS SHIFT + SPACE) or EDIT (CAPS SHIFT + 1) and choose **Run > Run**.
+2. Open the menu with BREAK (CAPS SHIFT + SPACE) or EDIT (CAPS SHIFT + 1) and choose **Online > Run**.
 3. Press `0` to switch on the input `%IX0.0`: the traffic light starts.
 
 ## 2. Screen and keys
@@ -98,10 +98,10 @@ A letter that fits no entry is refused.
 
 ![Help > Controls](img/help_controls.png)
 
-The AY chip plays a soft click for every key and a short warning tone on errors (Options > Sound switches
+The AY chip plays a soft click for every key and a short warning tone on errors (Setup > Sound switches
 them off).
 
-**Kempston mouse.** Options > Mouse switches a Kempston mouse on (it is off after the start). It is only
+**Kempston mouse.** Setup > Mouse switches a Kempston mouse on (it is off after the start). It is only
 switched on when a mouse answers, otherwise "No Kempston mouse" is shown. A small arrow follows the mouse:
 
 * a click on a menu title opens the menu, a click on an item runs it, a click elsewhere closes it;
@@ -126,7 +126,7 @@ Each menu title opens a drop-down list. The first letter of a title or item is i
 | Item | Function |
 |---|---|
 | New project | empty project with an empty MAIN (asks first) |
-| Open demo | loads the demo project (asks first) |
+| Example | loads the demo project (asks first) |
 | Load tape... | loads a project from tape |
 | Save tape... | saves the project to tape |
 | Load SD... | loads a project from the SD card (divMMC) |
@@ -174,12 +174,13 @@ Each menu title opens a drop-down list. The first letter of a title or item is i
 | Addresses | show operands by their addresses (default) |
 | Cross references | uses of the operand at the cursor (also SS+X) |
 
-### Run
+### Online
 
-![Run menu](img/menu_run.png)
+![Online menu](img/menu_online.png)
 
 | Item | Function |
 |---|---|
+| Login | compile all POUs and go online in STOP: the simulation screen shows the values, R starts |
 | Run | compile all POUs and run (the simulation screen) |
 | Stop | stop the scan cycle |
 | Step | one scan |
@@ -187,9 +188,9 @@ Each menu title opens a drop-down list. The first letter of a title or item is i
 | Watch | the simulation on the watch / force page |
 | Trend | the simulation on the trend page (time charts) |
 
-### Options
+### Setup
 
-![Options menu](img/menu_options.png)
+![Setup menu](img/menu_setup.png)
 
 | Item | Function |
 |---|---|
@@ -456,7 +457,7 @@ works like a small text editor:
 * Leaving a line (ENTER, UP, DOWN, the menu) checks it: unknown characters, an unclosed `(*` comment and
   unknown names are reported in a popup and the cursor stays on the line. Keywords are stored in upper
   case and the spaces between the words are normalised. The whole program is checked by the compiler
-  (Run > Run); an error opens the editor at its line, the message is in the status bar.
+  (Online > Run); an error opens the editor at its line, the message is in the status bar.
 * **Constructs are completed:** ENTER at the end of a line `IF c` adds `THEN`, an empty line and
   `END_IF` below it and puts the cursor on the empty line, indented. The same for `WHILE c` / `FOR ...`
   (`DO`, `END_WHILE` / `END_FOR`), `CASE e` (`OF`, `END_CASE`) and `ELSIF c` (`THEN`). Nothing is
@@ -585,7 +586,8 @@ dark blue), the address (black) and a comment (up to 30 characters, dark green).
 
 ## 11. Simulation
 
-**Run > Run** compiles all POUs and runs MAIN once per frame. A compile error opens the editor of that POU at
+**Online > Run** compiles all POUs and runs MAIN once per frame (**Online > Login** compiles and shows
+the same screen in STOP, so the values can be looked at first; `R` starts). A compile error opens the editor of that POU at
 the faulty line or element; the message is shown in the status bar.
 
 * The upper part monitors the current POU (or MAIN):
@@ -626,7 +628,7 @@ the faulty line or element; the message is shown in the status bar.
 ### Real inputs and outputs: the UR-4 interface
 
 The simulation can read and drive real hardware through a **UR-4** interface (TESLA Kolín, an 8255
-chip with three 8-bit ports). **Options > UR-4 I/O** switches it on; it is only switched on when the
+chip with three 8-bit ports). **Setup > UR-4 I/O** switches it on; it is only switched on when the
 interface answers, otherwise "No UR-4 interface" is shown. It is off after the start.
 
 | UR-4 port | Address | PLC | Direction |
@@ -647,7 +649,7 @@ interface answers, otherwise "No UR-4 interface" is shown. It is off after the s
 
 ## 12. Watch and force table
 
-`W` in the simulation (or **Run > Watch**) shows the watch list of the project. It holds up to 16 operands
+`W` in the simulation (or **Online > Watch**) shows the watch list of the project. It holds up to 16 operands
 with their symbols and live values and is saved with the project.
 
 ![Watch page with a forced output](img/sim_watch.png)
@@ -670,7 +672,7 @@ with their symbols and live values and is saved with the project.
 
 ### Trend
 
-`G` in the simulation (or **Run > Trend**) shows the watch list as time charts, like a logic analyzer:
+`G` in the simulation (or **Online > Trend**) shows the watch list as time charts, like a logic analyzer:
 up to 8 traces (the first 8 suitable rows of the watch list), each with its symbol (or operand) on the
 left, highlighted while it is at the top.
 
@@ -732,7 +734,7 @@ FB instance it adds the ET of a timer, the CV of a counter, or the Q of the othe
 
 ## 14. The demo project
 
-The demo starts with the program and can be loaded again with File > Open demo. Each part uses its own
+The demo starts with the program and can be loaded again with File > Example. Each part uses its own
 inputs and outputs:
 
 | POU | Function | Inputs | Outputs |

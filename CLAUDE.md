@@ -160,7 +160,7 @@ editor and key for users.
   while waiting and returns `K_MOUSE` (position `ms_cx` / `ms_cy`, button `ms_btn`); a click on a menu
   title becomes `K_EDIT` with `ms_menu`. The pointer is hidden before a key is returned. Screens handle
   `K_MOUSE` with `ms_item` / `ms_grid` / `ms_crow` / `ms_pou`. zxrun: `--mouse`, `at:x,y`, `cl:L`.
-- Trend page of the simulation (`src/trend.asm`, DEMO bank; sim page 2, key G / Run > Trend): the BOOL
+- Trend page of the simulation (`src/trend.asm`, DEMO bank; sim page 2, key G / Online > Trend): the BOOL
   entries and the timer / counter ET / CV members of the watch list (max 8) are sampled as levels 0-9
   (ET / CV scaled by PT / PV, the word before them in the instance) into one 256-byte ring buffer per
   trace (`tr_buf` + t*256, aligned) by `tr_tick`, called once per simulation loop with the page in A. A loop can take several
@@ -193,7 +193,7 @@ editor and key for users.
   `ab_isr` (constant length) and the loop calls `kb_isr` / `snd_isr` after `bd_draw`. The start delay
   (`BD_DLY` / `BD_FINE`) was tuned in JSSpeccy (128K: paper from T 14361); mkvideo draws the border
   per line segment with that timing (BORDER 24).
-- UR-4 interface (8255; PA 0x1F, PB 0x3F, PC 0x5F, CWR 0x7F): `src/ur4.asm` (DEMO bank, Options > UR-4 I/O,
+- UR-4 interface (8255; PA 0x1F, PB 0x3F, PC 0x5F, CWR 0x7F): `src/ur4.asm` (DEMO bank, Setup > UR-4 I/O,
   `ur_toggle` with a PC read-back detection), state `ur_on` (vm.asm). `sim_inputs` ORs PA / PB into RT_I,
   `ur_out` (sim.asm) writes %QX0 to PC in RUN, 0 otherwise. zxrun: `--ur4`, `ur:AA,BB`.
 - `bank_copy` (core) copies with another bank paged in. Core routines that page a bank (`win_open` /
@@ -221,8 +221,10 @@ editor and key for users.
   - Menu tables (src/menu.asm): `command, hotkey, label`. The hotkey is not shown; it must match the
     item name (normally its first letter; the user rejected unrelated letters). The open drop-down takes
     item hotkeys first, so an item key equal to a title letter (F P E V R O H) hides that title while
-    the menu is open (Run > Reset E, Edit > Paste P, POU > Rename R are accepted). A new item must not
-    take R in the File / Edit / View menus (EDIT, R, R starts the program).
+    the menu is open (Online > Reset E, Edit > Paste P, POU > Rename R, Symbols / Save / Step S are
+    accepted). A new item must not take O in the File / Edit / View menus (EDIT, O, R starts the
+    program; EDIT opens File, hence File > Example X). Titles: File POU Edit View Online Setup Help;
+    Online > Login (`CMD_LOGIN`) opens the simulation in STOP.
   - The menu bar title (`menu_pou`) shows the POU name, or Symbols / Watch / Trend (`mp_alt`).
   - Command palette (SS+E = `K_PAL`, Ctrl+E in the browser): `kb_get` turns K_PAL into K_EDIT and sets
     `pal_req`, so every screen opens "the menu"; `menu_run` then calls `BCALL pal_run`

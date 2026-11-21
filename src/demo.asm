@@ -4,7 +4,7 @@
 ; tools/mkdemo.py runs zxplc_mkdemo.sna, which builds the project with
 ; the normal editor routines and stops; the script saves the project
 ; memory to src/demo_proj.bin, which the normal build puts into the DEMO
-; bank (File > Open demo, loaded at start-up).
+; bank (File > Example, loaded at start-up).
 ; TEST_RES+2 = 0xA5 when done, 0xEE on an error (TEST_RES+3 = step).
 
 demo_build:

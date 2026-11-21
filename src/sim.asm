@@ -340,6 +340,8 @@ sim_cmd:
         jr z,.reset
         cp CMD_STOP
         jr z,.stop
+        cp CMD_LOGIN            ; (login: online in STOP)
+        jr z,.stop
         ld b,a
         ld a,(sm_ok)
         or a

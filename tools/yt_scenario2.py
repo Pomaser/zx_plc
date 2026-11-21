@@ -163,9 +163,9 @@ NARRATION = {
         "Ukázkový projekt se otevře v seznamu POU. Nahoře je menu, dole stavový řádek."),
     "scr2": (
         "Everything works from the keyboard, but a Kempston mouse is faster. "
-        "Options, Mouse.",
+        "Setup, Mouse.",
         "Všechno jde z klávesnice, ale s myší Kempston je to rychlejší. "
-        "Options, Mouse."),
+        "Setup, Mouse."),
     "pal1": (
         "And here is something you know from VS Code: the command palette. "
         "SYMBOL SHIFT and E, or Control E in the browser, lists every POU and every "
@@ -345,7 +345,7 @@ SCENARIO = [
     # ================================================================ Screen, mouse, palette
     "ch:Screen,~mouse~and~command~palette mouse:1",
     "say:scr1 w40 ws",
-    "say:scr2 k:CS+1 w20 k:H w15 k:O w30 shot:scr k:M w40 go:120,100 w10 ws",
+    "say:scr2 k:CS+1 w20 k:H w15 k:S w30 shot:scr k:M w40 go:120,100 w10 ws",
     "say:pal1 w40 k:SS+E w40 shot:pal t:de w15 t:m w15 k:CS+6 w10 k:CS+6 w10 k:CS+6 w30 k:ENTER w60 ws",
     "say:pal2 w20 k:SS+E w30 t:man w20 k:ENTER w50 ws",
     # ================================================================ LD

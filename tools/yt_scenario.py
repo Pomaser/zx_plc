@@ -102,10 +102,10 @@ NARRATION = {
     "scr3": (
         "Everything works from the keyboard: BREAK or EDIT opens the menu, and every "
         "menu item has its hotkey. But a Kempston mouse makes it even easier, so let's "
-        "switch it on in the Options menu.",
+        "switch it on in the Setup menu.",
         "Všechno jde ovládat klávesnicí: BREAK nebo EDIT otevře menu a každá položka "
         "má svou zkratku. S myší Kempston je to ale ještě snazší, tak ji zapneme v "
-        "menu Options."),
+        "menu Setup."),
     "scr4": (
         "Now a small arrow follows the mouse. A click on a menu title opens it, and a "
         "click on an item runs it.",
@@ -327,9 +327,9 @@ NARRATION = {
         "Simulace umí ovládat i skutečný hardware. UR-4 je československé rozhraní "
         "s obvodem 8255 a třemi osmibitovými porty."),
     "ur2": (
-        "Options, UR-4 I/O switches it on. Ports A and B become the inputs, and port C "
+        "Setup, UR-4 I/O switches it on. Ports A and B become the inputs, and port C "
         "the outputs.",
-        "Options, UR-4 I/O ho zapne. Porty A a B se stanou vstupy a port C výstupy."),
+        "Setup, UR-4 I/O ho zapne. Porty A a B se stanou vstupy a port C výstupy."),
     "ur3": (
         "A real switch on port A now starts the motor, and the motor output appears "
         "on port C. The status bar says UR-4 RUN.",
@@ -391,7 +391,7 @@ SCENARIO = [
     "ch:The~screen~and~the~mouse mouse:1",
     "say:scr1 w50 shot:scr1 ws",
     "say:scr2 ws",
-    "say:scr3 w150 k:CS+1 w30 k:H w20 k:O w40 shot:scr3 k:M w60 ws",
+    "say:scr3 w150 k:CS+1 w30 k:H w20 k:S w40 shot:scr3 k:M w60 ws",
     "say:scr4 go:120,100 w50 go!:36,3 cl!:L w60 go:200,150 w15 cl:L w30 ws",
     # ================================================================ LD
     "ch:Ladder~diagram",

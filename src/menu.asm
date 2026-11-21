@@ -25,16 +25,16 @@ mt_file: db "File",0
 mt_pou:  db "POU",0
 mt_edit: db "Edit",0
 mt_view: db "View",0
-mt_run:  db "Run",0
-mt_opt:  db "Options",0
+mt_run:  db "Online",0
+mt_opt:  db "Setup",0
 mt_help: db "Help",0
 
 ; submenu items: command, hotkey (upper case, not shown; matching the label; a title's letter
-; F P E V R O H hides that title while the menu is open), label, 0 ; list ends with 0
+; F P E V O S H hides that title while the menu is open), label, 0 ; list ends with 0
 ; (the last label of a list must not use descenders - it touches the frame)
 mi_file:
         db CMD_NEW,  'N',"New project",0
-        db CMD_DEMO, 'O',"Open demo",0
+        db CMD_DEMO, 'X',"Example",0
         db CMD_LOAD, 'L',"Load tape...",0
         db CMD_SAVE, 'S',"Save tape...",0
         db CMD_LOAD_SD,'D',"Load SD...",0
@@ -68,6 +68,7 @@ mi_view:
         db CMD_XREF,     'X',"Cross references",0
         db 0
 mi_run:
+        db CMD_LOGIN,'L',"Login",0
         db CMD_RUN,  'R',"Run",0
         db CMD_STOP, 'T',"Stop",0
         db CMD_STEP, 'S',"Step",0

@@ -178,8 +178,8 @@ def main_call(name):
 
 
 def run():
-    """Run > Run (compiles; an error opens the editor at its line)"""
-    return MENU + "k:H w8 k:R w10 k:R w200 "    # (via Help: no R / P items)
+    """Online > Run (compiles; an error opens the editor at its line)"""
+    return MENU + "k:H w8 k:O w10 k:R w200 "    # (via Help: no O / R / P items)
 
 
 # ============================================================ tests
@@ -536,14 +536,14 @@ def t_palette(ui):
     check("palette: BREAK keeps the POU", ui.mem(ui.sym("cur_pou"))[0] == ui.slot_of("DEMO_LD"))
     # a letter with no match is refused: "runq" stays "run"
     ui.play(PAL + T("runq") + "shot:pal_run ")
-    ui.play("k:ENTER w300 shot:pal_sim ")                # Run > Run
+    ui.play("k:ENTER w300 shot:pal_sim ")                # Online > Run
     check("palette: Run runs the simulation", ui.mw(0) >= 0 and ui.sim_running(),
           ui.sim_running())
 
 
 def t_palmouse(ui):
     """a click on an entry of the palette"""
-    ui.play("w60 k:CS+1 w10 k:H w10 k:O w10 k:M w30 ")    # Options > Mouse
+    ui.play("w60 k:CS+1 w10 k:H w10 k:S w10 k:M w30 ")    # Setup > Mouse
     ui.play(PAL + T("st") + "w20 at:100,28 w10 cl:L w100 shot:pal_click ")
     check("palette: click opens DEMO_ST", ui.mem(ui.sym("cur_pou"))[0] == ui.slot_of("DEMO_ST"),
           ui.mem(ui.sym("cur_pou"))[0])

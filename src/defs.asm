@@ -185,19 +185,20 @@ CMD_UNDO        EQU 24
 CMD_REOPEN      EQU 25          ; the same screen opens again (after undo, cross references)
 CMD_XREF        EQU 26
 CMD_WADD        EQU 27          ; add the operand at the cursor to the watch list
-CMD_WATCH       EQU 28          ; Run > Watch: the simulation with the watch page
+CMD_WATCH       EQU 28          ; Online > Watch: the simulation with the watch page
 CMD_MARK        EQU 29          ; Edit > Mark (SS+A) - CMD_CUT: handled by clip.asm,
 CMD_COPY        EQU 30          ;   in the order of K_MARK..K_PASTE
 CMD_PASTE       EQU 31
 CMD_CUT         EQU 32
 CMD_POU_DUP     EQU 33          ; POU > Duplicate... (executed by the POU screen)
-CMD_MOUSE       EQU 34          ; Options > Mouse (on / off)
+CMD_MOUSE       EQU 34          ; Setup > Mouse (on / off)
 CMD_REDO        EQU 35
-CMD_UR4         EQU 36          ; Options > UR-4 I/O (on / off)
-CMD_TREND       EQU 37          ; Run > Trend: the simulation with the trend page
+CMD_UR4         EQU 36          ; Setup > UR-4 I/O (on / off)
+CMD_TREND       EQU 37          ; Online > Trend: the simulation with the trend page
 CMD_LOAD_SD     EQU 38          ; File > Load SD... (tape_load with A = this)
 CMD_SAVE_SD     EQU 39          ; File > Save SD... (tape_save with A = this)
 CMD_GLOBALS     EQU 40          ; Edit > Globals: the symbol editor on the globals
+CMD_LOGIN       EQU 41          ; Online > Login: the simulation screen in STOP
 
 ; ---- status bar text markers (st_left): symbol name shown inverted
 ST_SYM      EQU 1           ; start of the symbol name
