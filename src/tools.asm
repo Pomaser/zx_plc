@@ -1305,7 +1305,7 @@ wt_del: ld a,(wt_n)
 ; wt_force: F: BOOL cycles off -> TRUE -> FALSE -> off; INT asks a value
 wt_force:
         call to_upper
-        cp 'V'
+        cp 'W'
         jp z,wt_write
         cp 'F'
         ret nz
@@ -1394,7 +1394,7 @@ wt_force:
         call ui_error
         jp wt_draw
 
-; wt_write: V: one write to the selected entry (BOOL inverted, a word asked);
+; wt_write: W: one write to the selected entry (BOOL inverted, a word asked);
 ;      the program goes on with the value (a force keeps its own)
 wt_write:
         ld a,(wt_n)

@@ -619,7 +619,7 @@ the faulty line or element; the message is shown in the status bar.
 | `R` | run / stop |
 | `S` | one scan (step) |
 | `E` | reset all data |
-| `W` | program / watch page |
+| `W` | the watch page (on the watch page: write a value once, `M` back) |
 | `G` | program / trend page |
 | UP / DOWN | scroll the listing |
 
@@ -655,13 +655,13 @@ with their symbols and live values and is saved with the project.
 * UP / DOWN select a row.
 * ENTER edits the operand of a row. The last row adds one; an empty text removes the row.
 * DELETE removes a row.
-* `T` switches to the trend page, `M` (or `W`) back to the monitor (the program).
+* `T` switches to the trend page, `M` back to the monitor (the program).
 * `F` forces the selected operand:
   * a BOOL goes forced TRUE, then forced FALSE, then not forced;
   * an INT (`%MW`) asks for a value, and `F` again releases it.
 * Forced values are marked `F`. They hold for the program and for the outputs until the simulation screen
   is left.
-* `V` writes a value **once** (like a prepared value in TwinCAT): a BOOL is inverted at once, a word
+* `W` writes a value **once** (like a prepared value in TwinCAT): a BOOL is inverted at once, a word
   (INT, BYTE, a timer's ET, a counter's CV) asks for the new value (`T#2s` for a time). The program
   then goes on with it, so a value the program writes every scan (e.g. an output of a coil) changes
   back at the next scan; in STOP it stays. A forced entry keeps its forced value. Inputs (set by the
