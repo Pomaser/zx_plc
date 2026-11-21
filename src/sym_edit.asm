@@ -9,9 +9,7 @@
 ; Uses the IL editor machinery (il_cur/il_top/il_n, cursor, fields):
 ;   F_OPER = address, F_MNEM = name, F_COMM = comment.
 ; ============================================================
-SY_X_NAME EQU 28            ; cells 3-9
-SY_X_ADDR EQU 80            ; cells 10-14
-SY_X_COMM EQU 120           ; cells 15-31
+; (SY_X_NAME / SY_X_ADDR / SY_X_COMM: il_edit.asm)
 SY_GX_COMM EQU 152          ; globals: declaration cells 10-18, comment 19-31
 
 scr_sym:
@@ -338,6 +336,8 @@ scr_sym:
         ld (il_oldrow),a
         ld hl,(il_cur)
         ld (il_oldln),hl
+        ld hl,(il_top)
+        ld (il_otop),hl
         pop hl
         ld (il_cur),hl
         call sy_drop_empty      ; NZ: an inner empty row was removed
@@ -352,8 +352,17 @@ scr_sym:
         or a
         jr nz,.mfull
         call il_fix_top
-        jp nz,.full
-        ld a,(il_oldrow)
+        jr z,.mv3
+        ld hl,(il_top)          ; one row further: the rows shifted, only
+        ld de,(il_otop)         ; the old and the new cursor rows drawn
+        xor a
+        ld bc,IL_ROW0*256+IL_ROWS
+        call scr_vscr
+        jp c,.full
+        ld hl,il_oldrow
+        add a,(hl)
+        ld (hl),a
+.mv3:   ld a,(il_oldrow)
         ld b,a
         ld de,(il_oldln)
         call sy_draw_row

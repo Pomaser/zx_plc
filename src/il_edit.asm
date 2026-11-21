@@ -14,6 +14,9 @@ IL_X_NUM  EQU 21            ; right edge of the line number
 IL_NUM_PITCH EQU 5          ; fixed digit pitch of line numbers
 IL_X_SEP  EQU 23
 IL_X_MNEM EQU 28
+SY_X_NAME EQU 28            ; cells 3-9
+SY_X_ADDR EQU 80            ; cells 10-14
+SY_X_COMM EQU 120           ; cells 15-31
 IL_X_OPER EQU 64            ; = cell 8
 IL_X_MAX  EQU 254
 IL_MAXLN  EQU 999

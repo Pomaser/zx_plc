@@ -141,7 +141,14 @@ CORE_END:
         MMU 3, BANK_EDIT, BANKED
         INCLUDE "src/app.asm"
         INCLUDE "src/il_edit.asm"
+    IFNDEF MKDEMO
         INCLUDE "src/sym_edit.asm"
+    ELSE                            ; (the demo builder needs no symbol editor)
+scr_sym: ret
+sy_xc:  ld a,SY_X_COMM
+        ret
+sy_end: dw 0
+    ENDIF
         INCLUDE "src/ld_edit.asm"
         INCLUDE "src/st_view.asm"   ; ST: symbols / addresses, status bar
     IFNDEF TEST
