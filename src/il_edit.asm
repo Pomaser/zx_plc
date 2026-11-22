@@ -1192,21 +1192,12 @@ il_show_comment:
         and AR_MASK
         cp AR_FBI               ; FB call with parameters may follow
         jr z,.ok
-        ld b,AR_FBI
         cp AR_FBM
-        jr z,.ok
-        ld b,a
-        ld a,(hl)
-        or a
-        jr nz,.show
-        ld a,b
-        cp AR_I
-        jr z,.ok
-        cp AR_Q
-        jr z,.ok
-        cp AR_SX
-        jr z,.ok
-        cp AR_M
+        jr nz,.o2
+        ld b,AR_FBI
+        jr .ok
+.o2:    ld a,(hl)               ; any other operand with a record (a name on an
+        or a                    ; address, a variable)
         jr nz,.show
 .ok:    ld a,b
         call sym_find_addr

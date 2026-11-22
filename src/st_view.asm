@@ -218,6 +218,8 @@ xf_op:  push hl
         jr z,.ok
         cp AR_FBI
         jr z,.ok
+        cp AR_LV                ; (a variable of Global vars)
+        jr z,.ok
         cp AR_FBM
         scf
         ret nz

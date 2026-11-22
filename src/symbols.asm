@@ -238,8 +238,28 @@ sym_stext:
 .ne:    ld a,ST_SYME
         ld (de),a
         inc de
-        ld a,(ss_ar)
-        call sym_cmt
+        ld a,(ss_ar)            ; a variable: its type before the comment
+        cp AR_GV
+        jr nz,.nt
+        ld a,(hl)
+        and 3
+        ld c,a
+        add a,a
+        add a,a
+        add a,c                 ; * 5
+        push hl
+        ld hl,ss_types
+        add a,l
+        ld l,a
+        jr nc,.t
+        inc h
+.t:     call put_str
+        ld a,' '
+        ld (de),a
+        inc de
+        pop hl
+        ld a,AR_GV
+.nt:    call sym_cmt
 .c:     push hl
         ld bc,(ss_end)
         or a
@@ -326,5 +346,6 @@ sv_area: db 0
 sv_idx:  db 0
 sv_name: dw 0
 sym_decl: ds 3
+ss_types: db "BOOL",0,"INT",0,0,"TIME",0,"BYTE",0
 ss_end:  dw 0
 ss_ar:   db 0              ; sym_store: the declaration of a global
