@@ -226,7 +226,7 @@ editor and key for users.
     accepted). A new item must not take O in the File / Edit / View menus (EDIT, O, R starts the
     program; EDIT opens File, hence File > Example X). Titles: File POU Edit View Online Setup Help;
     Online > Login (`CMD_LOGIN`) opens the simulation in STOP.
-  - The menu bar title (`menu_pou`) shows the POU name, or Symbols / Watch / Trend (`mp_alt`).
+  - The menu bar title (`menu_pou`) shows the POU name, or Global vars / Watch / Trend (`mp_alt`).
   - SS+LEFT / SS+RIGHT (`K_HOME` / `K_END`) jump one word back / forward in texts (`word_l` / `word_r`,
     util.asm; words = letters, digits, '_'): IL, ST, symbol editor, `ui_input`. The LD / FBD grids use them
     for the row start / end. The browser's Ctrl + arrows arrive as these keys. SS+DELETE (CS+SS+0, `K_FDEL`,
@@ -265,21 +265,31 @@ editor and key for users.
     rows are handled like preset cells by `fb_prow`. Placing an FBD block only chooses the operator
     (`wx_opsel`); the values are asked one at a time on their cells (`wx_value`). A block right behind a compute result takes D as its
     A (`fc_link` in fbd_comp.asm, the same when placed).
-- **Global variables** (Edit > Globals, `CMD_GLOBALS`):
+- **Global vars** (Edit > Global vars, `CMD_GLOBALS`; there is no separate symbol page any more): the
+  symbol table is the project's variable list. Its records: a name on an address (I, Q, M, MW, SX, SM,
+  SW; shown as `AT %IX0.0`), an FB instance (`[AR_FBI][type*4+n]`, shown as its type `TON`; the fixed
+  names TON0..RS3 are gone: `op_parse` knows instances only by their declared names, `op_format`
+  prints them, "???" if undeclared) and the variables below. `gv_parse` / `gv_pfmt` / `gv_fmt`
+  (globals.asm) read / write all three kinds; sym_edit allocates instances with `fbi_free` (ld_edit.asm,
+  4 per type). An unknown name on an LD / FBD box is declared as a new instance (`ld_ask_operand.unk`).
+  ST stores FB instance and variable names as text (they have no address). The tests declare the old
+  names (`t_fbdecl`), the demo names everything (its `dm_syms` records `AR_GV,g,type,...` for variables).
+  The MKDEMO build has no sym_edit.asm (stubs `scr_sym`, `sym_validate`, `sy_xc`, `sy_end` in main.asm).
+- **Global variables**:
   - A global is a record of the symbol table with area `AR_GV` (= AR_LV | 0x40), index = its number g
     (0..GV_MAX-1, a new one gets the number after the highest, `gv_new`) and its declaration after the
     name: `[len][AR_GV][g][name 0][type][init lo][init hi][comment]` (type GT_BOOL 0 / GT_INT 1 /
     GT_BYTE 3, + GT_INIT 0x80 if an init value was given). AR_GV records sort after all symbols;
-    `sym_range` gives the symbol editor its part (`sy_gmode` 0 symbols / 1 globals, set by `cmd_target`).
+    `sym_range` (= sym_first) lists all records on the Global vars page (`sy_gmode` is always 1).
     `sym_store` writes `sym_decl` into a global's record, `sym_cmt` skips it, `gv_find` reads it.
   - The value is the word LV_BASE + 2g (RUN bank); the ST locals follow the globals (`lv_first` starts at
     `gv_top`), `gv_init` (st_var.asm) writes the init values to LV_INIT when compiling. Operands keep
     [AR_GV][g] (IL / LD / FBD records), so a rename or type change keeps them; ST stores the name as
     text and resolves it through `op_parse` (`sc_gvop`: AR_LV + type * 16). `cp_operand_core` maps it
     to VM_MB (bit 0) / VM_MW / VM_MBY (BYTE, the low byte, a VM mode). `op_format` prints the name.
-  - The editor is sym_edit.asm with `sy_gmode` = 1: the address column holds "TYPE [:= value]"
-    (`gv_parse` / `gv_fmt` / `gv_fmtd` in `src/globals.asm`, DATA bank, on copies in fixed memory),
-    the comment starts at SY_GX_COMM; ':' after the name goes on to the type.
+  - The editor is sym_edit.asm: the declaration column (`gv_parse` / `gv_fmt` / `gv_pfmt` in
+    `src/globals.asm`, DATA bank, on copies in fixed memory), the comment starts at SY_GX_COMM; ':' after
+    the name goes on to the declaration.
   - The simulation reads PLC data from 0xC000 up through `rt_byte` (core, pages the RUN bank).
 - **Structured Text** (LANG_ST):
   - Body: line records `[len][K_STXT][indent][text]` (no 0). The text is stored normalised (keywords

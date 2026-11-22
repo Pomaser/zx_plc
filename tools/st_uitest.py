@@ -214,7 +214,8 @@ def t_watchwrite(ui):
     s += "k:CS+0 w30 " + "k:CS+6 w8 " * 16 + "k:ENTER w40 " + T("speed") + "k:ENTER w60 "
     s += "k:R w40 k:W w40 " + T("1234") + "k:ENTER w60 shot:ww_int "
     ui.play(s)
-    sp = int.from_bytes(ui.z.bank_bytes(4, 0xFD00, 2), "little")
+    g = {r[0]: r[1] for r in ui.globals()}["Speed"]
+    sp = int.from_bytes(ui.z.bank_bytes(4, 0xFD00 + 2 * g, 2), "little")
     check("watchwrite: Speed := 1234 (STOP)", sp == 1234, sp)
     q = ui.mem(RT + 2)[0] & 1
     ui.play("k:CS+7 w8 " * 15 + "k:W w60 shot:ww_bool ")   # %QX0.0 (row 1 after the delete)
@@ -230,13 +231,15 @@ def t_globals(ui):
     s += T("on:bool") + E
     s += T("bt:byte:=300") + E + "shot:gv_bad k:ENTER w30 " + DEL * 3 + T("250") + E
     ui.play(s + "w20 shot:gv ")
-    got = ui.globals()
-    exp = [("Speed", 0, 0x81, 7, "Motor speed"), ("On", 1, 0x00, 0, ""), ("Bt", 2, 0x83, 250, "")]
+    gl = {r[0]: r for r in ui.globals()}                # (the demo has its own globals)
+    got = [(n, gl[n][2], gl[n][3], gl[n][4]) for n in ("Speed", "On", "Bt") if n in gl]
+    exp = [("Speed", 0x81, 7, "Motor speed"), ("On", 0x00, 0, ""), ("Bt", 0x83, 250, "")]
     compare("globals: records", got, exp)
     s = to_list() + new_st("GV") + T("speed := speed + 1;") + E + T("on := TRUE;") + E
     s += T("bt := bt + 10;") + E
     ui.play(s + to_list() + main_call("GV") + run())
-    lv = ui.z.bank_bytes(4, 0xFD00, 6)
+    w = lambda n: ui.z.bank_bytes(4, 0xFD00 + 2 * gl[n][1], 2)
+    lv = w("Speed") + w("On") + w("Bt")
     sp = int.from_bytes(lv[0:2], "little")
     check("globals: Speed counts from 7", sp > 7, sp)
     check("globals: On = TRUE", lv[2] == 1, lv[2])
@@ -436,7 +439,7 @@ def t_compl(ui):
     ui.play(s + "w20 shot:cm ")
     got = ui.st_lines("CM")
     exp = [(0, "VAR"), (1, "speed : INT;"), (1, "spare : BOOL;"), (0, "END_VAR"),
-           (0, "%MW0 := spare;"), (0, "TValve.PT := TRUE;"), (0, "%MW1 := 0;"),
+           (0, "Level := spare;"), (0, "TValve.PT := TRUE;"), (0, "Total := 0;"),
            (0, "%MW1 := 1;")]
     compare("compl: stored lines", got, exp)
 
@@ -520,18 +523,18 @@ def t_view(ui):
     how they are shown (and edited); the status bar shows the symbol"""
     s = new_st("VW")
     s += T("var") + E + T("n : int;") + D + SE
-    s += T("Level := Level + 1; n := 2;") + E + T("UpEdge(CLK := Up);") + U + "w20 "
-    s += HOME + R + R + "w20 "                                  # on "%MW0"
+    s += T("Bar1 := Bar1 OR Up; n := 2;") + E + T("UpEdge(CLK := Up);") + U + "w20 "
+    s += HOME + R + R + "w20 "                                  # on "%QX0.3"
     ui.play(s)
     exp = [(0, "VAR"), (1, "n : INT;"), (0, "END_VAR"),
-           (0, "%MW0 := %MW0 + 1; n := 2;"), (0, "UpEdge(CLK := %IX0.2);")]
+           (0, "%QX0.3 := %QX0.3 OR %IX0.2; n := 2;"), (0, "UpEdge(CLK := %IX0.2);")]
     compare("view: stored as addresses", ui.st_lines("VW"), exp)
-    check("view: addresses shown", ui.fbd_str("se_buf") == "%MW0 := %MW0 + 1; n := 2;",
+    check("view: addresses shown", ui.fbd_str("se_buf") == "%QX0.3 := %QX0.3 OR %IX0.2; n := 2;",
           ui.fbd_str("se_buf"))
     st = ui.status_left()
-    check("view: status bar = symbol + comment", "Level" in st and "Level 0-5" in st, repr(st))
+    check("view: status bar = symbol + comment", "Bar1" in st and "Level >= 1" in st, repr(st))
     ui.play(MENU + "k:H w8 k:V w8 k:S w100 shot:view_sym ")      # View > Symbols
-    check("view: symbols shown", ui.fbd_str("se_buf") == "Level := Level + 1; n := 2;",
+    check("view: symbols shown", ui.fbd_str("se_buf") == "Bar1 := Bar1 OR Up; n := 2;",
           ui.fbd_str("se_buf"))
     ui.play(D + "w30 ")
     check("view: FB + input as symbols", ui.fbd_str("se_buf") == "UpEdge(CLK := Up);",

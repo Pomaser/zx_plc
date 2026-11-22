@@ -40,7 +40,16 @@ demo_build:
         ld a,(hl)
         ld (dm_idx),a
         inc hl
-        ld (dm_name),hl
+        ld a,(dm_area)          ; a variable: its type
+        cp AR_GV
+        jr nz,.nv
+        ld a,(hl)
+        ld (sym_decl),a
+        inc hl
+        xor a
+        ld (sym_decl+1),a
+        ld (sym_decl+2),a
+.nv:    ld (dm_name),hl
         call dm_skip            ; -> comment
         ld d,h
         ld e,l
@@ -244,13 +253,13 @@ dm_watch:
         db AR_Q,9                               ; Horn
         db AR_FBM+0x30,FBT_TOF*FB_PER_TYPE+1    ; TValve.ET
         db AR_FBM+0x40,FBT_CTU*FB_PER_TYPE+0    ; Fills.CV
-        db AR_MW,0                              ; Level (ST)
+        db AR_GV,0                              ; Level (ST)
         db AR_SW,0                              ; ScanLast (scan cycle time)
         db AR_SW,1                              ; ScanMax
         db AR_SW,2                              ; ScanMin
 DM_WLEN EQU $-dm_watch
 
-; ---- symbols: area, index, name, comment
+; ---- Global vars: area, index, [type (AR_GV)], name, comment
 dm_syms:
         db AR_I,0,"TL_Start",0,"Traffic light start",0
         db AR_SW,0,"ScanLast",0,"Last scan cycle time",0
@@ -267,9 +276,9 @@ dm_syms:
         db AR_Q,4,"Pump",0,"Pump contactor",0
         db AR_Q,5,"Fan",0,"Cooling fan",0
         db AR_Q,6,"Lamp",0,"Fault lamp",0
-        db AR_M,0,"Alert",0,"Stored fault",0
-        db AR_M,1,"BlOn",0,"Blink: lamp phase",0
-        db AR_M,2,"BlOff",0,"Blink: dark phase",0
+        db AR_GV,3,GT_BOOL,"Alert",0,"Stored fault",0
+        db AR_GV,4,GT_BOOL,"BlOn",0,"Blink: lamp phase",0
+        db AR_GV,5,GT_BOOL,"BlOff",0,"Blink: dark phase",0
         db AR_SX,0,"S_Off",0,"Step: lights off",0
         db AR_SX,1,"S_Red",0,"Step: red",0
         db AR_SX,2,"S_RedYel",0,"Step: red + yellow",0
@@ -302,9 +311,9 @@ dm_syms:
         db AR_Q,3,"Bar1",0,"Level >= 1",0
         db AR_Q,7,"Bar2",0,"Level >= 3",0
         db AR_Q,11,"Bar3",0,"Level = 5",0
-        db AR_MW,0,"Level",0,"Level 0-5",0
-        db AR_MW,1,"Total",0,"1 + 2 + ... + Level",0
-        db AR_MW,2,"Range",0,"0 empty, 1 low, 2 high",0
+        db AR_GV,0,GT_INT,"Level",0,"Level 0-5",0
+        db AR_GV,1,GT_INT,"Total",0,"1 + 2 + ... + Level",0
+        db AR_GV,2,GT_INT,"Range",0,"0 empty, 1 low, 2 high",0
         db AR_FBI,FBT_RTRIG*FB_PER_TYPE+1,"UpEdge",0,"Rising edge of Up",0
         db 0xFF
 
@@ -441,33 +450,33 @@ dm_ld:
         db 6,0,LT_P,AR_I,6
         dw 0
         DM_WIRES 6,1,8
-        db 6,9,LT_SET,AR_M,0
+        db 6,9,LT_SET,AR_GV,3
         dw 0
         db 7,0,LT_P,AR_I,7
         dw 0
         DM_WIRES 7,1,8
-        db 7,9,LT_RES,AR_M,0
+        db 7,9,LT_RES,AR_GV,3
         dw 0
         ; blinking: two pulse timers start each other
-        db 9,0,LT_NO,AR_M,0
+        db 9,0,LT_NO,AR_GV,3
         dw 0
-        db 9,1,LT_NC,AR_M,2
+        db 9,1,LT_NC,AR_GV,5
         dw 0
         db 9,2,LT_TP,AR_FBI,FBT_TP*FB_PER_TYPE+0
         dw 25
         DM_WIRES 9,3,8
-        db 9,9,LT_COIL,AR_M,1
+        db 9,9,LT_COIL,AR_GV,4
         dw 0
-        db 10,0,LT_NO,AR_M,0
+        db 10,0,LT_NO,AR_GV,3
         dw 0
-        db 10,1,LT_NC,AR_M,1
+        db 10,1,LT_NC,AR_GV,4
         dw 0
         db 10,2,LT_TP,AR_FBI,FBT_TP*FB_PER_TYPE+1
         dw 25
         DM_WIRES 10,3,8
-        db 10,9,LT_COIL,AR_M,2
+        db 10,9,LT_COIL,AR_GV,5
         dw 0
-        db 11,0,LT_NO,AR_M,1
+        db 11,0,LT_NO,AR_GV,4
         dw 0
         DM_WIRES 11,1,8
         db 11,9,LT_COIL,AR_Q,6

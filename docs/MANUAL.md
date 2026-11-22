@@ -13,12 +13,12 @@ The screenshots in this manual come from the program itself; `make docs` regener
 2. [Screen and keys](#2-screen-and-keys)
 3. [Menus](#3-menus)
 4. [Project and POUs](#4-project-and-pous)
-5. [Operands and symbols](#5-operands-and-symbols)
+5. [Operands and names](#5-operands-and-names)
 6. [IL editor](#6-il-editor)
 7. [LD editor](#7-ld-editor)
 8. [FBD editor](#8-fbd-editor)
 9. [ST editor](#9-st-editor)
-10. [Symbol editor](#10-symbol-editor)
+10. [Global vars](#10-global-vars)
 11. [Simulation](#11-simulation)
 12. [Watch and force table](#12-watch-and-force-table)
 13. [Tools: undo, copy and paste, cross references, add to watch](#13-tools-undo-copy-and-paste-cross-references-add-to-watch)
@@ -156,8 +156,7 @@ Each menu title opens a drop-down list. The first letter of a title or item is i
 | Undo | undo the last change (also SS+U) |
 | Redo | redo the undone change (also SS+Y) |
 | Add to watch | add the operand at the cursor to the watch list (also SS+W) |
-| Symbols | the symbol editor |
-| Globals | the global variables (name, type, initial value) |
+| Global vars | the variable list: names on addresses, variables and FB instances |
 | Insert line | insert an empty line / row |
 | Delete line | delete the current line / row |
 | Mark block | mark the start of a block (also SS+A) |
@@ -250,7 +249,7 @@ esxDOS `SYS` folder.
 * The file holds the same bytes as the data block on tape, so a project can be moved between tape and
   card.
 
-## 5. Operands and symbols
+## 5. Operands and names
 
 | Area | IEC form | Short form | Range |
 |---|---|---|---|
@@ -262,8 +261,8 @@ esxDOS `SYS` folder.
 | System flags (read only) | `%SM6` | `SM6` | 0 - 7 |
 | System words (read only, TIME) | `%SW0` | `SW0` | 0 - 2 |
 | Constants | `TRUE`, `FALSE`, `-123`, `T#1s500ms`, `T#2m` | | |
-| FB instances | `TON0`-`TON3`, `TOF0`-`TOF3`, `TP0`-`TP3`, `CTU0`-`CTU3`, `CTD0`-`CTD3`, `RT0`-`RT3`, `RF0`-`RF3`, `SR0`-`SR3`, `RS0`-`RS3` | | |
-| FB members | `TON0.Q`, `TON0.ET`, `CTU1.CV`, `RT2.CLK` ... | | |
+| FB instances | declared by name in Global vars (`T_Red : TON`), 4 per type | | |
+| FB members | `T_Red.Q`, `T_Red.ET`, `Fills.CV`, `UpEdge.CLK` ... | | |
 
 * Operands can be typed in lower case and in the short form. They are stored and shown in the IEC form,
   or by the symbol name with View > Symbols.
@@ -293,11 +292,9 @@ esxDOS `SYS` folder.
 
 * **Step flags**: in each step byte `S0`-`S7` only one bit can be TRUE. Setting a step clears the other
   steps of its byte, which makes step sequences easy (see DEMO_IL).
-* **Symbols** (Edit > Symbols) give operands names. A symbol can be typed instead of an address
-  anywhere.
-* **Global variables** (Edit > Globals) are named variables without an address: `BOOL`, `BYTE`
-  (0-255) or `INT`. They are used by their name in IL, LD, FBD and ST, see
-  [Global variables](#global-variables).
+* **Names** (Edit > Global vars, [chapter 10](#10-global-vars)): an address gets a name
+  (`Start AT %IX0.0`), a variable without an address is declared (`Speed : INT`) and every FB instance
+  is declared there (`T_Red : TON`). A name can be typed instead of an address anywhere.
 * The time base is 20 ms (one scan per frame).
 
 ## 6. IL editor
@@ -322,7 +319,7 @@ and comment of the operand.
   ```
 
   The `(` modifier is allowed where IEC allows it (`AND(`, `ADD(`).
-* FB call: `CAL TON0(IN:=S_Red, PT:=T#4s)`; POU call: `CAL DEMO_LD`.
+* FB call: `CAL T_Red(IN:=S_Red, PT:=T#4s)` (an instance declared in Global vars); POU call: `CAL DEMO_LD`.
 
 ## 7. LD editor
 
@@ -355,7 +352,7 @@ comment of the element (for boxes: the instance and its PT / PV).
     it is true; in the simulation it is green while true.
   * compute: ADD, SUB, MUL, DIV (`D := A + B` ...) or MOVE (`D := A`), then A, B and the result D (an
     `MW`). It runs in every scan in which the coil gets power.
-  * The expression (`CTU0.CV>=3`, `MW2:=MW2+1`) is the label, the operator is shown in the symbol (`-[>]-`,
+  * The expression (`Fills.CV>=3`, `Count:=Count+1`) is the label, the operator is shown in the symbol (`-[>]-`,
     `-[+]-`), the status bar shows it in full. ENTER and the same key edit it, starting from its values.
 * **Placing elements:**
   * After a new element the cursor moves on.
@@ -365,7 +362,7 @@ comment of the element (for boxes: the instance and its PT / PV).
   * The power from the left is the input (IN, CU / CD) and Q powers the rest of the rung.
   * The box asks for the instance and the preset: PT for timers (`T#4s`), PV for counters (a number).
   * `T` on a box edits only its preset.
-  * Reset or load a counter with a coil on `CTU0.R` / `CTD0.LD`.
+  * Reset or load a counter with a coil on `Fills.R` / `Down.LD` (counters declared in Global vars).
 * **Branches:**
   * `V` toggles a vertical link that joins the row below.
   * A new branch inserts an empty row below if the next row belongs to another rung or is a comment.
@@ -471,10 +468,10 @@ works like a small text editor:
   SS+UP / SS+DOWN page.
 * SS+X and SS+W take the operand under (or just before) the cursor; the status bar shows its symbol and
   comment (for a local variable its type).
-* **Symbols / addresses:** an operand that has an address is stored as that address (`%MW0`,
-  `%IX0.2`, `TOF1.PT`), whatever was typed, so the text follows a renamed symbol. View > Symbols /
-  Addresses switches how the lines are shown and edited (`Level := Level + 1;` or
-  `%MW0 := %MW0 + 1;`), as in IL. Local variables keep their names.
+* **Names / addresses:** an operand that has an address is stored as that address (`%IX0.2`, `%QX0.3`),
+  whatever was typed, so the text follows a renamed name. View > Symbols / Addresses switches how the
+  lines are shown and edited (`Bar1 := Level >= 1;` or `%QX0.3 := Level >= 1;`), as in IL. Variables
+  and FB instances have no address and are stored by name; local variables keep their names.
 * **Name completion: SS+SPACE** (Ctrl+Space in the browser) completes the name in front of the cursor.
   ![Name completion](img/st_compl.png)
   * Without a dot it offers the local variables of the POU (with their type) and then the symbols in
@@ -507,17 +504,17 @@ END_REPEAT
 
 EXIT;                          (leaves the innermost loop)
 RETURN;                        (ends the POU)
-TON0(IN := Start, PT := T#5s, Q => Lamp);
+Delay(IN := Start, PT := T#5s, Q => Lamp);   (Delay : TON in Global vars)
 SUB1();                        (calls the POU SUB1)
 ```
 
-* **Expressions** use the operands of [chapter 5](#5-operands-and-symbols), `( )` and the operators, from
+* **Expressions** use the operands of [chapter 5](#5-operands-and-names), `( )` and the operators, from
   the weakest: `OR`, `XOR`, `AND` (`&`), `=` `<>`, `<` `>` `<=` `>=`, `+` `-`, `*` `/` `MOD`, and the
   unary `NOT` and `-`. Comparisons give BOOL, arithmetic INT (16 bit signed). `NOT` of an INT inverts its
   bits.
-* **Assignment** targets are outputs, memory bits, INT words, step flags and FB members (`TON0.PT := ...`).
+* **Assignment** targets are outputs, memory bits, INT words, step flags and FB members (`Delay.PT := ...`).
 * **FB call:** `INST(member := expression, ...)` writes the inputs, runs the block and copies the outputs
-  given with `member => target` (up to 4). The outputs can also be read later as `TON0.Q`, `CTU1.CV`.
+  given with `member => target` (up to 4). The outputs can also be read later as `Delay.Q`, `Fills.CV`.
   Inputs left out keep their last value.
 * **FOR:** the step after `BY` is a constant (default 1; a negative step counts down). The end value is
   evaluated before every pass.
@@ -552,41 +549,39 @@ END_VAR
   another way (UP, DOWN, the mouse) only reports "Unknown name".
 * In the simulation the block is open and every declaration line shows the live value of its variable
   behind its name.
-* `VAR_GLOBAL`, `VAR_INPUT` and `VAR_OUTPUT` are reserved for a later version; global variables are the
-  symbols. Local FB instances (`T1 : TON`) are not possible yet: use TON0 ... with a symbol.
+* `VAR_GLOBAL`, `VAR_INPUT` and `VAR_OUTPUT` are reserved for a later version; global variables and FB
+  instances are declared in Global vars. Local FB instances (`T1 : TON` in VAR) are not possible yet.
 
-## 10. Symbol editor
+## 10. Global vars
 
-![Symbol editor](img/symbols.png)
+![Global vars of the demo project](img/globals.png)
 
-**Edit > Symbols** lists all symbols sorted by address. Each row holds the name (up to 8 characters,
-dark blue), the address (black) and a comment (up to 30 characters, dark green).
+**Edit > Global vars** is the variable list of the project, as the global variable list (GVL) of an
+IEC 61131-3 environment. Each row holds the name (up to 8 characters, dark blue), its declaration
+(black) and a comment (dark green). The rows are sorted: names on addresses (inputs, outputs, memory,
+steps, system words), then the FB instances, then the variables.
 
-* SPACE moves between the fields; ENTER, UP and DOWN store the row.
-* The empty last row adds a symbol.
-* Clearing the name and the comment removes a symbol, as does Edit > Delete line.
-* Symbols can name inputs, outputs, memory bits, INT words (`%MW`), step flags, system flags and FB
-  instances. In ST, named INT words work as variables (`Level := Level + 1;`).
+| Declaration | Meaning |
+|---|---|
+| `AT %IX0.0` | a name on an address: `%IX` `%QX` `%MX` `%MW` `%SX` `%SM` `%SW` |
+| `INT := 100` | a variable without an address: `BOOL`, `BYTE` (0-255, wraps at 255 + 1) or `INT`, with an optional initial value (else 0 / FALSE) |
+| `TON` | an FB instance: `TON` `TOF` `TP` `CTU` `CTD` `R_TRIG` `F_TRIG` `SR` `RS` (4 of each type) |
 
-### Global variables
-
-![Global variables](img/globals.png)
-
-**Edit > Globals** is the same editor for the global variables of the project. A row is
-`Name : TYPE [:= value]` and a comment:
-
-* Type the name, then `:` (or SPACE) and the type: `bool`, `byte` or `int`, optionally followed by an
-  initial value, e.g. `byte:=10`. It is stored as `BYTE := 10`. Without a value a variable starts at
-  0 / FALSE.
-* `BOOL` takes `TRUE` / `FALSE`, `BYTE` 0 to 255 (it wraps: 255 + 1 = 0), `INT` -32768 to 32767.
-* The name can be used in every language instead of an address: `LD Speed`, a contact `Run`, a
-  compare block `Speed > 100`, `Speed := Speed + 1;` in ST. LD / FBD contacts and coils take `BOOL`
-  variables, word operands any type.
-* The values are shown in the simulation, can be added to the watch list (SS+W) and forced there.
-* Run and Reset set the initial values again.
-* Up to 64 globals; together with the ST local variables they share 126 words.
-* IL, LD and FBD keep a reference to the variable, so renaming it changes them too. ST keeps the name
-  as text: after a rename, correct the ST lines (the compiler reports the old name).
+* Type the name, then `:` (or SPACE) and the declaration: `at i0.0` (or just `i0.0`), `int:=100`,
+  `ton`. It is stored in the normal form (`AT %IX0.0`, `INT := 100`, `TON`); `: BOOL` after an address
+  is accepted and left out. ENTER, UP and DOWN store the row; the empty last row adds one.
+* Clearing the name and the comment removes a row, as does Edit > Delete line.
+* The names are used in every language instead of an address: `LD Start`, a contact `Alert`,
+  `CAL T_Red(IN:=S_Red, PT:=T#4s)`, `Fills.CV`, `Level := Level + 1;` in ST. LD / FBD contacts and
+  coils take `BOOL` variables, word operands any type.
+* **FB instances** exist only by their declaration (there are no fixed `TON0` ... any more). Naming a
+  new timer, counter or trigger block in LD or FBD with an unknown name declares it at once; in IL and
+  ST the instance must be declared first.
+* Variables and FB members are shown in the simulation, can be added to the watch list (SS+W), forced
+  and written there. Run and Reset set the initial values again.
+* Up to 64 variables; together with the ST local variables they share 126 words.
+* IL, LD and FBD keep a reference to the name, so renaming it changes them too. ST keeps variable and
+  instance names as text: after a rename, correct the ST lines (the compiler reports the old name).
 
 ## 11. Simulation
 
@@ -686,8 +681,8 @@ left, highlighted while it is at the top.
 
 ![Trend page: the traffic light of the demo after TL_Start (`0`)](img/sim_trend.png)
 
-The labels follow **View > Symbols / Addresses**: with symbols, an FB member is labelled with the symbol
-of its instance (`T_Red` for `TON0.ET`); an operand without a symbol keeps its address.
+The labels follow **View > Symbols / Addresses**: with symbols an operand is labelled with its name;
+an FB member with the name of its instance (`T_Red` for `T_Red.ET`).
 
 * The samples are taken from the start of the simulation, also while another page is shown. The newest
   is at the right edge; when the chart is full it moves to the left.
@@ -717,8 +712,8 @@ the same language. The status bar shows what was copied or pasted.
 
 * LD blocks always take whole rungs (rows joined by vertical links), FBD blocks whole networks, so that
   no element is cut; the comment rows just above a rung / network go with it.
-* FB instances stay the same: a pasted `TON0` box uses the same timer. Choose another instance if the
-  copy needs its own.
+* FB instances stay the same: a pasted `T_Red` box uses the same timer. Give the copy another name
+  (a new instance is declared) if it needs its own.
 * Paste is one step for Undo.
 
 **Duplicate a POU (POU > Duplicate..., `U` in the POU list)** makes a copy of the selected POU with its
@@ -749,7 +744,7 @@ inputs and outputs:
 | DEMO_FBD | inlet valve with nested gates and a 2 s run-on, overflow horn (RT, SR), service counter (CTU, after 3 fills) | byte 1: `B`, then `0`-`5` | Q1.0-Q1.2 |
 | DEMO_ST | level bar: each press of Up (R_TRIG) raises Level 0-5, the bar outputs, a FOR sum with a local counter and a CASE range | `2` up, `3` clear | Q0.3, Q0.7, Q1.3 |
 
-A symbol table names all of them. The watch list contains the traffic light (the ET of each of its four timers followed by its light,
+Global vars name all inputs, outputs and steps and declare the instances and the variables Level, Total, Range (DEMO_ST) and Alert, BlOn, BlOff (DEMO_LD). The watch list contains the traffic light (the ET of each of its four timers followed by its light,
 shown first on the trend page), HighLvl, Valve, Horn, TValve.ET, Fills.CV, Level (DEMO_ST) and the scan
 times.
 
@@ -757,24 +752,24 @@ times.
 
 ### Standard function blocks
 
-| FB | Inputs | Outputs | Instances |
+| FB | Inputs | Outputs | Instances (Global vars) |
 |---|---|---|---|
 | TON, TOF, TP | IN, PT (TIME) | Q, ET | 4 each |
 | CTU | CU, R, PV (INT) | Q, CV | 4 |
 | CTD | CD, LD, PV (INT) | Q, CV | 4 |
-| R_TRIG, F_TRIG (RT, RF) | CLK | Q | 4 each |
+| R_TRIG, F_TRIG | CLK | Q | 4 each |
 | SR, RS | S1 / S, R / R1 | Q1 | 4 each |
 
 ### Limits
 
 | Item | Limit |
 |---|---|
-| POUs | 8 (plus the symbol table and the watch list) |
+| POUs | 8 (plus Global vars and the watch list) |
 | Project memory | 12 KB |
 | POU name / comment | 8 / 20 characters |
-| Symbol name / comment | 8 / 30 characters |
+| Global vars name / comment | 8 / 30 characters |
 | Watch list | 16 operands |
-| Global variables | 64 (`BOOL`, `BYTE`, `INT`), name 8 characters |
+| Variables in Global vars | 64 (`BOOL`, `BYTE`, `INT`) |
 | Call depth | 8 |
 | Watchdog | 30000 instructions per scan |
 | Edge contacts (P / N) | 32 per project |

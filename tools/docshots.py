@@ -44,10 +44,7 @@ SHOTS = [
     ("palette", "w40 k:SS+E w60 t:co w40"),
     ("st_compl", ST + D * 4 + "k:SS+ENTER w30 t:T w5 k:SS+SPACE w60 " + D + "w20"),
     ("st_vars", ST + D * 4 + "k:SS+ENTER w30 t:count~:=~count~+~1; w5 " + D + "w40"),
-    ("symbols", MENU + "k:E w5 k:S w60"),
-    ("globals", MENU + "k:E w5 k:G w40 t:speed: w5 t:int:=100 w5 k:SPACE w5 t:motor~speed w5 k:ENTER w40"
-     " t:count: w5 t:byte w5 k:SPACE w5 t:parts~counted w5 k:ENTER w40"
-     " t:running: w5 t:bool:=true w5 k:SPACE w5 t:machine~runs w5 k:ENTER w40"),
+    ("globals", MENU + "k:E w5 k:G w60 k:SS+CS+6 w20 k:SS+CS+6 w20 k:SS+CS+6 w20 k:CS+7 w30"),
     ("sim_il", IL + RUN + "k:0 w150"),
     ("sim_ld", LD + RUN + "k:4 w60"),
     ("sim_fbd", FBD + RUN + "k:B w5 k:0 w5 k:2 w60"),
