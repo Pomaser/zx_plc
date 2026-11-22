@@ -226,6 +226,9 @@ editor and key for users.
     program; EDIT opens File, hence File > Example X). Titles: File POU Edit View Online Setup Help;
     Online > Login (`CMD_LOGIN`) opens the simulation in STOP.
   - The menu bar title (`menu_pou`) shows the POU name, or Symbols / Watch / Trend (`mp_alt`).
+  - SS+LEFT / SS+RIGHT (`K_HOME` / `K_END`) jump one word back / forward in texts (`word_l` / `word_r`,
+    util.asm; words = letters, digits, '_'): IL, ST, symbol editor, `ui_input`. The LD / FBD grids use them
+    for the row start / end. The browser's Ctrl + arrows arrive as these keys.
   - Command palette (SS+E = `K_PAL`, Ctrl+E in the browser): `kb_get` turns K_PAL into K_EDIT and sets
     `pal_req`, so every screen opens "the menu"; `menu_run` then calls `BCALL pal_run`
     (src/complete.asm) instead of the drop-downs: the list window of the name completion (`ac_ui`,
