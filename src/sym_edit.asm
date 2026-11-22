@@ -28,6 +28,7 @@ scr_sym:
         ld a,4
 .t:     ld (mp_alt),a
         call menu_pou
+        call sy_hint
         ; the IL editor state is borrowed while the symbol editor runs
         ld hl,(il_cur)
         ld (sy_scur),hl
@@ -77,6 +78,8 @@ scr_sym:
         jp z,.fdel
         cp K_WATCH
         jp z,.wak
+        cp K_PASTE              ; SS+F: the filter All / IOs / FBs / VARs
+        jp z,.filt
         cp K_XREF
         jp z,.xrk
         cp K_UNDO
@@ -107,8 +110,20 @@ scr_sym:
         cp F_MNEM
         jp z,.toaddr
         cp F_OPER
-        jp z,.tocomm
-        ld a,' '
+        jr nz,.sp
+        ld hl,(ed_o)            ; "AT" + SPACE: the space stays ("AT %IX0.0")
+        ld a,l
+        and 0xDF
+        cp 'A'
+        jp nz,.tocomm
+        ld a,h
+        and 0xDF
+        cp 'T'
+        jp nz,.tocomm
+        ld a,(ed_o+2)
+        or a
+        jp nz,.tocomm
+.sp:    ld a,' '
 .ins:   ld (il_ch),a            ; first letter of the name / comment:
         ld a,(ed_field)         ; typed as with CAPS LOCK
         cp F_OPER
@@ -389,6 +404,19 @@ scr_sym:
 .mfull: call il_fix_top
         jp .full
 
+.filt:  call sy_commit
+        jp c,.loop
+        ld a,(sy_filt)
+        inc a
+        and 3
+        ld (sy_filt),a
+        call sy_hint
+        ld hl,0
+        ld (il_cur),hl
+        ld (il_top),hl
+        call sy_count
+        call sy_load
+        jp .full
 .wak:   ld a,CMD_WADD           ; SS+W: add to the watch list
         ld (mk_cmd),a
         jp .menu
@@ -540,85 +568,84 @@ gv_new:
         scf                     ; all used
         ret
 
-; ---- sym_validate: HL = name, A = area, C = index of its own address
-;      NC = valid (or empty); C = error, il_err = message
-sym_validate:
-        ld (sv_area),a
-        ld a,c
-        ld (sv_idx),a
-        ld (sv_name),hl
-        ld a,(hl)
+; ---- the filter (sy_filt 0 All, 1 IOs = names on addresses, 2 FBs, 3 VARs)
+; sy_match: HL = record -> Z if it is shown (keeps BC, DE, HL)
+sy_match:
+        ld a,(sy_filt)
         or a
-        ret z                   ; empty name: comment only
-        ; identifier: letter or "_", then letters, digits, "_"; max 8
-        call to_upper
-        cp '_'
-        jr z,.c1
-        call is_alpha
-        jr c,.bad
-.c1:    ld b,0
-.ch:    ld a,(hl)
-        or a
-        jr z,.len
-        call to_upper
+        ret z
+        push hl
+        push bc
         inc hl
-        inc b
-        cp '_'
-        jr z,.ch
-        call is_alpha
-        jr nc,.ch
-        call is_digit
-        jr nc,.ch
-.bad:   ld hl,err_bad_name
-        jr .fail
-.len:   ld a,b
-        cp SYM_NMAX+1
-        jr nc,.bad
-        ; not an IL instruction
-        ld hl,(sv_name)
-        call il_mnem_find
-        jr nc,.res
-        ; not an address, keyword, FB, POU or another symbol
-        ld hl,(sv_name)
-        call op_parse
-        ccf
-        ret nc                  ; unknown word: valid
-        ld b,a
-        and AR_MASK
-        cp AR_I
-        jr z,.sym
-        cp AR_Q
-        jr z,.sym
-        cp AR_M
-        jr z,.sym
-        cp AR_SX
-        jr z,.sym
-        cp AR_LV                ; (a global)
-        jr z,.sym
+        ld b,(hl)               ; the area -> its filter (3 / 2 / 1)
+        ld a,b
+        cp AR_GV
+        ld a,3
+        jr z,.c
+        ld a,b
         cp AR_FBI
-        jr nz,.res
-.sym:   ; a symbol (or address) of the same name: fine only if it is our own
-        ld a,(sv_idx)
-        cp c
-        jr nz,.used
-        ld a,(sv_area)
-        cp b
-        jr nz,.used
-        ld hl,(sv_name)         ; only if it resolved by name, not as an address
-        call sym_find_name
-        ret nc
-.res:   ld hl,err_reserved
-        jr .fail
-.used:  ld hl,err_name_used
-.fail:  ld (il_err),hl
-        scf
+        ld a,2
+        jr z,.c
+        dec a
+.c:     ld hl,sy_filt
+        cp (hl)
+        pop bc
+        pop hl
         ret
+; sy_skip: HL = record -> the first shown record from there (or the end)
+sy_skip:
+.l:     call sym_at_end
+        ret nc
+        call sy_match
+        ret z
+        call sym_next
+        jr .l
+; sy_fall: the filter back to All
+sy_fall:
+        xor a
+        ld (sy_filt),a
+; sy_hint: the status bar "SS+F filter: All IOs FBs VARs", the filter inverted
+sy_hint:
+        ld de,sy_hbuf
+        ld hl,txt_sy_flt
+        call put_str
+        inc hl
+        ld c,0
+.l:     ld a,(sy_filt)
+        cp c
+        ld a,ST_INV
+        jr nz,.n
+        ld (de),a
+        inc de
+.n:     push af
+        call put_str
+        pop af
+        jr nz,.s
+        ld (de),a
+        inc de
+.s:     inc hl
+        ld a,' '
+        ld (de),a
+        inc de
+        inc c
+        ld a,c
+        cp 4
+        jr c,.l
+        xor a
+        ld (de),a
+        ld hl,sy_hbuf
+        ld (st_left),hl
+        jp status_left
+txt_sy_flt: db "SS+F Filter: ",0,"All",0,"IOs",0,"FBs",0,"VARs",0
+sy_filt:    db 0
+sy_hbuf:    ds 40                ; (the hint: 34 B)
 
 ; ---- sy_count: il_n = number of symbols + 1 (empty row for a new one)
 sy_count:
         call sym_range
         ld bc,1
-.l:     push bc
+.l:     call sy_skip
+        push bc
         call sym_at_end
         pop bc
         jr nc,.e
@@ -674,7 +701,8 @@ sy_rec: ld hl,(sy_newpos)
         push bc
         call sym_range
         pop bc
-.l:     push bc
+.l:     call sy_skip
+        push bc
         call sym_at_end
         pop bc
         jr nc,.new
@@ -956,16 +984,22 @@ sy_commit:
         call sym_store
         ret c
         ; the row of the stored record
-        call sym_range          ; (changes DE)
-        push hl
+        ld a,(sy_nidx)          ; (not in the filter: the filter goes to All)
+        ld c,a
+        ld a,(sy_narea)
+        call sym_find_addr
+        call sy_match
+        call nz,sy_fall
         ld a,(sy_nidx)
         ld c,a
         ld a,(sy_narea)
         call sym_find_addr
-        ex de,hl
-        pop hl
+        push hl
+        call sym_range          ; (changes DE)
+        pop de
         ld bc,0
-.pos:   or a
+.pos:   call sy_skip
+        or a
         sbc hl,de
         add hl,de
         jr z,.posok

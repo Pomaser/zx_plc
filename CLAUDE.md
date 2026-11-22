@@ -274,7 +274,9 @@ editor and key for users.
   4 per type). An unknown name on an LD / FBD box is declared as a new instance (`ld_ask_operand.unk`).
   ST stores FB instance and variable names as text (they have no address). The tests declare the old
   names (`t_fbdecl`), the demo names everything (its `dm_syms` records `AR_GV,g,type,...` for variables).
-  The MKDEMO build has no sym_edit.asm (stubs `scr_sym`, `sym_validate`, `sy_xc`, `sy_end` in main.asm).
+  The page filters with SS+F (`sy_filt` All / IOs / FBs / VARs, `sy_match` / `sy_skip`, hint `sy_hint`).
+  The MKDEMO and TEST builds have no sym_edit.asm (`NO_SYMED`, stubs `scr_sym`, `sy_xc`, `sy_end` in
+  main.asm); `sym_validate` is in src/sym_valid.asm, always included.
 - **Global variables**:
   - A global is a record of the symbol table with area `AR_GV` (= AR_LV | 0x40), index = its number g
     (0..GV_MAX-1, a new one gets the number after the highest, `gv_new`) and its declaration after the

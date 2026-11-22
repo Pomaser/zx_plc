@@ -141,13 +141,17 @@ CORE_END:
         MMU 3, BANK_EDIT, BANKED
         INCLUDE "src/app.asm"
         INCLUDE "src/il_edit.asm"
-    IFNDEF MKDEMO
+        INCLUDE "src/sym_valid.asm" ; the name check (sym_validate)
+    IFDEF MKDEMO
+        DEFINE NO_SYMED
+    ENDIF
+    IFDEF TEST
+        DEFINE NO_SYMED
+    ENDIF
+    IFNDEF NO_SYMED
         INCLUDE "src/sym_edit.asm"
-    ELSE                            ; (the demo builder needs no symbol editor)
-scr_sym: ret
-sym_validate:
-        or a
-        ret
+    ELSE                            ; (the demo builder and the tests need no
+scr_sym: ret                        ;  variable editor)
 sy_xc:  ld a,SY_X_COMM
         ret
 sy_end: dw 0

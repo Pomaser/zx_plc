@@ -92,6 +92,8 @@ st_print:
         ld (pt_row),a
         ld a,1
         ld (pt_down),a
+        xor a                   ; (no inverted run left from a clipped text)
+        ld (st_in),a
         ld hl,st_buf
 .l:     ld a,(hl)
         inc hl

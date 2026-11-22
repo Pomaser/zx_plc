@@ -571,6 +571,9 @@ steps, system words), then the FB instances, then the variables.
   `ton`. It is stored in the normal form (`AT %IX0.0`, `INT := 100`, `TON`); `: BOOL` after an address
   is accepted and left out. ENTER, UP and DOWN store the row; the empty last row adds one.
 * Clearing the name and the comment removes a row, as does Edit > Delete line.
+* **SS+F** filters the list: All, IOs (names on addresses), FBs (instances) or VARs (variables); the
+  status bar shows the filter. A row stored outside the filter switches it back to All.
+* SPACE goes from the name to the declaration and on to the comment; after `AT` it is typed as a space.
 * The names are used in every language instead of an address: `LD Start`, a contact `Alert`,
   `CAL T_Red(IN:=S_Red, PT:=T#4s)`, `Fills.CV`, `Level := Level + 1;` in ST. LD / FBD contacts and
   coils take `BOOL` variables, word operands any type.
