@@ -89,6 +89,8 @@ il_editor:
         jp z,.right
         cp K_DEL
         jp z,.del
+        cp K_FDEL
+        jp z,.fdel
         cp K_WATCH
         jp z,.wak
         cp K_XREF
@@ -302,6 +304,14 @@ il_editor:
         jp .move
 
         ; ---- DELETE (backspace)
+.fdel:  call ed_field_info      ; SS+DELETE: the char right of the cursor
+        call strlen
+        ld b,a
+        ld a,(ed_pos)
+        cp b
+        jp nc,.loop
+        inc a
+        ld (ed_pos),a
 .del:   ld a,(ed_pos)
         or a
         jr z,.del0

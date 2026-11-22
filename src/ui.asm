@@ -187,6 +187,8 @@ ui_input:
         jr z,.wr
         cp K_DEL
         jp z,.del
+        cp K_FDEL
+        jp z,.fdel
         cp 32
         jr c,.key
         cp 128
@@ -263,6 +265,14 @@ ui_input:
         inc a
         ld (in_pos),a
         jp .key
+.fdel:  ld a,(in_pos)           ; SS+DELETE: the char right of the cursor
+        ld b,a
+        ld a,(in_len)
+        cp b
+        jp z,.key
+        ld a,b
+        inc a
+        ld (in_pos),a
 .del:   ld a,(in_pos)
         or a
         jp z,.key

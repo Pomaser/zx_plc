@@ -49,13 +49,15 @@ kb_read:
         ld a,e
         cp 0xFF
         jr z,.none
-        ld a,d                  ; CS+SS+5..8 = SS + cursor key: jumps
-        cp 3
+        ld a,d                  ; CS+SS+5..8 = SS + cursor key: jumps,
+        cp 3                    ; CS+SS+0 = SS + DELETE
         jr nz,.tab
         ld a,e
         sub 19                  ; key 5
         jr z,.home
-        sub 3                   ; 8
+        dec a                   ; 0
+        jr z,.fdel
+        sub 2                   ; 8
         jr z,.end
         dec a                   ; 7
         jr z,.pgup
@@ -64,6 +66,8 @@ kb_read:
         ld a,K_PGDN
         ret
 .home:  ld a,K_HOME
+        ret
+.fdel:  ld a,K_FDEL
         ret
 .end:   ld a,K_END
         ret

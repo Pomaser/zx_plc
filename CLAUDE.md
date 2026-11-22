@@ -132,11 +132,12 @@ editor and key for users.
   - RUN 4: compilers (also `src/st_comp.asm`, `src/st_var.asm`), VM, bytecode at 0xF000, POU list, tape,
     SD card (`src/sd.asm`). It is uncontended, which tape timing needs (~0.4 KB free). Above `BCODE_END`:
     0xF800-0xFBFF the ST tokenizer of the compiler, 0xFC00 / 0xFD00 the ST locals (LV_INIT / LV_BASE).
-  - DATA 1: the popup save buffer, `src/globals.asm` (declarations of the global variables),
-    `src/il_check.asm` (the IL line check `il_check` / `il_check_label`,
-    called through `il_chk` / `il_chk_label` in il_edit.asm, which copy the texts to fixed memory first)
-    and the clipboard (`clip_buf`, filled by `src/clip.asm`, at least 12 KB; the build prints the free
-    space as "DATA").
+  - DATA 1: `src/il_check.asm` (the IL line check `il_check` / `il_check_label`, called through
+    `il_chk` / `il_chk_label` in il_edit.asm, which copy the texts to fixed memory first),
+    `src/globals.asm` (declarations of the global variables), the popup save buffer `win_save`
+    (WIN_MAXC cells x 9 B, menu.asm: it must hold the largest popup, Help > Controls 22 x 17; measure
+    `win_cols` x `win_rows` after adding text to a popup) and the clipboard (`clip_buf`, the rest of the
+    bank, CLIP_MAX ~11.4 KB, printed by the build; a larger block is refused by clip.asm).
   - DEMO 3: `src/tools.asm` (cross references, watch / force page of the simulation, Help texts),
     `src/clip.asm` (mark / copy / cut / paste, called by the editors with `BCALL cl_cmd` / `mk_draw`),
     `src/wexpr.asm`, `src/mouse.asm`, `src/ur4.asm`, `src/trend.asm`, `src/complete.asm` (ST name
@@ -228,7 +229,8 @@ editor and key for users.
   - The menu bar title (`menu_pou`) shows the POU name, or Symbols / Watch / Trend (`mp_alt`).
   - SS+LEFT / SS+RIGHT (`K_HOME` / `K_END`) jump one word back / forward in texts (`word_l` / `word_r`,
     util.asm; words = letters, digits, '_'): IL, ST, symbol editor, `ui_input`. The LD / FBD grids use them
-    for the row start / end. The browser's Ctrl + arrows arrive as these keys.
+    for the row start / end. The browser's Ctrl + arrows arrive as these keys. SS+DELETE (CS+SS+0, `K_FDEL`,
+    the browser's Delete) deletes right of the cursor (moves one right, then the DELETE path).
   - Command palette (SS+E = `K_PAL`, Ctrl+E in the browser): `kb_get` turns K_PAL into K_EDIT and sets
     `pal_req`, so every screen opens "the menu"; `menu_run` then calls `BCALL pal_run`
     (src/complete.asm) instead of the drop-downs: the list window of the name completion (`ac_ui`,

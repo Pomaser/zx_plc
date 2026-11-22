@@ -107,6 +107,8 @@ st_editor:
         jp z,.pgdn
         cp K_DEL
         jp z,.del
+        cp K_FDEL
+        jp z,.fdel
         cp K_COMPL
         jp z,.compl
         cp K_MOUSE
@@ -231,6 +233,13 @@ st_editor:
         jp .loop
 
         ; ---- DELETE (backspace); on an empty line: the line is removed
+.fdel:  call st_len             ; SS+DELETE: the char right of the cursor
+        ld b,a
+        ld a,(st_pos)
+        cp b
+        jp nc,.loop
+        inc a
+        ld (st_pos),a
 .del:   ld a,(st_pos)
         or a
         jr z,.del0

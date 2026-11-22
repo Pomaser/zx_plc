@@ -221,6 +221,7 @@ K_COPY      EQU 18          ; SS + D: copy the block
 K_PASTE     EQU 19          ; SS + F: paste
 K_REDO      EQU 21          ; SS + Y: redo the undone change
 K_COMPL     EQU 22          ; SS + SPACE: ST name completion (Ctrl+Space)
+K_FDEL      EQU 24          ; SS + DELETE (CS+SS+0): delete the char right of the cursor
 K_PAL       EQU 23          ; SS + E: command palette (kb_get: K_EDIT + pal_req)
 K_MOUSE     EQU 20          ; a mouse click (ms_cx / ms_cy / ms_btn, mouse.asm)
 K_EDIT      EQU 7

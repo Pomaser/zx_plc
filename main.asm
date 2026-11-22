@@ -202,8 +202,9 @@ RUN2_END:
 win_save: ds 9*WIN_MAXC     ; cells saved under a popup window
 DATA_END:
 clip_buf:                   ; the clipboard (clip.asm), up to the IM2 stub
-        DISPLAY "DATA:  free: ",/D,IM2_JP-clip_buf-(PROJ_END-PROJ)
-        ASSERT IM2_JP-clip_buf >= PROJ_END-PROJ
+CLIP_MAX EQU IM2_JP-clip_buf    ; the clipboard: the rest of the DATA bank
+        DISPLAY "DATA:  clipboard ",/D,CLIP_MAX," B"
+        ASSERT CLIP_MAX >= 10240
         IM2STUB
 
 ; ---- FBD bank -----------------------------------------------

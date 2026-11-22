@@ -181,7 +181,15 @@ cl_cmd:
         ld de,(cl_s)
         or a
         sbc hl,de
-        ld (clip_len),hl
+        push hl                 ; larger than the clipboard: not copied
+        ld de,CLIP_MAX+1
+        or a
+        sbc hl,de
+        pop hl
+        jr c,.fits
+        ld hl,txt_cl_big
+        jp .msg
+.fits:  ld (clip_len),hl
         ld b,h
         ld c,l
         ld hl,(cl_s)
@@ -602,6 +610,7 @@ cl_dr:    db 0
 cl_out:   dw 0
 
 txt_cl_copied: db "Copied",0
+txt_cl_big:    db "Block too large for the clipboard",0
 txt_cl_cut:    db "Cut",0
 txt_cl_pasted: db "Pasted",0
 txt_cl_line:   db " line",0

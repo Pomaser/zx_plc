@@ -55,11 +55,13 @@
       <kbd>Ctrl</kbd>+<kbd>Y</kbd> redo, <kbd>Ctrl</kbd>+<kbd>Space</kbd> complete a name (ST),
       <kbd>Ctrl</kbd>+<kbd>E</kbd> command palette</td></tr>
     <tr><td>Arrows, <kbd>Backspace</kbd>, <kbd>Enter</kbd></td><td>cursor keys, DELETE, ENTER</td></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>&larr;</kbd> / <kbd>&rarr;</kbd>, <kbd>Delete</kbd></td><td>one word back / forward,
+      delete the character right of the cursor (SS + DELETE)</td></tr>
     <tr><td><kbd>%</kbd> <kbd>!</kbd> <kbd>$</kbd> <kbd>(</kbd> <kbd>)</kbd> &hellip;</td>
       <td>typed as on a PC keyboard (sent as SS + the Spectrum key); operands are e.g. <code>%IX0.0</code></td></tr>
     <tr><td>letters</td><td>hotkeys of the menus and elements</td></tr>
   </table>
-  <p>Try it: <b>Run &gt; Run</b> runs the demo project; in the simulation the keys <kbd>0</kbd>&ndash;<kbd>7</kbd>
+  <p>Try it: <b>Online &gt; Run</b> runs the demo project; in the simulation the keys <kbd>0</kbd>&ndash;<kbd>7</kbd>
     toggle the inputs. Saving and loading projects does not work in the browser, and the UR-4 interface is not
     emulated here.</p>
   <p><b>Kempston mouse:</b> switch it on with <b>Setup &gt; Mouse</b>. Over the emulator the PC pointer is
@@ -102,12 +104,14 @@
     let mod, key;
     if (e.key in CS) { mod = 16; key = CS[e.key]; }
     else if (e.key in SS && !e.ctrlKey) { mod = 17; key = SS[e.key]; }
+    else if (e.key === 'Delete') { mod = [16, 17]; key = 48; }   // CS+SS+0: delete right
     else return;
     e.stopImmediatePropagation(); e.preventDefault();
     if (held[e.keyCode]) return;         // autorepeat: the Spectrum repeats by itself
     const to = e.target;
     if (e.shiftKey && mod === 17) send('keyup', 16, to);   // no CAPS SHIFT with the symbol
-    send('keydown', mod, to); send('keydown', key, to);
+    for (const m of [].concat(mod)) send('keydown', m, to);
+    send('keydown', key, to);
     held[e.keyCode] = [mod, key, to];
   }, true);
   window.addEventListener('keyup', e => {
@@ -116,7 +120,8 @@
     if (!h) return;
     e.stopImmediatePropagation(); e.preventDefault();
     delete held[e.keyCode];
-    send('keyup', h[1], h[2]); send('keyup', h[0], h[2]);
+    send('keyup', h[1], h[2]);
+    for (const m of [].concat(h[0])) send('keyup', m, h[2]);
     if (e.shiftKey && h[0] === 17) send('keydown', 16, h[2]);
   }, true);
 })();

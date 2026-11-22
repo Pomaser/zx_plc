@@ -2006,6 +2006,7 @@ txt_keys:
         db "SS+ENTER",PT_TAB,"new line / LD next row",0
         db "ENTER",PT_TAB,"confirm",0
         db "DELETE",PT_TAB,"delete (CS+0)",0
+        db "SS+DELETE",PT_TAB,"delete right",0
         db "Letters",PT_TAB,"hotkeys",0
         db "SS+U  SS+Y",PT_TAB,"undo  redo",0
         db "SS+X",PT_TAB,"cross references",0

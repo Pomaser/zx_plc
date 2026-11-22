@@ -73,6 +73,8 @@ scr_sym:
         jp z,.pgdn
         cp K_DEL
         jp z,.del
+        cp K_FDEL
+        jp z,.fdel
         cp K_WATCH
         jp z,.wak
         cp K_XREF
@@ -256,6 +258,14 @@ scr_sym:
         cp F_OPER
         jp z,.tocomm
         jp .loop
+.fdel:  call ed_field_info      ; SS+DELETE: the char right of the cursor
+        call strlen
+        ld b,a
+        ld a,(ed_pos)
+        cp b
+        jp nc,.loop
+        inc a
+        ld (ed_pos),a
 .del:   ld a,(ed_pos)
         or a
         jr z,.back

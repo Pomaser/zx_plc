@@ -187,7 +187,8 @@ RESULTS = []
 
 
 def t_words(ui):
-    """SS+LEFT / SS+RIGHT jump by words (letters, digits, '_')"""
+    """SS+LEFT / SS+RIGHT jump by words (letters, digits, '_'), SS+DELETE
+    deletes the char right of the cursor"""
     ui.play(new_st("WJ") + T("a := b + c1;"))
     pos = lambda: ui.z.bank_bytes(6, ui.sym("st_pos"), 1)[0]
     got = [pos()]
@@ -195,6 +196,9 @@ def t_words(ui):
         ui.play(k + "w20 ")
         got.append(pos())
     compare("words: cursor positions", got, [12, 9, 5, 0, 5, 9, 12])
+    ui.play("k:SS+CS+5 w20 k:SS+CS+0 w20 k:SS+CS+0 w20 ")   # SS+DELETE: "c1" removed
+    check("words: SS+DELETE deletes to the right",
+          ui.fbd_str("se_buf") == "a := b + ;" and pos() == 9, (ui.fbd_str("se_buf"), pos()))
 
 
 def t_watchwrite(ui):
