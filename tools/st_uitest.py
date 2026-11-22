@@ -186,6 +186,17 @@ def run():
 RESULTS = []
 
 
+def t_words(ui):
+    """SS+LEFT / SS+RIGHT jump by words (letters, digits, '_')"""
+    ui.play(new_st("WJ") + T("a := b + c1;"))
+    pos = lambda: ui.z.bank_bytes(6, ui.sym("st_pos"), 1)[0]
+    got = [pos()]
+    for k in ("k:SS+CS+5 ", "k:SS+CS+5 ", "k:SS+CS+5 ", "k:SS+CS+8 ", "k:SS+CS+8 ", "k:SS+CS+8 "):
+        ui.play(k + "w20 ")
+        got.append(pos())
+    compare("words: cursor positions", got, [12, 9, 5, 0, 5, 9, 12])
+
+
 def t_watchwrite(ui):
     """watch page W: one write to a global INT (in STOP), a BOOL output
     inverted (an input is refused: see the shot ww_in)"""
@@ -286,8 +297,8 @@ def t_long(ui):
     check("long: run: ok (IF)", ui.mx(1, 0) == 1)
 
 
-HOME = "k:SS+CS+5 w4 "          # SS+LEFT: line start
-END = "k:SS+CS+8 w4 "           # SS+RIGHT: line end
+HOME = "k:SS+CS+5 w4 " * 8      # SS+LEFT: one word back (8 x: the line start)
+END = "k:SS+CS+8 w4 " * 8       # SS+RIGHT: one word forward (8 x: the line end)
 MARK = "k:SS+A w10 "
 COPY = "k:SS+D w30 "
 PASTE = "k:SS+F w60 "
@@ -553,7 +564,8 @@ TESTS = {"long": t_long, "edit": t_edit, "clip": t_clip, "autodecl": t_autodecl,
          "manual": t_manual, "compl": t_compl, "autorun": t_autorun,
          "errors": t_errors, "semicolon": t_semicolon, "varpaste": t_varpaste, "toolong": t_toolong,
          "view": t_view, "palette": t_palette, "palmouse": t_palmouse, "globals": t_globals,
-         "watchwrite": t_watchwrite}
+         "watchwrite": t_watchwrite,
+         "words": t_words}
 
 
 def main():

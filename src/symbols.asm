@@ -123,80 +123,6 @@ str_ieq:
         inc de
         jr str_ieq
 
-; ---- sym_validate: HL = name, A = area, C = index of its own address
-;      NC = valid (or empty); C = error, il_err = message
-sym_validate:
-        ld (sv_area),a
-        ld a,c
-        ld (sv_idx),a
-        ld (sv_name),hl
-        ld a,(hl)
-        or a
-        ret z                   ; empty name: comment only
-        ; identifier: letter or "_", then letters, digits, "_"; max 8
-        call to_upper
-        cp '_'
-        jr z,.c1
-        call is_alpha
-        jr c,.bad
-.c1:    ld b,0
-.ch:    ld a,(hl)
-        or a
-        jr z,.len
-        call to_upper
-        inc hl
-        inc b
-        cp '_'
-        jr z,.ch
-        call is_alpha
-        jr nc,.ch
-        call is_digit
-        jr nc,.ch
-.bad:   ld hl,err_bad_name
-        jr .fail
-.len:   ld a,b
-        cp SYM_NMAX+1
-        jr nc,.bad
-        ; not an IL instruction
-        ld hl,(sv_name)
-        call il_mnem_find
-        jr nc,.res
-        ; not an address, keyword, FB, POU or another symbol
-        ld hl,(sv_name)
-        call op_parse
-        ccf
-        ret nc                  ; unknown word: valid
-        ld b,a
-        and AR_MASK
-        cp AR_I
-        jr z,.sym
-        cp AR_Q
-        jr z,.sym
-        cp AR_M
-        jr z,.sym
-        cp AR_SX
-        jr z,.sym
-        cp AR_LV                ; (a global)
-        jr z,.sym
-        cp AR_FBI
-        jr nz,.res
-.sym:   ; a symbol (or address) of the same name: fine only if it is our own
-        ld a,(sv_idx)
-        cp c
-        jr nz,.used
-        ld a,(sv_area)
-        cp b
-        jr nz,.used
-        ld hl,(sv_name)         ; only if it resolved by name, not as an address
-        call sym_find_name
-        ret nc
-.res:   ld hl,err_reserved
-        jr .fail
-.used:  ld hl,err_name_used
-.fail:  ld (il_err),hl
-        scf
-        ret
-
 ; ---- sym_store: A = area, C = index, HL = name, DE = comment
 ;      replaces the record of the address; empty name and comment -> removed
 ;      C = out of memory (message shown)
@@ -371,48 +297,6 @@ gv_top:
         call sym_next
         jr .l
 .e:     ld a,b
-        ret
-
-; ---- sym_range: the records of the symbol editor (sy_gmode 0: the
-;      symbols, 1: the globals) -> HL = first, sf_end = end
-sym_range:
-        call sym_first
-        push hl
-.l:     call sym_at_end         ; the first global (or the end)
-        jr nc,.e
-        inc hl
-        ld a,(hl)
-        dec hl
-        cp AR_GV
-        jr z,.e
-        call sym_next
-        jr .l
-.e:     pop de
-        ld a,(sy_gmode)
-        or a
-        ret nz                  ; globals: from there to the end
-        ld (sf_end),hl          ; symbols: up to there
-        ex de,hl
-        ret
-
-; ---- gv_new: -> NC: C = a free global number; C: all used
-gv_new:
-        call gv_top             ; after the highest one (no reuse of a
-        ld c,a                  ; number that may still be referenced)
-        cp GV_MAX
-        jr nc,.low
-.fr:    or a
-        ret
-.low:   ld c,0                  ; then the lowest free one
-.l:     push bc
-        call gv_find
-        pop bc
-        jr c,.fr
-        inc c
-        ld a,c
-        cp GV_MAX
-        jr c,.l
-        scf                     ; all used
         ret
 
 err_gv_type: db "Type: BOOL, BYTE or INT",0

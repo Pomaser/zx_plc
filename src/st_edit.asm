@@ -220,11 +220,14 @@ st_editor:
         inc a
         ld (st_pos),a
         jp .loop
-.home:  xor a
-        ld (st_pos),a
-        jp .loop
-.end:   call st_len
-        ld (st_pos),a
+.home:  ld hl,se_buf            ; SS+LEFT / SS+RIGHT: one word back / forward
+        ld a,(st_pos)
+        call word_l
+        jr .wpos
+.end:   ld hl,se_buf
+        ld a,(st_pos)
+        call word_r
+.wpos:  ld (st_pos),a
         jp .loop
 
         ; ---- DELETE (backspace); on an empty line: the line is removed

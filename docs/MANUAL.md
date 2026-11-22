@@ -70,7 +70,7 @@ The cursor keys are CAPS SHIFT + 5 / 6 / 7 / 8, DELETE is CAPS SHIFT + 0. Combin
 |---|---|
 | BREAK (CS+SPACE), EDIT (CS+1) | open / close the menu |
 | Arrows | move; in a menu: other title / item |
-| SS + LEFT / RIGHT | start / end of the line (LD / FBD: first position / output column) |
+| SS + LEFT / RIGHT | one word back / forward in a text (IL, ST, comments, symbols, input fields; Ctrl + arrows in the browser); in the LD / FBD grid: first position / output column |
 | SS + UP / DOWN | one screen up / down (POU list: first / last POU) |
 | SS + ENTER | IL: new line below; LD / FBD: start of the next row |
 | ENTER | confirm, open, edit |
@@ -464,7 +464,7 @@ works like a small text editor:
   added when the next line already starts with the `THEN` / `DO` / `OF`.
 * ENTER splits the line at the cursor (at the end: a new empty line below), SS+ENTER opens an empty line
   below. DELETE deletes the character left of the cursor; on an empty line it removes the line.
-  SS+LEFT / SS+RIGHT go to the start / end of the line, SS+UP / SS+DOWN page.
+  SS+LEFT / SS+RIGHT jump one word back / forward, SS+UP / SS+DOWN page.
 * SS+X and SS+W take the operand under (or just before) the cursor; the status bar shows its symbol and
   comment (for a local variable its type).
 * **Symbols / addresses:** an operand that has an address is stored as that address (`%MW0`,

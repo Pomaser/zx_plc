@@ -241,24 +241,38 @@ il_editor:
         ld (ed_pos),a
         jp .loop
 
-        ; ---- SS+LEFT / SS+RIGHT: start / end of the line
-.home:  ld a,(ed_field)
-        cp F_OPER
-        jr nz,.h1
-        ld a,F_MNEM
-        ld (ed_field),a
-.h1:    xor a
+        ; ---- SS+LEFT / SS+RIGHT: one word back / forward (at the start of
+        ;      the operand: to the mnemonic, at the end of the mnemonic: to
+        ;      the operand)
+.home:  call ed_field_info
+        ld a,(ed_pos)
+        or a
+        jp z,.l0
+        call word_l
         ld (ed_pos),a
-        jp .redraw
-.end:   ld a,(ed_field)         ; instruction with an operand: end of it
+        jp .loop
+.end:   call ed_field_info
+        ld a,(ed_pos)
+        ld c,a
+        push bc
+        call word_r
+        pop bc
+        cp c
+        jr z,.en0
+        ld (ed_pos),a
+        jp .loop
+.en0:   ld a,(ed_field)
         cp F_MNEM
-        jp nz,.en1
+        jp nz,.loop
         ld a,(ed_o)
         or a
-        jp z,.en1
+        jp z,.loop
         ld a,F_OPER
         ld (ed_field),a
-.en1:   call ed_field_info
+        xor a
+        ld (ed_pos),a
+        jp .redraw
+.en1:   call ed_field_info      ; (a click: the end of the field)
         call strlen
         ld (ed_pos),a
         jp .redraw

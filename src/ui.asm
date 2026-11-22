@@ -178,11 +178,15 @@ ui_input:
         cp K_EDIT
         jp z,.cancel
         cp K_LEFT
-        jr z,.left
+        jp z,.left
         cp K_RIGHT
-        jr z,.right
+        jp z,.right
+        cp K_HOME               ; SS+LEFT / SS+RIGHT: one word back / forward
+        jr z,.wl
+        cp K_END
+        jr z,.wr
         cp K_DEL
-        jr z,.del
+        jp z,.del
         cp 32
         jr c,.key
         cp 128
@@ -235,6 +239,15 @@ ui_input:
         ld hl,in_pos
         inc (hl)
         jp .redraw
+.wl:    ld hl,(in_buf)
+        ld a,(in_pos)
+        call word_l
+        jr .wp
+.wr:    ld hl,(in_buf)
+        ld a,(in_pos)
+        call word_r
+.wp:    ld (in_pos),a
+        jp .key
 .left:  ld a,(in_pos)
         or a
         jp z,.key

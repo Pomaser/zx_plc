@@ -63,15 +63,80 @@ dec3:
         inc de
         ret
 
+; ---- word_l: HL = text, A = cursor -> A = start of the word in front of
+;      it (SS+LEFT); words: letters, digits, '_'
+word_l:
+        ld c,a
+.sp:    ld a,c
+        or a
+        ret z
+        dec c
+        call wd_ch
+        jr nc,.sp
+.w:     ld a,c
+        or a
+        ret z
+        dec c
+        call wd_ch
+        jr c,.w
+        inc c
+        ld a,c
+        ret
+
+; ---- word_r: HL = text, A = cursor -> A = start of the next word, or the
+;      end (SS+RIGHT)
+word_r:
+        ld c,a
+.w:     call wd_ch
+        jr z,.e
+        jr nc,.sp
+        inc c
+        jr .w
+.sp:    call wd_ch
+        jr z,.e
+        jr c,.e
+        inc c
+        jr .sp
+.e:     ld a,c
+        ret
+
+; wd_ch: char C of the text HL -> Z: the end; C: a word char (keeps BC, DE, HL)
+wd_ch:  push de
+        push hl
+        ld e,c
+        ld d,0
+        add hl,de
+        ld a,(hl)
+        pop hl
+        pop de
+        or a
+        ret z
+        cp '_'
+        jr z,.y
+        cp '0'
+        jr c,.n
+        cp '9'+1
+        jr c,.y
+        call to_upper
+        cp 'A'
+        jr c,.n
+        cp 'Z'+1
+        jr c,.y
+.n:     or a
+        ret
+.y:     or a
+        scf
+        ret
+
 ; ---- itoa16: HL (signed) -> text at (DE)
 itoa16:
         bit 7,h
-        jr z,utoa16
+        jp z,utoa16
         ld a,'-'
         ld (de),a
         inc de
         call neg_hl
-        jr utoa16
+        jp utoa16
 
 ; ---- neg_hl: HL = -HL
 neg_hl:

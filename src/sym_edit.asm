@@ -201,26 +201,34 @@ scr_sym:
         call strlen
         ld (ed_pos),a
         jp .loop
-.home:  ld a,(ed_field)         ; SS+LEFT: start of the name
+.home:  call ed_field_info      ; SS+LEFT: one word back (at the start
+        ld a,(ed_pos)           ; of a field: the end of the one before)
+        or a
+        jr z,.back
+        call word_l
+        jr .wpos
+.end:   call ed_field_info      ; SS+RIGHT: one word forward (at the end
+        ld a,(ed_pos)           ; of a field: the start of the next one)
+        ld c,a
+        push bc
+        call word_r
+        pop bc
+        cp c
+        jr z,.wnext
+.wpos:  ld (ed_pos),a
+        jp .loop
+.wnext: ld a,(ed_field)
+        cp F_COMM
+        jp z,.loop
         cp F_OPER
-        call z,sy_norm_addr     ; (leaving the address field)
-        ld a,F_MNEM
-        ld (ed_field),a
+        ld a,F_OPER
+        jr nz,.wset
+        call sy_norm_addr       ; (leaving the address field)
+        ld a,F_COMM
+.wset:  ld (ed_field),a
         xor a
         ld (ed_pos),a
         jp .redraw
-.end:   ld a,(ed_field)         ; SS+RIGHT: end of the comment
-        cp F_COMM
-        jr z,.tocomm2
-        cp F_OPER
-        jp z,.tocomm
-        ld a,F_OPER             ; from the name: through the address field
-        ld (ed_field),a
-        jp .tocomm
-.tocomm2:
-        ld hl,ed_c
-        ld a,F_COMM
-        jr .tofield
 .left:  ld a,(ed_pos)
         or a
         jr z,.back
@@ -499,6 +507,122 @@ sy_norm_addr:
         ld b,0
         call op_format
         jp sy_draw_edit
+
+; ---- sym_range: the records of the symbol editor (sy_gmode 0: the
+;      symbols, 1: the globals) -> HL = first, sf_end = end
+sym_range:
+        call sym_first
+        push hl
+.l:     call sym_at_end         ; the first global (or the end)
+        jr nc,.e
+        inc hl
+        ld a,(hl)
+        dec hl
+        cp AR_GV
+        jr z,.e
+        call sym_next
+        jr .l
+.e:     pop de
+        ld a,(sy_gmode)
+        or a
+        ret nz                  ; globals: from there to the end
+        ld (sf_end),hl          ; symbols: up to there
+        ex de,hl
+        ret
+
+; ---- gv_new: -> NC: C = a free global number; C: all used
+gv_new:
+        call gv_top             ; after the highest one (no reuse of a
+        ld c,a                  ; number that may still be referenced)
+        cp GV_MAX
+        jr nc,.low
+.fr:    or a
+        ret
+.low:   ld c,0                  ; then the lowest free one
+.l:     push bc
+        call gv_find
+        pop bc
+        jr c,.fr
+        inc c
+        ld a,c
+        cp GV_MAX
+        jr c,.l
+        scf                     ; all used
+        ret
+
+; ---- sym_validate: HL = name, A = area, C = index of its own address
+;      NC = valid (or empty); C = error, il_err = message
+sym_validate:
+        ld (sv_area),a
+        ld a,c
+        ld (sv_idx),a
+        ld (sv_name),hl
+        ld a,(hl)
+        or a
+        ret z                   ; empty name: comment only
+        ; identifier: letter or "_", then letters, digits, "_"; max 8
+        call to_upper
+        cp '_'
+        jr z,.c1
+        call is_alpha
+        jr c,.bad
+.c1:    ld b,0
+.ch:    ld a,(hl)
+        or a
+        jr z,.len
+        call to_upper
+        inc hl
+        inc b
+        cp '_'
+        jr z,.ch
+        call is_alpha
+        jr nc,.ch
+        call is_digit
+        jr nc,.ch
+.bad:   ld hl,err_bad_name
+        jr .fail
+.len:   ld a,b
+        cp SYM_NMAX+1
+        jr nc,.bad
+        ; not an IL instruction
+        ld hl,(sv_name)
+        call il_mnem_find
+        jr nc,.res
+        ; not an address, keyword, FB, POU or another symbol
+        ld hl,(sv_name)
+        call op_parse
+        ccf
+        ret nc                  ; unknown word: valid
+        ld b,a
+        and AR_MASK
+        cp AR_I
+        jr z,.sym
+        cp AR_Q
+        jr z,.sym
+        cp AR_M
+        jr z,.sym
+        cp AR_SX
+        jr z,.sym
+        cp AR_LV                ; (a global)
+        jr z,.sym
+        cp AR_FBI
+        jr nz,.res
+.sym:   ; a symbol (or address) of the same name: fine only if it is our own
+        ld a,(sv_idx)
+        cp c
+        jr nz,.used
+        ld a,(sv_area)
+        cp b
+        jr nz,.used
+        ld hl,(sv_name)         ; only if it resolved by name, not as an address
+        call sym_find_name
+        ret nc
+.res:   ld hl,err_reserved
+        jr .fail
+.used:  ld hl,err_name_used
+.fail:  ld (il_err),hl
+        scf
+        ret
 
 ; ---- sy_count: il_n = number of symbols + 1 (empty row for a new one)
 sy_count:

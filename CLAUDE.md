@@ -23,7 +23,7 @@ editor and key for users.
   - The test builds and the demo builder (`-DMKDEMO`) leave out `src/sim.asm` (`WITH_SIM` in main.asm,
     `scr_run` is a stub there) to make room in the EDIT bank.
 - `make uitest`: UI tests of the ST editor (`tools/st_uitest.py`, a few seconds): key scripts played into
-  `zxplc.sna` (a new ST POU per test: typing a longer program with completion / splitting / folding, the Globals page, watch-page writes,
+  `zxplc.sna` (a new ST POU per test: typing a longer program with completion / splitting / folding, the Globals page, watch-page writes, word jumps,
   corrections + undo / redo, clipboard, auto-declaration, a typed VAR block, name completion,
   compile errors, a too long line), then the stored lines (indent + text) are read from PROJ and the
   results of Run from RT / the compile error (`il_err`, `cp_line` via zxplc.sym). `--shots DIR`

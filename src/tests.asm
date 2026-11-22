@@ -101,12 +101,12 @@ run_tests:
         call il_tests
         call gv_tests
         call undo_tests
+        call clip_tests
     ELSE
         call vm_tests
         call sym_tests
         call ld_tests
         call fbd_tests
-        call clip_tests
         call st_tests
     ENDIF
         ; ---- result
@@ -655,7 +655,7 @@ t_word: ld a,(hl)
         jp t_check
 
 
-    IF TPART==2
+    IF TPART==1
 ; ---- clipboard: copy IL lines 1-2, paste them at line 0, cut them again
 clip_tests:
         ld hl,t_clip
@@ -709,6 +709,8 @@ t_clip: db "LD",9,"%IX0.0",0
         db "ST",9,"%QX0.0",0
         db "ST",9,"%QX0.1",0
         db 0xFF
+    ENDIF
+    IF TPART==2
 
 t_prog1:
         db "LD",9,"%IX0.0",0
