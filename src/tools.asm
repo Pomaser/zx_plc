@@ -544,9 +544,18 @@ xr_screen:
         ld a,(xr_idx)
         ld c,a
         ld a,(xr_area)
-        ld hl,0
+        cp AR_LV                ; a variable (the area kept without its bit 6)
+        jr nz,.t1
+        ld a,AR_GV
+.t1:    ld hl,0
         ld b,0
+        push af
         call op_format
+        pop af
+        cp AR_GV                ; variables and FB instances: the name only
+        jr z,.nt
+        cp AR_FBI
+        jr z,.nt
         push de
         ld a,(xr_idx)
         ld c,a
