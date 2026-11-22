@@ -2138,47 +2138,75 @@ ld_ask_operand:
         ret c
         ld hl,ld_obuf
         call op_parse
-        jp c,.bad
+        jp c,.unk
         ld b,a
         ld a,(hl)
         or a
         jp nz,.bad
-        ld a,(ld_kind)          ; FBD box: kind = LK_FB + FB type
-        cp LK_FB
-        jr c,.nfbk
-        and 0x0F
-        ld e,a
-        ld a,b
-        cp AR_FBI
-        jp nz,.bad
-        jr .bt
-.nfbk:  ld a,(ld_kind)          ; timer box: an instance of the same FB type
-        call ld_isbox
+        call .boxt              ; a box: an instance of the same FB type
         jr nz,.nbox
         ld a,b
         cp AR_FBI
-        jr nz,.bad
-        ld a,(ld_kind)
-        ld e,FBT_TON
-        cp LT_TON
-        jr z,.bt
-        ld e,FBT_TOF
-        cp LT_TOF
-        jr z,.bt
-        ld e,FBT_CTU
-        cp LT_CTU
-        jr z,.bt
-        ld e,FBT_CTD
-        cp LT_CTD
-        jr z,.bt
-        ld e,FBT_TP
+        jp nz,.bad
 .bt:    ld a,c
         rrca
         rrca
         and 0x3F
         cp e
-        jr nz,.bad
+        jp nz,.bad
         or a
+        ret
+.unk:   call .boxt              ; an unknown name on a box: declared as a
+        jp nz,.bad              ; new instance of its type (Global vars)
+        ld a,e
+        call fbi_free
+        ld hl,err_fb_full
+        jr c,.err
+        push bc
+        ld hl,ld_obuf
+        ld a,AR_FBI
+        call sym_validate
+        pop bc
+        ld hl,(il_err)
+        jr c,.err
+        push bc
+        ld hl,ld_obuf
+        ld de,cp_empty
+        ld a,AR_FBI
+        call sym_store
+        pop bc
+        ret c
+        ld b,AR_FBI
+        or a
+        ret
+.err:   call ui_error
+        jp .ask
+; .boxt: Z if the element is a box (E = its FB type)
+.boxt:  ld a,(ld_kind)
+        cp LK_FB                ; FBD box: kind = LK_FB + FB type
+        jr c,.bx1
+        and 0x0F
+        ld e,a
+        cp a
+        ret
+.bx1:   call ld_isbox           ; LD timer / counter box
+        ret nz
+        ld a,(ld_kind)
+        and LT_MASK
+        ld e,FBT_TON
+        cp LT_TON
+        ret z
+        ld e,FBT_TOF
+        cp LT_TOF
+        ret z
+        ld e,FBT_CTU
+        cp LT_CTU
+        ret z
+        ld e,FBT_CTD
+        cp LT_CTD
+        ret z
+        ld e,FBT_TP
+        cp a
         ret
 .nbox:  ld a,b
         and AR_MASK
@@ -2235,6 +2263,27 @@ ld_ask_operand:
 .bad:   ld hl,err_ld_op
         call ui_error
         jp .ask
+
+err_fb_full: db "All 4 instances of this type used",0
+
+; ---- fbi_free: A = FB type -> NC: C = a free instance (type * 4 + n, no
+;      declaration yet); C: all 4 used
+fbi_free:
+        add a,a
+        add a,a
+        ld c,a
+        ld b,FB_PER_TYPE
+.l:     push bc
+        ld a,AR_FBI
+        call sym_find_addr
+        pop bc
+        jr c,.fr
+        inc c
+        djnz .l
+        scf
+        ret
+.fr:    or a
+        ret
 
 ; ---- ld_fmt_ar: ld_ar -> FMT_BUF (short address or symbol, 0-terminated)
 ;      (for the FBD editor in its own bank: the buffer is in fixed memory)

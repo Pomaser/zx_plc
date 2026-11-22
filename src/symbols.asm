@@ -299,7 +299,7 @@ gv_top:
 .e:     ld a,b
         ret
 
-err_gv_type: db "Type: BOOL, BYTE or INT",0
+err_gv_type: db "Type (INT, TON...) or AT address",0
 err_gv_val:  db "Invalid init value",0
 
 ; HL = address in the symbol table -> DE = offset (keeps HL, BC)

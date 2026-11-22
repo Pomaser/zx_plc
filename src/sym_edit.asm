@@ -470,11 +470,10 @@ sy_norm_addr:
         ld a,(sy_gmode)
         or a
         jr z,.sym
-        call sy_gparse          ; a global: "byte:=1" -> "BYTE := 1"
+        call sy_gparse          ; "byte:=1" -> "BYTE := 1", "i0.0" -> "AT %IX0.0"
         ret c
-        ld hl,sym_decl
         ld de,popup_buf
-        BCALL gv_fmtd
+        BCALL gv_pfmt
         ld hl,popup_buf
         ld de,ed_o
         call il_cpy
@@ -518,27 +517,8 @@ sy_norm_addr:
         call op_format
         jp sy_draw_edit
 
-; ---- sym_range: the records of the symbol editor (sy_gmode 0: the
-;      symbols, 1: the globals) -> HL = first, sf_end = end
-sym_range:
-        call sym_first
-        push hl
-.l:     call sym_at_end         ; the first global (or the end)
-        jr nc,.e
-        inc hl
-        ld a,(hl)
-        dec hl
-        cp AR_GV
-        jr z,.e
-        call sym_next
-        jr .l
-.e:     pop de
-        ld a,(sy_gmode)
-        or a
-        ret nz                  ; globals: from there to the end
-        ld (sf_end),hl          ; symbols: up to there
-        ex de,hl
-        ret
+; ---- sym_range: the records of the Global vars page (all of them)
+sym_range EQU sym_first
 
 ; ---- gv_new: -> NC: C = a free global number; C: all used
 gv_new:
@@ -844,14 +824,33 @@ sy_commit:
         or a
         ld hl,err_sy_noname
         jp z,.err
-        call sy_gparse
+        call sy_gparse          ; A = area, C = index / FB type
         jp c,.verr
-        ld a,(sy_old)
+        cp AR_GV
+        jr z,.gvar
+        cp AR_FBI
+        jp nz,.aok              ; an address ("AT %IX0.0")
+        ld b,c                  ; an FB instance of type B: the old one if
+        call .oldfb             ; the type stays, else a free one
+        jr z,.fset
+        ld a,b
+        call fbi_free
+        ld hl,err_fb_full
+        jp c,.err
+.fset:  ld a,c
+        ld (sy_nidx),a
+        ld a,AR_FBI
+        ld (sy_narea),a
+        jp .free
+.gvar:  ld a,(sy_old)           ; a variable: its number stays
         or a
+        jr z,.gnew
+        ld a,(sy_oarea)
+        cp AR_GV
         ld a,(sy_oidx)
         ld c,a
-        jr nz,.gold
-        call gv_new
+        jr z,.gold
+.gnew:  call gv_new
         ld hl,err_gv_many
         jp c,.err
 .gold:  ld a,c
@@ -859,6 +858,22 @@ sy_commit:
         ld a,AR_GV
         ld (sy_narea),a
         jp .val
+; Z: the old record is an instance of type B (C = its index)
+.oldfb: ld a,(sy_old)
+        or a
+        jr z,.onz
+        ld a,(sy_oarea)
+        cp AR_FBI
+        jr nz,.onz
+        ld a,(sy_oidx)
+        ld c,a
+        rrca
+        rrca
+        and 0x3F
+        cp b
+        ret
+.onz:   or 1
+        ret
 .adr0:  ld a,(ed_o)
         or a
         ld hl,err_sy_noaddr

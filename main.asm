@@ -145,6 +145,9 @@ CORE_END:
         INCLUDE "src/sym_edit.asm"
     ELSE                            ; (the demo builder needs no symbol editor)
 scr_sym: ret
+sym_validate:
+        or a
+        ret
 sy_xc:  ld a,SY_X_COMM
         ret
 sy_end: dw 0

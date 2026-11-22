@@ -328,43 +328,8 @@ op_parse:
         ld c,0
         jp op_ok
 
-        ; ---- FB instances and members
-.fb:    ld hl,.pou
-        ld (op_fail),hl
-        ld de,fb_names
-        ld b,0
-.fbl:   push bc
-        push de
-        ld hl,op_tok
-        call str_prefix
-        pop de
-        pop bc
-        jr z,.fbm
-.fbn:   ld hl,7
-        add hl,de
-        ex de,hl
-        inc b
-        ld a,b
-        cp FB_TYPES
-        jr c,.fbl
-        jp .pou
-.fbm:   ld a,(hl)
-        sub '0'
-        jr c,.fbn
-        cp FB_PER_TYPE
-        jr nc,.fbn
-        ld c,a
-        ld a,b
-        add a,a
-        add a,a
-        add a,c
-        ld c,a              ; instance index
-        inc hl
-        ld a,(hl)
-        or a
-        jr nz,.fbmem
-        ld a,AR_FBI
-        jp op_ok
+        ; ---- FB instances: only by their declared names (Global vars)
+.fb:    jp .pou
 .fbmem: cp '.'
         jp nz,.pou
         inc hl
@@ -752,28 +717,17 @@ op_format:
         call pou_used_hl
         jp z,.f_none
         jp name_unpad
-; writes type name + instance number
+; writes the declared name of the instance ("???" if none)
 .fbname:
+        push de
         ld a,(op_idx)
-        rrca
-        rrca
-        and 0x3F
-        ld l,a
-        add a,a
-        add a,a
-        add a,a
-        sub l               ; type*7
-        ld l,a
-        ld h,0
-        ld bc,fb_names
-        add hl,bc
-        call put_str
-        ld a,(op_idx)
-        and 3
-        add a,'0'
-        ld (de),a
-        inc de
-        ret
+        ld c,a
+        ld a,AR_FBI
+        call sym_name_of
+        pop de
+        jp nc,put_str
+        ld hl,s_qq
+        jp put_str
 ; selects HL (IEC) or BC (short) by style
 .style: ld a,(op_style)
         or a
@@ -853,16 +807,6 @@ FBT_RTRIG  EQU 5
 FBT_FTRIG  EQU 6
 FBT_SR     EQU 7
 FBT_RS     EQU 8
-fb_names:
-        db "TON",0,0,0,0
-        db "TOF",0,0,0,0
-        db "TP",0,0,0,0,0
-        db "CTU",0,0,0,0
-        db "CTD",0,0,0,0
-        db "RT",0,0,0,0,0          ; R_TRIG (rising edge)
-        db "RF",0,0,0,0,0          ; F_TRIG (falling edge)
-        db "SR",0,0,0,0,0
-        db "RS",0,0,0,0,0
 ; members: 5 records of 4 B per type
 fb_members:
         db "IN",0,0, "PT",0,0, "Q",0,0,0, "ET",0,0, 0,0,0,0     ; TON

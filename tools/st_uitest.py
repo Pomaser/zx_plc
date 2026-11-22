@@ -209,7 +209,7 @@ def t_words(ui):
 def t_watchwrite(ui):
     """watch page W: one write to a global INT (in STOP), a BOOL output
     inverted (an input is refused: see the shot ww_in)"""
-    s = "k:CS+SPACE w5 k:E w10 k:G w40 " + T("speed:int") + E + to_list()
+    s = GVARS + T("speed:int") + E + to_list()
     s += "w30 k:CS+6 w4 k:ENTER w40 " + run() + "k:W w60 "
     s += "k:CS+0 w30 " + "k:CS+6 w8 " * 16 + "k:ENTER w40 " + T("speed") + "k:ENTER w60 "
     s += "k:R w40 k:W w40 " + T("1234") + "k:ENTER w60 shot:ww_int "
@@ -225,7 +225,7 @@ def t_watchwrite(ui):
 def t_globals(ui):
     """Edit > Globals: declarations typed (':' to the type, normalised), a bad
     init value refused, the globals used in ST, their values after Run"""
-    s = "k:CS+SPACE w5 k:E w10 k:G w40 "
+    s = GVARS
     s += T("speed:int:=7") + "k:SPACE w10 " + T("motor speed") + E
     s += T("on:bool") + E
     s += T("bt:byte:=300") + E + "shot:gv_bad k:ENTER w30 " + DEL * 3 + T("250") + E
@@ -314,6 +314,7 @@ PASTE = "k:SS+F w60 "
 UNDO = "k:SS+U w60 "
 REDO = "k:SS+Y w60 "
 COMPL = "k:SS+SPACE w60 "
+GVARS = "k:CS+SPACE w5 k:E w10 k:G w40 " + "k:SS+CS+6 w20 " * 4   # Edit > Global vars, the empty last row
 
 
 def t_edit(ui):
@@ -435,7 +436,7 @@ def t_compl(ui):
     ui.play(s + "w20 shot:cm ")
     got = ui.st_lines("CM")
     exp = [(0, "VAR"), (1, "speed : INT;"), (1, "spare : BOOL;"), (0, "END_VAR"),
-           (0, "%MW0 := spare;"), (0, "TOF1.PT := TRUE;"), (0, "%MW1 := 0;"),
+           (0, "%MW0 := spare;"), (0, "TValve.PT := TRUE;"), (0, "%MW1 := 0;"),
            (0, "%MW1 := 1;")]
     compare("compl: stored lines", got, exp)
 
@@ -523,7 +524,7 @@ def t_view(ui):
     s += HOME + R + R + "w20 "                                  # on "%MW0"
     ui.play(s)
     exp = [(0, "VAR"), (1, "n : INT;"), (0, "END_VAR"),
-           (0, "%MW0 := %MW0 + 1; n := 2;"), (0, "RT1(CLK := %IX0.2);")]
+           (0, "%MW0 := %MW0 + 1; n := 2;"), (0, "UpEdge(CLK := %IX0.2);")]
     compare("view: stored as addresses", ui.st_lines("VW"), exp)
     check("view: addresses shown", ui.fbd_str("se_buf") == "%MW0 := %MW0 + 1; n := 2;",
           ui.fbd_str("se_buf"))

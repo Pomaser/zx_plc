@@ -9,6 +9,7 @@ run_tests:
         ld (view_sym),a
         ld a,LANG_IL
         call proj_new
+        call t_fbdecl
     IF TPART==1
         ld hl,t_motor           ; POU name for the operand tests
         ld a,LANG_FBD
@@ -102,9 +103,9 @@ run_tests:
         call gv_tests
         call undo_tests
         call clip_tests
+        call sym_tests
     ELSE
         call vm_tests
-        call sym_tests
         call ld_tests
         call fbd_tests
         call st_tests
@@ -146,6 +147,8 @@ t_check:
     IF TPART==1
 proj_tests:
         ; MAIN = 0, MOTOR = 1 ; insert 10 B into MAIN, 5 B into MOTOR
+        ld hl,(PROJ+P_LEN)      ; (the length with the symbol table)
+        ld (t_val),hl
         ld a,0
         ld de,0
         ld bc,10
@@ -185,8 +188,10 @@ proj_tests:
         cp 0x22
         call t_check
         ld hl,(PROJ+P_LEN)
-        ld de,HDR_LEN+18
+        ld de,(t_val)
         or a
+        sbc hl,de
+        ld de,15+3
         sbc hl,de
         call t_check
         ; delete 3 B from MAIN
@@ -201,8 +206,10 @@ proj_tests:
         ld a,1
         call pou_remove
         ld hl,(PROJ+P_LEN)
-        ld de,HDR_LEN+10
+        ld de,(t_val)
         or a
+        sbc hl,de
+        ld de,10
         sbc hl,de
         call t_check
         ld a,(PROJ+P_NPOU)
@@ -774,6 +781,8 @@ t_prog5:
         db "S",9,"%SX1.0",0
         db 0xFF
 
+    ENDIF
+    IF TPART==1
 ; ---- symbol table
 sym_tests:
         ld a,AR_Q
@@ -1387,6 +1396,52 @@ skipstr:
         jr nz,skipstr
         ret
 
+; t_fbdecl: the 36 FB instances declared with the names of the old fixed
+;      instances (TON0..TON3, TOF0.., TP, CTU, CTD, RT, RF, SR, RS), which the
+;      test texts use
+t_fbdecl:
+        ld c,0
+.l:     push bc
+        ld a,c
+        rrca
+        rrca
+        and 0x3F
+        ld l,a
+        add a,a
+        add a,l                 ; type * 3
+        ld l,a
+        ld h,0
+        ld de,t_fbp
+        add hl,de
+        ld de,t_fbn
+        ld b,3
+.c:     ld a,(hl)
+        or a
+        jr z,.d
+        ld (de),a
+        inc hl
+        inc de
+        djnz .c
+.d:     ld a,c
+        and 3
+        add a,'0'
+        ld (de),a
+        inc de
+        xor a
+        ld (de),a
+        ld hl,t_fbn
+        ld de,cp_empty
+        ld a,AR_FBI
+        call sym_store
+        pop bc
+        inc c
+        ld a,c
+        cp FB_TYPES*FB_PER_TYPE
+        jr c,.l
+        ret
+t_fbp:  db "TON","TOF","TP",0,"CTU","CTD","RT",0,"RF",0,"SR",0,"RS",0
+t_fbn:  ds 6
+
 ; strcmp: HL, DE -> Z if equal
 strcmp:
         ld a,(de)
@@ -1414,6 +1469,7 @@ t_buf:     ds 32
 gv_tests:
         ld a,LANG_IL
         call proj_new
+        call t_fbdecl
         ld hl,t_gv
 .g:     ld a,(hl)               ; [g][type][lo][hi][name 0]
         cp 0xFF

@@ -54,8 +54,7 @@ mi_edit:
         db CMD_UNDO,  'U',"Undo",0
         db CMD_REDO,  'Y',"Redo",0
         db CMD_WADD,  'W',"Add to watch",0
-        db CMD_SYMBOLS,'S',"Symbols",0
-        db CMD_GLOBALS,'G',"Globals",0
+        db CMD_GLOBALS,'G',"Global vars",0
         db CMD_IL_INS,'I',"Insert line",0
         db CMD_IL_DEL,'D',"Delete line",0
         db CMD_MARK,  'M',"Mark block",0
@@ -233,7 +232,7 @@ mp_alt:  db 0               ; 1: "Symbols", 2: "Watch" instead of the POU name
 txt_mp_sym: db "Symbols",0
 txt_mp_wt:  db "Watch",0
 txt_mp_tr:  db "Trend",0
-txt_mp_gv:  db "Globals",0
+txt_mp_gv:  db "Global vars",0
 
 ; A = item -> HL = title string, A = x (preserves BC)
 menu_title_xy:
