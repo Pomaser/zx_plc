@@ -465,7 +465,8 @@ works like a small text editor:
   added when the next line already starts with the `THEN` / `DO` / `OF`.
 * ENTER splits the line at the cursor (at the end: a new empty line below), SS+ENTER opens an empty line
   below. DELETE deletes the character left of the cursor; on an empty line it removes the line.
-  SS+LEFT / SS+RIGHT jump one word back / forward, SS+DELETE deletes the character right of the cursor,
+  SS+LEFT / SS+RIGHT jump one word back / forward, SS+DELETE deletes the character right of the cursor
+  (at the end of a line it joins the next line to it, after a space),
   SS+UP / SS+DOWN page.
 * SS+X and SS+W take the operand under (or just before) the cursor; the status bar shows its symbol and
   comment (for a local variable its type).

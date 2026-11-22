@@ -801,6 +801,28 @@ put_str:
         inc de
         jr put_str
 
+; ---- put_str0: HL -> DE with the 0 (DE -> the 0)
+put_str0:
+        call put_str
+        xor a
+        ld (de),a
+        ret
+
+; ---- strcat: the text HL appended to the text DE
+strcat:
+        ld a,(de)
+        or a
+        jr z,.c
+        inc de
+        jr strcat
+.c:     ld a,(hl)
+        ld (de),a
+        inc hl
+        inc de
+        or a
+        jr nz,.c
+        ret
+
 kw_true:  db "TRUE",0
 kw_false: db "FALSE",0
 kw_t:     db "T#",0

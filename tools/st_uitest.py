@@ -199,6 +199,11 @@ def t_words(ui):
     ui.play("k:SS+CS+5 w20 k:SS+CS+0 w20 k:SS+CS+0 w20 ")   # SS+DELETE: "c1" removed
     check("words: SS+DELETE deletes to the right",
           ui.fbd_str("se_buf") == "a := b + ;" and pos() == 9, (ui.fbd_str("se_buf"), pos()))
+    # SS+DELETE at the end of a line: the next line joins it
+    ui.play(END + DEL * 12 + T("%MW1 := 1;") + E + T("%MW2 := 2;") + U + END + "k:SS+CS+0 w40 shot:wj_join " + D + "w20 ")
+    got = ui.st_lines("WJ")
+    check("words: SS+DELETE at the end joins the next line",
+          (0, "%MW1 := 1; %MW2 := 2;") in got and (0, "%MW2 := 2;") not in got, got)
 
 
 def t_watchwrite(ui):

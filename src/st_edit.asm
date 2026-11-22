@@ -237,7 +237,7 @@ st_editor:
         ld b,a
         ld a,(st_pos)
         cp b
-        jp nc,.loop
+        jp nc,.fjoin
         inc a
         ld (st_pos),a
 .del:   ld a,(st_pos)
@@ -270,6 +270,37 @@ st_editor:
         jp nz,.full
         call st_row_cur
         call st_redraw_from
+        jp .loop
+.fjoin: ld de,(st_cur)          ; SS+DELETE at the end: the next line joins
+        inc de                  ; this one (after a space)
+        push de
+        call st_line_addr
+        pop de
+        jp c,.loop              ; (the last line)
+        push de
+        ld de,st_tail
+        call st_rec_text
+        call st_len
+        ld c,a
+        ld hl,st_tail
+        call strlen
+        add a,c
+        cp ST_BLEN
+        pop de
+        jr nc,.fbig
+        push de
+        ld hl,txt_st_sp
+        ld de,se_buf
+        call strcat
+        ld hl,st_tail
+        ld de,se_buf
+        call strcat
+        pop de
+        call st_del_line
+        call st_row_cur
+        call st_redraw_from
+        jp .loop
+.fbig:  call beep               ; (too long together)
         jp .loop
 
         ; ---- ENTER: the line is split at the cursor, the rest goes to a
@@ -1896,20 +1927,6 @@ st_del_char:
         jr nz,.l
         ret
 
-; ---- strcat: HL = text appended to the 0-terminated text at DE
-strcat:
-        ld a,(de)
-        or a
-        jr z,.c
-        inc de
-        jr strcat
-.c:     ld a,(hl)
-        ld (de),a
-        inc hl
-        inc de
-        or a
-        jr nz,.c
-        ret
 
 ; ---- st_measure: lays se_buf out (no drawing): rn_qx = x of the cursor,
 ;      rn_ovf = 1 if the line is wider than the screen
@@ -2786,11 +2803,6 @@ st_sim_row:
         ld (sr_sim),a
         ret
 
-put_str0:                       ; HL -> DE with the 0 (DE -> the 0)
-        call put_str
-        xor a
-        ld (de),a
-        ret
 
 ; ---- st_xr_line: HL = ST line record (cross references, tools.asm, BCALL),
 ;      A = area, C = index of the operand searched (a member counts as its
@@ -2914,6 +2926,7 @@ err_st_cmt:  db "Comment not closed",0
 err_st_name: db "Unknown name",0
 err_st_var:  db "VAR only at the start",0
 st_nothing:  db 0
+txt_st_sp:   db " ",0
 
 st_pou:    db 0xFF
 st_n:      dw 0

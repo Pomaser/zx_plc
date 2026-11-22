@@ -95,14 +95,18 @@ fb_editor:
         jp z,.enter
         cp K_DEL
         jp z,.del
-        cp K_WATCH
-        jp z,.wak
+        ld b,CMD_WADD           ; SS+W / SS+X / SS+U / SS+Y: watch, cross
+        cp K_WATCH              ; references, undo, redo through the menu path
+        jp z,.mkc
+        ld b,CMD_XREF
         cp K_XREF
-        jp z,.xrk
+        jp z,.mkc
+        ld b,CMD_UNDO
         cp K_UNDO
-        jp z,.undk
+        jp z,.mkc
+        ld b,CMD_REDO
         cp K_REDO
-        jp z,.redk
+        jp z,.mkc
         cp K_MARK               ; SS+A / SS+D / SS+F: mark, copy, paste
         jr c,.kc
         cp K_PASTE+1
@@ -736,16 +740,7 @@ fb_editor:
         call fb_snap
         jr .redraw
 
-.wak:   ld a,CMD_WADD           ; SS+W: add to the watch list
-        ld (mk_cmd),a
-        jp .menu
-.xrk:   ld a,CMD_XREF           ; SS+X: cross references through the menu path
-        ld (mk_cmd),a
-        jp .menu
-.redk:  ld a,CMD_REDO           ; SS+Y: redo through the menu path
-        jr .undc
-.undk:  ld a,CMD_UNDO           ; SS+U: undo through the menu path
-.undc:
+.mkc:   ld a,b
         ld (mk_cmd),a
         jp .menu
 .menu:  call menu_key

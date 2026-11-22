@@ -770,10 +770,7 @@ il_chk_label:
         ld hl,rd_o
         BCALL il_check_label
         ret
-il_cpy: call put_str
-        xor a
-        ld (de),a
-        ret
+il_cpy  EQU put_str0
 
 ; ---- il_commit: validates the edit buffer and stores it as line il_cur
 ;      C = error (message shown)

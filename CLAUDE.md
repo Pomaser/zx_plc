@@ -230,7 +230,8 @@ editor and key for users.
   - SS+LEFT / SS+RIGHT (`K_HOME` / `K_END`) jump one word back / forward in texts (`word_l` / `word_r`,
     util.asm; words = letters, digits, '_'): IL, ST, symbol editor, `ui_input`. The LD / FBD grids use them
     for the row start / end. The browser's Ctrl + arrows arrive as these keys. SS+DELETE (CS+SS+0, `K_FDEL`,
-    the browser's Delete) deletes right of the cursor (moves one right, then the DELETE path).
+    the browser's Delete) deletes right of the cursor (moves one right, then the DELETE path); at the end of an ST line it
+    joins the next line (`.fjoin`, a space between).
   - Command palette (SS+E = `K_PAL`, Ctrl+E in the browser): `kb_get` turns K_PAL into K_EDIT and sets
     `pal_req`, so every screen opens "the menu"; `menu_run` then calls `BCALL pal_run`
     (src/complete.asm) instead of the drop-downs: the list window of the name completion (`ac_ui`,
