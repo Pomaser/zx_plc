@@ -383,10 +383,7 @@ fb_editor:
         ld de,ld_gext
         ld bc,9
         ldir
-        ld a,(ld_row)
-        ld d,a
-        ld a,(ld_pos)
-        ld e,a
+        call fb_rowpos
         ld a,(fb_t)
         BCALL ld_put
         jp .redraw
@@ -649,10 +646,7 @@ fb_editor:
         ld de,ld_gext
         ld bc,9
         ldir
-.pt0:   ld a,(ld_row)
-        ld d,a
-        ld a,(ld_pos)
-        ld e,a
+.pt0:   call fb_rowpos
         ld a,(ld_ar)
         ld b,a
         ld a,(ld_ar+1)
@@ -695,10 +689,7 @@ fb_editor:
         ldir
         ld hl,(fb_oldpt)
         ld (ld_ppt),hl
-        ld a,(ld_row)
-        ld d,a
-        ld a,(ld_pos)
-        ld e,a
+        call fb_rowpos
         ld a,(fb_olda)
         ld b,a
         ld a,(fb_oldc)
@@ -730,10 +721,7 @@ fb_editor:
 .del:   call fb_pt_cell         ; (the PT input stays)
         jp nc,.cur
         call fb_to_owner
-        ld a,(ld_row)
-        ld d,a
-        ld a,(ld_pos)
-        ld e,a
+        call fb_rowpos
         call fb_del_top         ; a block: first input goes through
         call fb_compact         ; no gap: the network moves left
         call fb_trim            ; and no empty rows below it
@@ -1031,10 +1019,7 @@ fb_list:
 ;      into a block (its first row or a row it covers) (keeps BC)
 fb_to_blk:
         push bc
-        ld a,(ld_row)
-        ld d,a
-        ld a,(ld_pos)
-        ld e,a
+        call fb_rowpos
 .l:     inc e
         ld a,e
         cp LD_CPOS
@@ -1059,10 +1044,7 @@ fb_to_blk:
 
 ; ---- fb_cur_get: element at the cursor -> A = fb_t = type, B = area, C = index
 fb_cur_get:
-        ld a,(ld_row)
-        ld d,a
-        ld a,(ld_pos)
-        ld e,a
+        call fb_rowpos
         call ld_get
         ld (fb_t),a
         ret
@@ -1251,10 +1233,7 @@ fb_owner:
 
 ; fb_to_owner: cursor inside a block -> moved to the block row
 fb_to_owner:
-        ld a,(ld_row)
-        ld d,a
-        ld a,(ld_pos)
-        ld e,a
+        call fb_rowpos
         call fb_owner
         ret c
         ld (ld_row),a
@@ -2070,10 +2049,7 @@ fb_autowire_r:
         call fb_cls
         cp FT_IN
         ret nz
-        ld a,(ld_row)
-        ld d,a
-        ld a,(ld_pos)
-        ld e,a
+        call fb_rowpos
 .f:     inc e                   ; find the end of the empty cells
         ld a,e
         cp LD_CPOS
@@ -2317,12 +2293,7 @@ fb_draw_view:
         call fb_row_load
         ld e,0
 .ap:    ld d,0
-        ld hl,fw_t
-        add hl,de
-        ld a,(hl)
-        ld hl,fw_a
-        add hl,de
-        ld c,(hl)
+        call fw_get
         call fb_height_t        ; rows left at the top of the view:
         ld hl,fd_rr             ; rr + h - top
         add a,(hl)
@@ -2638,28 +2609,81 @@ fb_draw_elem:
         ld (pt_xmax),a
         ret
 
-; fd_label: FMT_BUF centred in the label row above the element (24 px)
+; fw_get: DE = position -> A = B = its type, C = its area (keeps DE)
+fw_get: ld hl,fw_t
+        add hl,de
+        ld a,(hl)
+        ld b,a
+        ld hl,fw_a
+        add hl,de
+        ld c,(hl)
+        ret
+
+; fb_rowpos: D = ld_row, E = A = ld_pos (the cursor cell)
+fb_rowpos:
+        ld a,(ld_row)
+        ld d,a
+        ld a,(ld_pos)
+        ld e,a
+        ret
+
+; fd_label: FMT_BUF centred in the label row above the element (an instance
+;      name: up to 46 px, over the neighbour cells if needed)
 fd_label:
-        ld a,(fd_x)
-        ld c,a
-        add a,23
-        ld (pt_xmax),a
-        ld hl,FMT_BUF
+        call .nb                ; B = the width it may take: 46 px, 23 next
+        ld hl,FMT_BUF           ; to another block (its label is there)
         call pt_width
-        cp 23
+        cp b
         jr c,.w
-        ld a,22
-.w:     neg
-        add a,24
+        ld a,b
+.w:     ld b,a
         srl a
-        add a,c
-        ld (pt_x),a
+        ld c,a
+        ld a,(fd_x)
+        add a,12
+        sub c
+        jr nc,.x
+        xor a
+.x:     ld (pt_x),a
+        add a,b
+        jr nc,.m
+        ld a,255
+.m:     ld (pt_xmax),a
         ld a,(fd_lrow)
         ld (pt_row),a
         ld hl,FMT_BUF
         call pt_puts
         ld a,255
         ld (pt_xmax),a
+        ret
+.nb:    ld b,23
+        ld a,(fd_p)             ; the cells left and right of the block
+        ld e,a
+        ld d,0
+        ld hl,fw_t
+        add hl,de
+        or a
+        jr z,.nr
+        dec hl
+        call .fbk
+        ret nc
+        inc hl
+.nr:    ld a,(fd_p)
+        cp LD_CPOS
+        jr nc,.wide
+        inc hl
+        call .fbk
+        ret nc
+.wide:  ld b,46
+        ret
+; .fbk: (HL) is an FB block -> NC (keeps B, HL)
+.fbk:   ld a,(hl)
+        push hl
+        push bc
+        call fb_kind
+        pop bc
+        pop hl
+        cp LK_FB
         ret
 
 ; fd_text: HL = text in the block at pt_row (x+4, clipped inside)
@@ -3012,13 +3036,7 @@ fd_dst_block:
         ld a,(hl)
         or a
         ret nz                  ; covered by a block from above
-        ld hl,fw_t
-        add hl,de
-        ld b,(hl)
-        ld hl,fw_a
-        add hl,de
-        ld c,(hl)
-        ld a,b
+        call fw_get
         and FT_MASK
         cp FT_WIRE
         jr nz,.nw
@@ -3066,13 +3084,7 @@ fd_src_block:
         dec a
         ld e,a
         ld d,0
-        ld hl,fw_t
-        add hl,de
-        ld b,(hl)
-        ld hl,fw_a
-        add hl,de
-        ld c,(hl)
-        ld a,b
+        call fw_get
         and FT_MASK
         cp FT_WIRE
         jr nz,.nw
