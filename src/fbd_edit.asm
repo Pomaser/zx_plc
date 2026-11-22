@@ -2717,7 +2717,15 @@ fb_draw_cov:
         ld a,(fd_x)
         add a,4
         ld c,a
-        call pt_tiny
+        pop af                  ; the last row (PT, PV): 1 px higher, off the
+        push af                 ; bottom line of the block
+        or a
+        jr nz,.p2
+        ld a,1
+        ld (ft_y),a
+.p2:    call pt_tiny
+        ld a,2
+        ld (ft_y),a
 .np:    pop af
         or a
         ret nz

@@ -363,7 +363,8 @@ pt_tiny:
         ld a,(hl)
         ld (ft_w),a
         inc hl
-        ld e,2                  ; first pixel line
+        ld a,(ft_y)             ; first pixel line
+        ld e,a
 .row:   ld a,(hl)
         inc hl
         push hl
@@ -387,9 +388,10 @@ pt_tiny:
         pop bc
         pop hl
         inc e
-        ld a,e
-        cp 7
-        jr c,.row
+        ld a,(ft_y)             ; 5 lines
+        add a,5
+        cp e
+        jr nz,.row
         ld a,(ft_w)             ; next letter: width + 1 px gap
         inc a
         add a,c
@@ -478,4 +480,5 @@ ft_tab:
         db 'I',3, 0xE0,0x40,0x40,0x40,0xE0
         db 0
 ft_w:   db 0
+ft_y:   db 2               ; pt_tiny: first pixel line (2; FBD PT / PV pins: 1)
 
