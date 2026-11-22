@@ -309,7 +309,7 @@ il_editor:
         ld b,a
         ld a,(ed_pos)
         cp b
-        jp nc,.loop
+        jp nc,.fend
         inc a
         ld (ed_pos),a
 .del:   ld a,(ed_pos)
@@ -354,6 +354,29 @@ il_editor:
         ld a,h
         or l
         jr z,.d2
+        dec hl
+        ld (il_cur),hl
+        jr .d2
+.fend:  ld a,(ed_field)         ; SS+DELETE on an empty line: the line is
+        cp F_MNEM               ; removed, the cursor stays (the next line
+        jp nz,.loop             ; moves up)
+        ld a,(ed_m)
+        ld hl,ed_o
+        or (hl)
+        jp nz,.loop
+        ld hl,(il_n)
+        dec hl
+        ld a,h
+        or l
+        jp z,.loop
+        ld de,(il_cur)
+        call il_del_line
+        ld hl,(il_cur)
+        ld de,(il_n)
+        or a
+        sbc hl,de
+        jr c,.d2
+        ld hl,(il_n)            ; (it was the last line)
         dec hl
         ld (il_cur),hl
 .d2:    call il_load

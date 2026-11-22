@@ -312,7 +312,8 @@ and comment of the operand.
   to the operand.
 * ENTER stores the line and checks it; an error is shown in a popup and the cursor stays on the line.
   At the very start of a line, ENTER inserts an empty line above it.
-* SS+ENTER opens a new line below. UP / DOWN store the line and move. DELETE on an empty line removes it.
+* SS+ENTER opens a new line below. UP / DOWN store the line and move. DELETE on an empty line removes it
+  (the cursor goes to the line above); SS+DELETE removes it too and the cursor stays (the next line moves up).
 * Instructions:
 
   ```
