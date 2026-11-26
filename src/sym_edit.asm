@@ -655,7 +655,7 @@ sy_hint:
         ld (st_left),hl
         jp status_left
 txt_sy_flt: db "SS+F Filter: ",0,"All",0,"IOs",0,"FBs",0,"VARs",0
-txt_sy_back: db "BREAK Back",0
+txt_sy_back: db ST_INV,"BREAK",ST_INV," Back",0
 sy_filt:    db 0
 sy_hbuf:    ds 48                ; (the hint: 34 B + 11 B BREAK Back)
 

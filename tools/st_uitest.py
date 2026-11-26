@@ -604,7 +604,7 @@ def t_godef(ui):
     ui.play(BRK + "shot:gd_back2 ")
     check("godef: BREAK back from Global vars", scr() == 1 and ui.st_cur() == 3 and pos() == 6,
           (scr(), ui.st_cur(), pos()))
-    check("godef: hint after the filters", hint.endswith("VARs BREAK Back"), hint)
+    check("godef: hint after the filters", hint.replace("\x04", "").endswith("VARs BREAK Back"), hint)
     for key in ("CS+1", "SS+G"):                        # EDIT, SS+G: back too
         ui.play("k:SS+G w80 k:%s w60 " % key)
         check("godef: %s back from Global vars" % key, scr() == 1 and ui.st_cur() == 3, (scr(), ui.st_cur()))
