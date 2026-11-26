@@ -604,5 +604,4 @@ tr_k:     db 0
 tr_kd:    db 0
 tr_lv:    ds TR_MAX
 tr_py:    db 0
-        ALIGN 256
-tr_buf:   ds 256*TR_MAX
+        ASSERT TR_MAX == 8 && (tr_buf & 0xFF) == 0   ; (tr_buf: main.asm, the DEMO bank start)

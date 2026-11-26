@@ -80,6 +80,7 @@ The cursor keys are CAPS SHIFT + 5 / 6 / 7 / 8, DELETE is CAPS SHIFT + 0. Combin
 | SS + U | undo the last change |
 | SS + Y | redo the undone change |
 | SS + X | cross references of the operand at the cursor |
+| SS + G | go to the definition (declaration) of the operand at the cursor (Ctrl+G in the browser) |
 | SS + W | add the operand at the cursor to the watch list |
 | SS + I | LD: insert an element in front of the cursor |
 | SS + A | mark the start of a block (again: remove the mark) |
@@ -173,6 +174,7 @@ Each menu title opens a drop-down list. The first letter of a title or item is i
 | Symbols | show operands by their symbol names |
 | Addresses | show operands by their addresses (default) |
 | Cross references | uses of the operand at the cursor (also SS+X) |
+| Go to definition | the declaration of the operand at the cursor (also SS+G) |
 
 ### Online
 
@@ -466,7 +468,7 @@ works like a small text editor:
   SS+LEFT / SS+RIGHT jump one word back / forward, SS+DELETE deletes the character right of the cursor
   (at the end of a line it joins the next line to it, after a space),
   SS+UP / SS+DOWN page.
-* SS+X and SS+W take the operand under (or just before) the cursor; the status bar shows its symbol and
+* SS+X, SS+G and SS+W take the operand under (or just before) the cursor; the status bar shows its symbol and
   comment (for a local variable its type).
 * **Names / addresses:** an operand that has an address is stored as that address (`%IX0.2`, `%QX0.3`),
   whatever was typed, so the text follows a renamed name. View > Symbols / Addresses switches how the
@@ -725,7 +727,13 @@ language and comment under a new name.
 **Cross references (SS+X, View > Cross references)** list every use of the operand at the cursor. It
 works on an IL line, the word at the cursor in ST, an LD / FBD element or a symbol; in the POU list it finds the calls of the POU. Each
 entry shows the POU, the line (or the row and position) and whether the operand is read, written or
-called. ENTER opens the editor at that place.
+called. The first entry is the declaration: a global variable, an FB instance or a named address on the
+Global vars page ("Globals", its row), a local variable of ST in the VAR block of its POU, a POU the POU
+itself. ENTER opens the editor at that place (for a global: Global vars on its row).
+
+**Go to definition (SS+G, View > Go to definition)** jumps straight to that declaration: an ST local to
+its line in the VAR block, a global variable, an FB instance or a named address to its row on the Global
+vars page, a called POU to its editor. An address without a name has no declaration ("No declaration").
 
 ![Cross references of S_Red](img/xref.png)
 

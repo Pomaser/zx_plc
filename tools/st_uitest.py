@@ -573,11 +573,48 @@ def t_palmouse(ui):
           ui.mem(ui.sym("cur_pou"))[0])
 
 
+def t_godef(ui):
+    """SS+G (Go to definition): an ST local -> its VAR line, a global -> its row
+    on the Global vars page, an address without a name -> refused; SS+X lists
+    the declaration first, ENTER on it goes there"""
+    scr = lambda: ui.mem(ui.sym("cur_screen"))[0]
+    xr = lambda: [tuple(ui.z.bank_bytes(3, ui.sym("xr_list") + 5 * i, 5))
+                  for i in range(ui.z.bank_bytes(3, ui.sym("xr_n"), 1)[0])]
+    s = GVARS + T("speed:int") + E
+    s += to_list() + new_st("GD")
+    s += T("var") + E + T("a : int;") + D + D + SE + T("a := speed + a;") + E + T("%MW9 := a;") + E
+    ui.play(s + "w20 ")
+    slot = ui.slot_of("GD")
+    b, i, row = ui.body(8), 0, 0                      # Speed's row on Global vars
+    while b[i + 3:i + 9] != b"Speed\0":
+        i += b[i]
+        row += 1
+    ui.play(U + U + HOME + "k:SS+G w80 shot:gd_local ")
+    check("godef: local -> its VAR line", scr() == 1 and ui.st_cur() == 1, (scr(), ui.st_cur()))
+    ui.play(D + D + HOME + R * 6 + "k:SS+G w80 shot:gd_global ")
+    sc = int.from_bytes(ui.z.bank_bytes(0, ui.sym("sy_cur"), 2), "little")
+    check("godef: global -> Global vars row", scr() == 3 and sc == row, (scr(), sc, row))
+    ui.play(to_list() + "k:CS+6 w4 " * slot + "k:ENTER w80 ")
+    ui.play(D + HOME + "k:SS+G w80 shot:gd_none k:ENTER w30 ")
+    check("godef: unnamed address refused", scr() == 1 and ui.st_cur() == 4, (scr(), ui.st_cur()))
+    ui.play(U + HOME + "k:SS+X w80 shot:gd_xlocal ")
+    compare("godef: xref of a local", xr(),
+            [(slot, 1, 0, 0, ord("D")), (slot, 3, 0, 0, ord("W")), (slot, 4, 0, 0, ord("R"))])
+    ui.play("k:ENTER w80 ")
+    check("godef: xref ENTER on the declaration", ui.st_cur() == 1, ui.st_cur())
+    ui.play(D + D + HOME + R * 6 + "k:SS+X w80 shot:gd_xglobal ")
+    check("godef: xref of a global starts with its declaration",
+          xr()[:2] == [(8, row, 0, 0, ord("D")), (slot, 3, 0, 0, ord("R"))], xr())
+    ui.play("k:ENTER w80 ")
+    sc = int.from_bytes(ui.z.bank_bytes(0, ui.sym("sy_cur"), 2), "little")
+    check("godef: xref ENTER -> Global vars row", scr() == 3 and sc == row, (scr(), sc))
+
+
 TESTS = {"long": t_long, "edit": t_edit, "clip": t_clip, "autodecl": t_autodecl,
          "manual": t_manual, "compl": t_compl, "autorun": t_autorun,
          "errors": t_errors, "semicolon": t_semicolon, "varpaste": t_varpaste, "toolong": t_toolong,
          "view": t_view, "palette": t_palette, "palmouse": t_palmouse, "globals": t_globals,
-         "watchwrite": t_watchwrite,
+         "watchwrite": t_watchwrite, "godef": t_godef,
          "words": t_words}
 
 

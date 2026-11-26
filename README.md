@@ -43,7 +43,7 @@ not downloaded to a real PLC; they run in the built-in simulation with live moni
   * a command palette (SS+E, Ctrl+E in the browser): type a part of any command or POU name;
   * mark / copy / cut / paste, also between POUs;
   * undo and redo over many steps, duplicate a POU;
-  * cross references with a jump to each use;
+  * cross references with a jump to each use, and Go to definition (SS+G) of a local or global variable;
   * Run puts the cursor on the line or element of a compile error.
 * **A real compiler:** IL, LD, FBD and ST are compiled to bytecode for a small virtual machine. LD and FBD go
   column by column, like a PLC evaluates a rung.

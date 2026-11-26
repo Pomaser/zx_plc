@@ -28,7 +28,16 @@ scr_sym:
         ld a,4
 .t:     ld (mp_alt),a
         call menu_pou
-        call sy_hint
+        ld a,(xr_jf)            ; Go to definition / cross references: on that row
+        or a
+        jr z,.nj
+        xor a
+        ld (xr_jf),a
+        ld (sy_filt),a          ; (the row number counts all records)
+        ld hl,(xr_jl)
+        ld (sy_cur),hl
+        ld (sy_top),hl
+.nj:    call sy_hint
         ; the IL editor state is borrowed while the symbol editor runs
         ld hl,(il_cur)
         ld (sy_scur),hl

@@ -190,6 +190,7 @@ EDIT_END:
         INCLUDE "src/pou.asm"           ; POU list screen
         INCLUDE "src/tape.asm"          ; tape (uncontended bank)
         INCLUDE "src/sd.asm"            ; SD card (divMMC / esxDOS)
+        INCLUDE "src/ur4.asm"           ; UR-4 interface (physical I/O)
 RUN_END:
         DISPLAY "RUN:   free: ",/D,BCODE-RUN_END
         ASSERT RUN_END <= BCODE
@@ -225,11 +226,11 @@ FBD_END:
 
 ; ---- DEMO bank: the demo project image (made by tools/mkdemo.py)
         MMU 3, BANK_DEMO, BANKED
+tr_buf: ds 256*8                ; trend.asm: the ring buffers (TR_MAX, aligned)
         INCLUDE "src/tools.asm"     ; cross references
         INCLUDE "src/clip.asm"      ; mark / copy / cut / paste
         INCLUDE "src/wexpr.asm"     ; word compare / arithmetic (LD, FBD)
         INCLUDE "src/mouse.asm"     ; Kempston mouse
-        INCLUDE "src/ur4.asm"       ; UR-4 interface (physical I/O)
         INCLUDE "src/trend.asm"     ; trend page of the simulation
         INCLUDE "src/complete.asm"  ; ST name completion (SS+SPACE)
 ; ---- demo_unpack: the demo project (ZX0 packed) -> PROJ

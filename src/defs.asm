@@ -199,6 +199,7 @@ CMD_LOAD_SD     EQU 38          ; File > Load SD... (tape_load with A = this)
 CMD_SAVE_SD     EQU 39          ; File > Save SD... (tape_save with A = this)
 CMD_GLOBALS     EQU 40          ; Edit > Globals: the symbol editor on the globals
 CMD_LOGIN       EQU 41          ; Online > Login: the simulation screen in STOP
+CMD_GODEF       EQU 42          ; View > Go to definition (SS+G): the declaration of the operand
 
 ; ---- status bar text markers (st_left): symbol name shown inverted
 ST_SYM      EQU 1           ; start of the symbol name
@@ -221,6 +222,7 @@ K_COPY      EQU 18          ; SS + D: copy the block
 K_PASTE     EQU 19          ; SS + F: paste
 K_REDO      EQU 21          ; SS + Y: redo the undone change
 K_COMPL     EQU 22          ; SS + SPACE: ST name completion (Ctrl+Space)
+K_GODEF     EQU 25          ; SS + G: go to the definition (Ctrl+G)
 K_FDEL      EQU 24          ; SS + DELETE (CS+SS+0): delete the char right of the cursor
 K_PAL       EQU 23          ; SS + E: command palette (kb_get: K_EDIT + pal_req)
 K_MOUSE     EQU 20          ; a mouse click (ms_cx / ms_cy / ms_btn, mouse.asm)

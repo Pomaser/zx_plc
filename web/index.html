@@ -53,7 +53,7 @@
     <tr><td><kbd>Shift</kbd></td><td>CAPS SHIFT</td></tr>
     <tr><td><kbd>Ctrl</kbd></td><td>SYMBOL SHIFT (SS); e.g. <kbd>Ctrl</kbd>+<kbd>U</kbd> undo,
       <kbd>Ctrl</kbd>+<kbd>Y</kbd> redo, <kbd>Ctrl</kbd>+<kbd>Space</kbd> complete a name (ST),
-      <kbd>Ctrl</kbd>+<kbd>E</kbd> command palette</td></tr>
+      <kbd>Ctrl</kbd>+<kbd>E</kbd> command palette, <kbd>Ctrl</kbd>+<kbd>G</kbd> go to definition</td></tr>
     <tr><td>Arrows, <kbd>Backspace</kbd>, <kbd>Enter</kbd></td><td>cursor keys, DELETE, ENTER</td></tr>
     <tr><td><kbd>Ctrl</kbd>+<kbd>&larr;</kbd> / <kbd>&rarr;</kbd>, <kbd>Delete</kbd></td><td>one word back / forward,
       delete the character right of the cursor (SS + DELETE)</td></tr>
@@ -99,8 +99,8 @@
   }
   window.addEventListener('keydown', e => {
     if (e.zxSynth || e.metaKey || e.altKey) return;
-    if (e.ctrlKey && (e.key === ' ' || e.key === 'e' || e.key === 'E'))
-      e.preventDefault();   // Ctrl+Space / Ctrl+E = SS+SPACE / SS+E (completion, palette)
+    if (e.ctrlKey && (e.key === ' ' || e.key === 'e' || e.key === 'E' || e.key === 'g' || e.key === 'G'))
+      e.preventDefault();   // Ctrl+Space / Ctrl+E / Ctrl+G = SS+SPACE / SS+E / SS+G (completion, palette, definition)
     let mod, key;
     if (e.key in CS) { mod = 16; key = CS[e.key]; }
     else if (e.key in SS && !e.ctrlKey) { mod = 17; key = SS[e.key]; }

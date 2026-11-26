@@ -2,7 +2,7 @@
 <defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#000000"/><line x1="0" y1="0" x2="0" y2="6" stroke="#4A4A4A" stroke-width="1.6"/></pattern></defs>
 <rect width="1700" height="1030" fill="#D7D7D7"/>
 <text x="56" y="62" font-size="30" font-weight="700" fill="#000000" letter-spacing="-0.3">ZX-PLC memory map</text>
-<text x="56" y="92" font-size="15" fill="#3A3A3A">ZX Spectrum 128K · 64 KB address space of the Z80 · eight 16 KB RAM banks, paged in at C000 through port 7FFD · build 0.19</text>
+<text x="56" y="92" font-size="15" fill="#3A3A3A">ZX Spectrum 128K · 64 KB address space of the Z80 · eight 16 KB RAM banks, paged in at C000 through port 7FFD · build 0.21</text>
 <rect x="40.0" y="104.0" width="300.0" height="810.0" rx="10" fill="#000000" stroke="#000000"/>
 <text x="56.0" y="134.0" font-size="15" font-weight="700" fill="#FFFFFF">Address space</text>
 <text x="56.0" y="151.0" font-size="11.5" fill="#A8A8A8" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">0000–FFFF</text>
@@ -16,11 +16,11 @@
 <text x="129.0" y="401.0" font-size="11" fill="#FFFFFF" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">6.8 KB</text>
 <rect x="120.0" y="425.9" width="150.0" height="8.4" fill="#D7D7D7"/>
 <line x1="120.0" y1="425.9" x2="270.0" y2="425.9" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
-<rect x="120.0" y="434.4" width="150.0" height="123.2" fill="#D700D7"/>
+<rect x="120.0" y="434.4" width="150.0" height="122.4" fill="#D700D7"/>
 <line x1="120.0" y1="434.4" x2="270.0" y2="434.4" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
-<text x="129.0" y="494.0" font-size="12.5" font-weight="600" fill="#FFFFFF">Core code</text>
-<text x="129.0" y="509.0" font-size="11" fill="#FFFFFF" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">11.0 KB</text>
-<rect x="120.0" y="557.6" width="150.0" height="0.8" fill="url(#hatch)" stroke="#4A4A4A" stroke-width="1"/>
+<text x="129.0" y="493.6" font-size="12.5" font-weight="600" fill="#FFFFFF">Core code</text>
+<text x="129.0" y="508.6" font-size="11" fill="#FFFFFF" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">10.9 KB</text>
+<rect x="120.0" y="556.8" width="150.0" height="1.4" fill="url(#hatch)" stroke="#4A4A4A" stroke-width="1"/>
 <rect x="120.0" y="558.1" width="150.0" height="16.9" fill="#D7D7D7"/>
 <line x1="120.0" y1="558.1" x2="270.0" y2="558.1" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
 <text x="129.0" y="570.6" font-size="11" font-weight="600" fill="#000000">Runtime data<tspan font-weight="400" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">  1.5 KB</tspan></text>
@@ -57,23 +57,23 @@
 <rect x="380.0" y="104.0" width="270.0" height="810.0" rx="10" fill="#000000" stroke="#000000"/>
 <text x="396.0" y="134.0" font-size="15" font-weight="700" fill="#FFFFFF">Fixed code and data</text>
 <text x="396.0" y="151.0" font-size="11.5" fill="#A8A8A8" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">5E00–8FFF</text>
-<rect x="420.0" y="170.0" width="190.0" height="96.2" fill="#D700D7"/>
+<rect x="420.0" y="170.0" width="190.0" height="101.4" fill="#D700D7"/>
 <line x1="420.0" y1="170.0" x2="610.0" y2="170.0" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
-<text x="429.0" y="216.1" font-size="12.5" font-weight="600" fill="#FFFFFF">Main loop, keyboard, sound</text>
-<text x="429.0" y="231.1" font-size="11" fill="#FFFFFF" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">1.7 KB</text>
-<rect x="420.0" y="266.2" width="190.0" height="222.2" fill="#FF00FF"/>
-<line x1="420.0" y1="266.2" x2="610.0" y2="266.2" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
-<text x="429.0" y="375.3" font-size="12.5" font-weight="600" fill="#FFFFFF">Windows, menus, status bar</text>
-<text x="429.0" y="390.3" font-size="11" fill="#FFFFFF" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">3.9 KB</text>
-<rect x="420.0" y="488.4" width="190.0" height="260.3" fill="#D700D7"/>
-<line x1="420.0" y1="488.4" x2="610.0" y2="488.4" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
-<text x="429.0" y="616.6" font-size="12.5" font-weight="600" fill="#FFFFFF">Project, operands, symbols</text>
-<text x="429.0" y="631.6" font-size="11" fill="#FFFFFF" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">4.5 KB</text>
-<rect x="420.0" y="748.8" width="190.0" height="52.1" fill="#FF00FF"/>
-<line x1="420.0" y1="748.8" x2="610.0" y2="748.8" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
-<text x="429.0" y="772.8" font-size="12.5" font-weight="600" fill="#FFFFFF">Font 6×8</text>
-<text x="429.0" y="787.8" font-size="11" fill="#FFFFFF" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">927 B</text>
-<rect x="420.0" y="800.9" width="190.0" height="2.7" fill="url(#hatch)" stroke="#4A4A4A" stroke-width="1"/>
+<text x="429.0" y="218.7" font-size="12.5" font-weight="600" fill="#FFFFFF">Main loop, keyboard, sound</text>
+<text x="429.0" y="233.7" font-size="11" fill="#FFFFFF" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">1.8 KB</text>
+<rect x="420.0" y="271.4" width="190.0" height="226.7" fill="#FF00FF"/>
+<line x1="420.0" y1="271.4" x2="610.0" y2="271.4" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
+<text x="429.0" y="382.7" font-size="12.5" font-weight="600" fill="#FFFFFF">Windows, menus, status bar</text>
+<text x="429.0" y="397.7" font-size="11" fill="#FFFFFF" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">3.9 KB</text>
+<rect x="420.0" y="498.1" width="190.0" height="246.4" fill="#D700D7"/>
+<line x1="420.0" y1="498.1" x2="610.0" y2="498.1" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
+<text x="429.0" y="619.2" font-size="12.5" font-weight="600" fill="#FFFFFF">Project, operands, symbols</text>
+<text x="429.0" y="634.2" font-size="11" fill="#FFFFFF" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">4.3 KB</text>
+<rect x="420.0" y="744.4" width="190.0" height="52.1" fill="#FF00FF"/>
+<line x1="420.0" y1="744.4" x2="610.0" y2="744.4" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
+<text x="429.0" y="768.5" font-size="12.5" font-weight="600" fill="#FFFFFF">Font 6×8</text>
+<text x="429.0" y="783.5" font-size="11" fill="#FFFFFF" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">927 B</text>
+<rect x="420.0" y="796.6" width="190.0" height="7.0" fill="url(#hatch)" stroke="#4A4A4A" stroke-width="1"/>
 <rect x="420.0" y="803.6" width="190.0" height="86.4" fill="#D7D7D7"/>
 <line x1="420.0" y1="803.6" x2="610.0" y2="803.6" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
 <text x="429.0" y="844.8" font-size="12.5" font-weight="600" fill="#000000">Runtime: I/O, timers, buffers</text>
@@ -86,76 +86,75 @@
 <rect x="670.0" y="104.0" width="976.0" height="810.0" rx="10" fill="#000000" stroke="#000000"/>
 <text x="700.0" y="134.0" font-size="15" font-weight="700" fill="#FFFFFF">Bank 0 · EDIT</text>
 <text x="700.0" y="151.0" font-size="11.5" fill="#A8A8A8" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">C000–FFFF</text>
-<rect x="700.0" y="170.0" width="144.0" height="162.0" fill="#00D7D7"/>
+<rect x="700.0" y="170.0" width="144.0" height="172.2" fill="#00D7D7"/>
 <line x1="700.0" y1="170.0" x2="844.0" y2="170.0" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
-<text x="709.0" y="249.0" font-size="12.5" font-weight="600" fill="#000000">IL editor</text>
-<text x="709.0" y="264.0" font-size="11" fill="#000000" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">3.6 KB</text>
-<rect x="700.0" y="332.0" width="144.0" height="102.8" fill="#00FFFF"/>
-<line x1="700.0" y1="332.0" x2="844.0" y2="332.0" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
-<text x="709.0" y="381.4" font-size="12.5" font-weight="600" fill="#000000">Symbol editor</text>
-<text x="709.0" y="396.4" font-size="11" fill="#000000" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">2.3 KB</text>
-<rect x="700.0" y="434.8" width="144.0" height="229.5" fill="#00D7D7"/>
-<line x1="700.0" y1="434.8" x2="844.0" y2="434.8" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
-<text x="709.0" y="547.6" font-size="12.5" font-weight="600" fill="#000000">LD editor</text>
-<text x="709.0" y="562.6" font-size="11" fill="#000000" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">5.1 KB</text>
-<rect x="700.0" y="664.3" width="144.0" height="24.2" fill="#00FFFF"/>
-<line x1="700.0" y1="664.3" x2="844.0" y2="664.3" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
-<text x="709.0" y="680.4" font-size="11" font-weight="600" fill="#000000">ST view<tspan font-weight="400" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">  551 B</tspan></text>
-<rect x="700.0" y="688.5" width="144.0" height="137.8" fill="#00D7D7"/>
-<line x1="700.0" y1="688.5" x2="844.0" y2="688.5" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
-<text x="709.0" y="755.4" font-size="12.5" font-weight="600" fill="#000000">Simulation screen</text>
-<text x="709.0" y="770.4" font-size="11" fill="#000000" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">3.1 KB</text>
-<rect x="700.0" y="826.3" width="144.0" height="41.0" fill="url(#hatch)" stroke="#4A4A4A" stroke-width="1"/>
-<text x="709.0" y="844.8" font-size="12.5" font-weight="600" fill="#A8A8A8">free</text>
-<text x="709.0" y="859.8" font-size="11" fill="#A8A8A8" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">934 B</text>
+<text x="709.0" y="254.1" font-size="12.5" font-weight="600" fill="#000000">IL editor</text>
+<text x="709.0" y="269.1" font-size="11" fill="#000000" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">3.8 KB</text>
+<rect x="700.0" y="342.2" width="144.0" height="121.4" fill="#00FFFF"/>
+<line x1="700.0" y1="342.2" x2="844.0" y2="342.2" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
+<text x="709.0" y="400.9" font-size="12.5" font-weight="600" fill="#000000">Symbol editor</text>
+<text x="709.0" y="415.9" font-size="11" fill="#000000" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">2.7 KB</text>
+<rect x="700.0" y="463.6" width="144.0" height="234.7" fill="#00D7D7"/>
+<line x1="700.0" y1="463.6" x2="844.0" y2="463.6" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
+<text x="709.0" y="579.0" font-size="12.5" font-weight="600" fill="#000000">LD editor</text>
+<text x="709.0" y="594.0" font-size="11" fill="#000000" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">5.2 KB</text>
+<rect x="700.0" y="698.3" width="144.0" height="24.4" fill="#00FFFF"/>
+<line x1="700.0" y1="698.3" x2="844.0" y2="698.3" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
+<text x="709.0" y="714.5" font-size="11" font-weight="600" fill="#000000">ST view<tspan font-weight="400" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">  555 B</tspan></text>
+<rect x="700.0" y="722.7" width="144.0" height="137.8" fill="#00D7D7"/>
+<line x1="700.0" y1="722.7" x2="844.0" y2="722.7" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
+<text x="709.0" y="789.6" font-size="12.5" font-weight="600" fill="#000000">Simulation screen</text>
+<text x="709.0" y="804.6" font-size="11" fill="#000000" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">3.1 KB</text>
+<rect x="700.0" y="860.5" width="144.0" height="6.9" fill="url(#hatch)" stroke="#4A4A4A" stroke-width="1"/>
 <rect x="700.0" y="867.4" width="144.0" height="22.6" fill="#000000" stroke="#6A6A6A" stroke-width="1"/>
 <text x="858.0" y="134.0" font-size="15" font-weight="700" fill="#FFFFFF">Bank 1 · DATA</text>
 <text x="858.0" y="151.0" font-size="11.5" fill="#A8A8A8" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">C000–FFFF</text>
 <rect x="858.0" y="170.0" width="144.0" height="25.4" fill="#00D7D7"/>
 <line x1="858.0" y1="170.0" x2="1002.0" y2="170.0" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
 <text x="867.0" y="186.7" font-size="11" font-weight="600" fill="#000000">IL line check<tspan font-weight="400" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">  579 B</tspan></text>
-<rect x="858.0" y="195.4" width="144.0" height="12.5" fill="#00FFFF"/>
+<rect x="858.0" y="195.4" width="144.0" height="24.7" fill="#00FFFF"/>
 <line x1="858.0" y1="195.4" x2="1002.0" y2="195.4" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
-<rect x="858.0" y="208.0" width="144.0" height="113.1" fill="#D7D7D7"/>
-<line x1="858.0" y1="208.0" x2="1002.0" y2="208.0" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
-<text x="867.0" y="262.5" font-size="12.5" font-weight="600" fill="#000000">Popup save area</text>
-<text x="867.0" y="277.5" font-size="11" fill="#000000" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">2.5 KB</text>
-<rect x="858.0" y="321.1" width="144.0" height="546.3" fill="#FFFFFF"/>
-<line x1="858.0" y1="321.1" x2="1002.0" y2="321.1" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
-<text x="867.0" y="592.2" font-size="12.5" font-weight="600" fill="#000000">Clipboard</text>
-<text x="867.0" y="607.2" font-size="11" fill="#000000" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">12.1 KB</text>
+<text x="867.0" y="211.8" font-size="11" font-weight="600" fill="#000000">Global declarations<tspan font-weight="400" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">  562 B</tspan></text>
+<rect x="858.0" y="220.1" width="144.0" height="156.6" fill="#D7D7D7"/>
+<line x1="858.0" y1="220.1" x2="1002.0" y2="220.1" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
+<text x="867.0" y="296.5" font-size="12.5" font-weight="600" fill="#000000">Popup save area</text>
+<text x="867.0" y="311.5" font-size="11" fill="#000000" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">3.5 KB</text>
+<rect x="858.0" y="376.8" width="144.0" height="490.6" fill="#FFFFFF"/>
+<line x1="858.0" y1="376.8" x2="1002.0" y2="376.8" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
+<text x="867.0" y="620.1" font-size="12.5" font-weight="600" fill="#000000">Clipboard</text>
+<text x="867.0" y="635.1" font-size="11" fill="#000000" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">10.9 KB</text>
 <rect x="858.0" y="867.4" width="144.0" height="22.6" fill="#000000" stroke="#6A6A6A" stroke-width="1"/>
 <text x="1016.0" y="134.0" font-size="15" font-weight="700" fill="#FFFFFF">Bank 3 · DEMO</text>
 <text x="1016.0" y="151.0" font-size="11.5" fill="#A8A8A8" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">C000–FFFF</text>
-<rect x="1016.0" y="170.0" width="144.0" height="235.5" fill="#D7D700"/>
+<rect x="1016.0" y="170.0" width="144.0" height="340.0" fill="#D7D700"/>
 <line x1="1016.0" y1="170.0" x2="1160.0" y2="170.0" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
-<text x="1025.0" y="285.7" font-size="12.5" font-weight="600" fill="#000000">Watch, xref, help</text>
-<text x="1025.0" y="300.7" font-size="11" fill="#000000" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">5.2 KB</text>
-<rect x="1016.0" y="405.5" width="144.0" height="57.1" fill="#FFFF00"/>
-<line x1="1016.0" y1="405.5" x2="1160.0" y2="405.5" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
-<text x="1025.0" y="432.0" font-size="12.5" font-weight="600" fill="#000000">Mark, copy, paste</text>
-<text x="1025.0" y="447.0" font-size="11" fill="#000000" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">1.3 KB</text>
-<rect x="1016.0" y="462.6" width="144.0" height="45.5" fill="#D7D700"/>
-<line x1="1016.0" y1="462.6" x2="1160.0" y2="462.6" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
-<text x="1025.0" y="483.4" font-size="12.5" font-weight="600" fill="#000000">Word expressions</text>
-<text x="1025.0" y="498.4" font-size="11" fill="#000000" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">1.0 KB</text>
-<rect x="1016.0" y="508.1" width="144.0" height="40.1" fill="#FFFF00"/>
-<line x1="1016.0" y1="508.1" x2="1160.0" y2="508.1" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
-<text x="1025.0" y="526.2" font-size="12.5" font-weight="600" fill="#000000">Mouse, UR-4 I/O</text>
-<text x="1025.0" y="541.2" font-size="11" fill="#000000" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">913 B</text>
-<rect x="1016.0" y="548.2" width="144.0" height="139.3" fill="#D7D700"/>
-<line x1="1016.0" y1="548.2" x2="1160.0" y2="548.2" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
-<text x="1025.0" y="615.9" font-size="12.5" font-weight="600" fill="#000000">Trend charts</text>
-<text x="1025.0" y="630.9" font-size="11" fill="#000000" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">3.1 KB</text>
-<rect x="1016.0" y="687.5" width="144.0" height="85.6" fill="#FFFF00"/>
-<line x1="1016.0" y1="687.5" x2="1160.0" y2="687.5" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
-<text x="1025.0" y="728.3" font-size="12.5" font-weight="600" fill="#000000">Completion, palette</text>
-<text x="1025.0" y="743.3" font-size="11" fill="#000000" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">1.9 KB</text>
-<rect x="1016.0" y="773.1" width="144.0" height="83.2" fill="#D70000"/>
-<line x1="1016.0" y1="773.1" x2="1160.0" y2="773.1" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
-<text x="1025.0" y="812.7" font-size="12.5" font-weight="600" fill="#FFFFFF">Demo project (ZX0)</text>
-<text x="1025.0" y="827.7" font-size="11" fill="#FFFFFF" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">1.8 KB</text>
-<rect x="1016.0" y="856.2" width="144.0" height="11.1" fill="url(#hatch)" stroke="#4A4A4A" stroke-width="1"/>
+<text x="1025.0" y="338.0" font-size="12.5" font-weight="600" fill="#000000">Watch, xref, help</text>
+<text x="1025.0" y="353.0" font-size="11" fill="#000000" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">7.6 KB</text>
+<rect x="1016.0" y="510.0" width="144.0" height="59.3" fill="#FFFF00"/>
+<line x1="1016.0" y1="510.0" x2="1160.0" y2="510.0" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
+<text x="1025.0" y="537.7" font-size="12.5" font-weight="600" fill="#000000">Mark, copy, paste</text>
+<text x="1025.0" y="552.7" font-size="11" fill="#000000" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">1.3 KB</text>
+<rect x="1016.0" y="569.4" width="144.0" height="45.5" fill="#D7D700"/>
+<line x1="1016.0" y1="569.4" x2="1160.0" y2="569.4" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
+<text x="1025.0" y="590.1" font-size="12.5" font-weight="600" fill="#000000">Word expressions</text>
+<text x="1025.0" y="605.1" font-size="11" fill="#000000" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">1.0 KB</text>
+<rect x="1016.0" y="614.9" width="144.0" height="36.7" fill="#FFFF00"/>
+<line x1="1016.0" y1="614.9" x2="1160.0" y2="614.9" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
+<text x="1025.0" y="631.2" font-size="12.5" font-weight="600" fill="#000000">Mouse, UR-4 I/O</text>
+<text x="1025.0" y="646.2" font-size="11" fill="#000000" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">835 B</text>
+<rect x="1016.0" y="651.6" width="144.0" height="45.1" fill="#D7D700"/>
+<line x1="1016.0" y1="651.6" x2="1160.0" y2="651.6" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
+<text x="1025.0" y="672.2" font-size="12.5" font-weight="600" fill="#000000">Trend charts</text>
+<text x="1025.0" y="687.2" font-size="11" fill="#000000" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">1.0 KB</text>
+<rect x="1016.0" y="696.7" width="144.0" height="85.6" fill="#FFFF00"/>
+<line x1="1016.0" y1="696.7" x2="1160.0" y2="696.7" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
+<text x="1025.0" y="737.5" font-size="12.5" font-weight="600" fill="#000000">Completion, palette</text>
+<text x="1025.0" y="752.5" font-size="11" fill="#000000" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">1.9 KB</text>
+<rect x="1016.0" y="782.3" width="144.0" height="83.8" fill="#D70000"/>
+<line x1="1016.0" y1="782.3" x2="1160.0" y2="782.3" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
+<text x="1025.0" y="822.2" font-size="12.5" font-weight="600" fill="#FFFFFF">Demo project (ZX0)</text>
+<text x="1025.0" y="837.2" font-size="11" fill="#FFFFFF" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">1.9 KB</text>
+<rect x="1016.0" y="866.1" width="144.0" height="1.2" fill="url(#hatch)" stroke="#4A4A4A" stroke-width="1"/>
 <rect x="1016.0" y="867.4" width="144.0" height="22.6" fill="#000000" stroke="#6A6A6A" stroke-width="1"/>
 <text x="1174.0" y="134.0" font-size="15" font-weight="700" fill="#FFFFFF">Bank 4 · RUN</text>
 <text x="1174.0" y="151.0" font-size="11.5" fill="#A8A8A8" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">C000–FFFF</text>
@@ -179,11 +178,11 @@
 <line x1="1174.0" y1="532.2" x2="1318.0" y2="532.2" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
 <text x="1183.0" y="559.2" font-size="12.5" font-weight="600" fill="#000000">POU list</text>
 <text x="1183.0" y="574.2" font-size="11" fill="#000000" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">1.3 KB</text>
-<rect x="1174.0" y="590.1" width="144.0" height="107.3" fill="#D7D700"/>
+<rect x="1174.0" y="590.1" width="144.0" height="112.9" fill="#D7D700"/>
 <line x1="1174.0" y1="590.1" x2="1318.0" y2="590.1" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
-<text x="1183.0" y="641.7" font-size="12.5" font-weight="600" fill="#000000">Tape, SD card</text>
-<text x="1183.0" y="656.7" font-size="11" fill="#000000" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">2.4 KB</text>
-<rect x="1174.0" y="697.3" width="144.0" height="12.7" fill="url(#hatch)" stroke="#4A4A4A" stroke-width="1"/>
+<text x="1183.0" y="644.5" font-size="12.5" font-weight="600" fill="#000000">Tape, SD card</text>
+<text x="1183.0" y="659.5" font-size="11" fill="#000000" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">2.5 KB</text>
+<rect x="1174.0" y="702.9" width="144.0" height="7.1" fill="url(#hatch)" stroke="#4A4A4A" stroke-width="1"/>
 <rect x="1174.0" y="710.0" width="144.0" height="90.0" fill="#D7D7D7"/>
 <line x1="1174.0" y1="710.0" x2="1318.0" y2="710.0" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
 <text x="1183.0" y="753.0" font-size="12.5" font-weight="600" fill="#000000">Bytecode</text>
@@ -198,15 +197,15 @@
 <rect x="1174.0" y="867.4" width="144.0" height="22.6" fill="#000000" stroke="#6A6A6A" stroke-width="1"/>
 <text x="1332.0" y="134.0" font-size="15" font-weight="700" fill="#FFFFFF">Bank 6 · FBD</text>
 <text x="1332.0" y="151.0" font-size="11.5" fill="#A8A8A8" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">C000–FFFF</text>
-<rect x="1332.0" y="170.0" width="144.0" height="366.5" fill="#00D7D7"/>
+<rect x="1332.0" y="170.0" width="144.0" height="367.5" fill="#00D7D7"/>
 <line x1="1332.0" y1="170.0" x2="1476.0" y2="170.0" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
-<text x="1341.0" y="351.2" font-size="12.5" font-weight="600" fill="#000000">FBD editor</text>
-<text x="1341.0" y="366.2" font-size="11" fill="#000000" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">8.1 KB</text>
-<rect x="1332.0" y="536.5" width="144.0" height="326.5" fill="#00FFFF"/>
-<line x1="1332.0" y1="536.5" x2="1476.0" y2="536.5" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
-<text x="1341.0" y="697.7" font-size="12.5" font-weight="600" fill="#000000">ST editor</text>
-<text x="1341.0" y="712.7" font-size="11" fill="#000000" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">7.3 KB</text>
-<rect x="1332.0" y="863.0" width="144.0" height="4.4" fill="url(#hatch)" stroke="#4A4A4A" stroke-width="1"/>
+<text x="1341.0" y="351.8" font-size="12.5" font-weight="600" fill="#000000">FBD editor</text>
+<text x="1341.0" y="366.8" font-size="11" fill="#000000" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">8.2 KB</text>
+<rect x="1332.0" y="537.5" width="144.0" height="327.8" fill="#00FFFF"/>
+<line x1="1332.0" y1="537.5" x2="1476.0" y2="537.5" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
+<text x="1341.0" y="699.4" font-size="12.5" font-weight="600" fill="#000000">ST editor</text>
+<text x="1341.0" y="714.4" font-size="11" fill="#000000" fill-opacity="0.85" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">7.3 KB</text>
+<rect x="1332.0" y="865.3" width="144.0" height="2.1" fill="url(#hatch)" stroke="#4A4A4A" stroke-width="1"/>
 <rect x="1332.0" y="867.4" width="144.0" height="22.6" fill="#000000" stroke="#6A6A6A" stroke-width="1"/>
 <text x="1490.0" y="134.0" font-size="15" font-weight="700" fill="#FFFFFF">Bank 7 · SPARE</text>
 <text x="1490.0" y="151.0" font-size="11.5" fill="#A8A8A8" font-family="'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">C000–FFFF</text>
@@ -237,5 +236,5 @@
 <text x="935" y="954" font-size="13" fill="#000000">IM2 vectors</text>
 <rect x="1028" y="943" width="14" height="14" fill="url(#hatch)" stroke="#4A4A4A"/>
 <text x="1049" y="954" font-size="13" fill="#000000">Free</text>
-<text x="56" y="984" font-size="12.5" fill="#3A3A3A">Free: core 48 B · bank 0 934 B · bank 4 288 B · bank 6 100 B · bank 3 253 B. Every paged bank keeps the IM2 vector table and JP isr at FDFD; calls between banks go through BCALL in the fixed code.</text>
+<text x="56" y="984" font-size="12.5" fill="#3A3A3A">Free: core 125 B · bank 0 156 B · bank 4 161 B · bank 6 47 B · bank 3 28 B. Every paged bank keeps the IM2 vector table and JP isr at FDFD; calls between banks go through BCALL in the fixed code.</text>
 </svg>

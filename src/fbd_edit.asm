@@ -101,6 +101,9 @@ fb_editor:
         ld b,CMD_XREF
         cp K_XREF
         jp z,.mkc
+        ld b,CMD_GODEF
+        cp K_GODEF
+        jp z,.mkc
         ld b,CMD_UNDO
         cp K_UNDO
         jp z,.mkc
@@ -736,6 +739,8 @@ fb_editor:
         cp CMD_REDRAW
         jp z,.full
         cp CMD_WADD
+        jr z,.x0
+        cp CMD_GODEF
         jr z,.x0
         cp CMD_XREF
         jr nz,.nx

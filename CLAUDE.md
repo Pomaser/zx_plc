@@ -98,7 +98,7 @@ editor and key for users.
   the build; run it after `make` when modules move or grow.
 - `python3 tools/fixjr.py main.asm`: builds and converts every out-of-range `jr` to `jp` in the source,
   then prints the remaining errors. Run it after edits that make code longer.
-- `python3 tools/xref.py --check "pou:R,app:E,il_edit:E,sym_edit:E,ld_edit:E,sim:E,st_view:E,demo:E,il_comp:R,vm:R,ld_comp:R,fbd_comp:R,st_comp:R,st_var:R,tape:R,tests:E,fbd_edit:F,st_edit:F,tools:D,clip:D,wexpr:D,mouse:D,undo:S,ur4:D,trend:D,sd:R,complete:D,il_check:A,globals:A"`:
+- `python3 tools/xref.py --check "pou:R,app:E,il_edit:E,sym_edit:E,ld_edit:E,sim:E,st_view:E,demo:E,il_comp:R,vm:R,ld_comp:R,fbd_comp:R,st_comp:R,st_var:R,tape:R,tests:E,fbd_edit:F,st_edit:F,tools:D,clip:D,wexpr:D,mouse:D,undo:S,ur4:R,trend:D,sd:R,complete:D,il_check:A,globals:A"`:
   reports labels referenced across paged banks without `BCALL`. Unlisted modules are core. The
   `run_tests` / `demo_build` hits in main.asm are expected. Extend the map when a module moves.
 - Headless emulator: `.scratch/venv/bin/python tools/zxrun.py zxplc.sna -f 30 -s "<script>"`
@@ -118,7 +118,7 @@ editor and key for users.
 ## Memory architecture (128K)
 - **Fixed memory:**
   - 0x5B00 TEST_RES; the stack below 0x5E00.
-  - Core code at 0x5E00. The build prints the free space: about 260 B are left. New code goes into
+  - Core code at 0x5E00. The build prints the free space: about 110 B are left. New code goes into
     the banks; the menu tables and texts (src/menu.asm) are core too (the command dispatcher
     `menu_cmd` is in the DEMO bank, tools.asm).
   - RT runtime data at 0x8A00. These are EQUs in `src/vm.asm`: I/Q (2 bytes each, %IX0.0-1.7)/M/MW, FB instances, scratch bits,
@@ -130,7 +130,8 @@ editor and key for users.
 - **Paged banks at 0xC000.** `main.asm` decides which module goes where:
   - EDIT 0: IL, LD and symbol editors, simulation screen, tests (~2.8 KB free).
   - RUN 4: compilers (also `src/st_comp.asm`, `src/st_var.asm`), VM, bytecode at 0xF000, POU list, tape,
-    SD card (`src/sd.asm`). It is uncontended, which tape timing needs (~0.4 KB free). Above `BCODE_END`:
+    SD card (`src/sd.asm`), `src/ur4.asm` (also `menu_active`, the menu check marks). It is
+    uncontended, which tape timing needs (~160 B free). Above `BCODE_END`:
     0xF800-0xFBFF the ST tokenizer of the compiler, 0xFC00 / 0xFD00 the ST locals (LV_INIT / LV_BASE).
   - DATA 1: `src/il_check.asm` (the IL line check `il_check` / `il_check_label`, called through
     `il_chk` / `il_chk_label` in il_edit.asm, which copy the texts to fixed memory first),
@@ -140,12 +141,14 @@ editor and key for users.
     bank, CLIP_MAX ~11.4 KB, printed by the build; a larger block is refused by clip.asm).
   - DEMO 3: `src/tools.asm` (cross references, watch / force page of the simulation, Help texts),
     `src/clip.asm` (mark / copy / cut / paste, called by the editors with `BCALL cl_cmd` / `mk_draw`),
-    `src/wexpr.asm`, `src/mouse.asm`, `src/ur4.asm`, `src/trend.asm`, `src/complete.asm` (ST name
-    completion), `menu_cmd` / `menu_active` (menu commands, check marks), the About box with twinkling
-    stars and the top-border scroller (`tl_about`, `bd_*`) and the demo image (~0.8 KB free). The demo
+    `src/wexpr.asm`, `src/mouse.asm`, `src/trend.asm` (its 256-aligned `tr_buf` is at the bank start,
+    main.asm, so no ALIGN padding), `src/complete.asm` (ST name completion), `menu_cmd` (menu
+    commands), the About box with twinkling stars and the top-border scroller (`tl_about`, `bd_*`)
+    and the demo image (only ~30 B free in the normal build). The demo
     image is ZX0 packed (`src/demo_proj.zx0`, made by make from the committed `src/demo_proj.bin`,
     git-ignored) and unpacked to PROJ by `demo_unpack` (main.asm, `dzx0_standard`).
-  - FBD 6: the FBD editor and the ST editor `src/st_edit.asm` (~0.3 KB free).
+  - FBD 6: the FBD editor and the ST editor `src/st_edit.asm` (~50 B free; ST-only buffers such as
+    `sd_text` / `sf_buf` overlay the FBD drawing buffer `fs_span`).
   - SPARE 7: undo / redo (`src/undo.asm`): the code, the history records growing up from `UM_REC`, and
     the shadow copy of the project ending at the IM2 stub. The tape load copies the project to `UM_BAK`
     (= `UM_REC`) and calls `um_reset`.
@@ -157,6 +160,12 @@ editor and key for users.
   - Data shared by two banks lives in `src/shared.asm` (core); the jump target of the cross
     references (xr_jf / xr_jl / xr_jp) too.
   - Calls within one bank, or from a bank into the core, are plain `call`.
+- Cross references / Go to definition (tools.asm): the editors hand the operand at the cursor to
+  `BCALL tl_run` (`tl_cmd` = CMD_XREF / CMD_WADD / CMD_GODEF, SS+X / SS+W / SS+G); ST passes an unknown
+  word as A = AR_LV, C = 0xFF (a local, its name in il_out; `st_xr_line` then matches by name).
+  `xr_decl` makes the declaration entry ('D', first in the list): slot SYM_SLOT + the record's row on
+  Global vars, an ST local's VAR line in cur_pou, or the called POU. `xr_goto` opens an entry; for
+  SYM_SLOT it returns CMD_GLOBALS and `scr_sym` puts the cursor on row `xr_jl` (filter All).
 - Kempston mouse: `src/mouse.asm` (DEMO bank), state in the RT area (`ms_*`, vm.asm). `kb_get` polls it
   while waiting and returns `K_MOUSE` (position `ms_cx` / `ms_cy`, button `ms_btn`); a click on a menu
   title becomes `K_EDIT` with `ms_menu`. The pointer is hidden before a key is returned. Screens handle
@@ -194,7 +203,7 @@ editor and key for users.
   `ab_isr` (constant length) and the loop calls `kb_isr` / `snd_isr` after `bd_draw`. The start delay
   (`BD_DLY` / `BD_FINE`) was tuned in JSSpeccy (128K: paper from T 14361); mkvideo draws the border
   per line segment with that timing (BORDER 24).
-- UR-4 interface (8255; PA 0x1F, PB 0x3F, PC 0x5F, CWR 0x7F): `src/ur4.asm` (DEMO bank, Setup > UR-4 I/O,
+- UR-4 interface (8255; PA 0x1F, PB 0x3F, PC 0x5F, CWR 0x7F): `src/ur4.asm` (RUN bank, Setup > UR-4 I/O,
   `ur_toggle` with a PC read-back detection), state `ur_on` (vm.asm). `sim_inputs` ORs PA / PB into RT_I,
   `ur_out` (sim.asm) writes %QX0 to PC in RUN, 0 otherwise. zxrun: `--ur4`, `ur:AA,BB`.
 - `bank_copy` (core) copies with another bank paged in. Core routines that page a bank (`win_open` /

@@ -113,50 +113,57 @@ menu_cmd:
 .no:    xor a
         ret
 
-; ---- menu_active: HL = item record -> NC if the option is active now
-;      (the check marks of the drop-down menus, called from menu.asm)
-menu_active:
-        ld a,(hl)
-        cp CMD_SOUND
-        jr z,.snd
-        cp CMD_MOUSE
-        jr z,.ms
-        cp CMD_UR4
-        jr z,.ur
-        cp CMD_VIEW_SYM
-        jr z,.sym
-        cp CMD_VIEW_ADDR
-        scf
-        ret nz
-        ld a,(view_sym)         ; Addresses active when symbols are off
-        cp 1                    ; C if 0
-        ccf
-        ret
-.snd:   ld a,(snd_on)
-        jr .is1
-.ms:    ld a,(ms_on)
-        jr .is1
-.ur:    ld a,(ur_on)
-        jr .is1
-.sym:   ld a,(view_sym)
-.is1:   cp 1                    ; NC if 1
-        ret
-
 ; ---- tl_run: editor tool for the operand at the cursor (A = area,
-;      C = index): tl_cmd = CMD_WADD adds it to the watch list, else the
-;      cross references; A = command for the screen (CMD_REOPEN / CMD_EDIT)
+;      C = index; AR_LV, 0xFF = an ST local, its name in il_out):
+;      tl_cmd = CMD_WADD adds it to the watch list, CMD_GODEF goes to its
+;      declaration, else the cross references; A = command for the screen
+;      (CMD_REOPEN / CMD_EDIT / CMD_GLOBALS)
 tl_run: push af
         ld a,(tl_cmd)
         cp CMD_WADD
         jr z,.w
+        cp CMD_GODEF
+        jr z,.g
         pop af
         jp xref_show
+.g:     pop af
+        jp gd_run
 .w:     pop af
         jp wt_add_op
+
+; ---- gd_run: A = area, C = index -> opens the declaration (Go to definition)
+gd_run: call xr_setop
+        jr c,xref_show.noop
+        xor a
+        ld (xr_n),a
+        call xr_decl
+        ld hl,txt_gd_none
+        jr c,xref_show.err
+        xor a                   ; entry 0
+        jp xr_goto
 
 ; ---- xref_show: A = area, C = index -> A = CMD_EDIT (go to the chosen use)
 ;      or CMD_REOPEN (back to the screen it was called from)
 xref_show:
+        call xr_setop
+        jr nc,.ok
+.noop:  ld hl,txt_xr_noop
+.err:   call ui_error
+        ld a,CMD_REOPEN
+        ret
+.ok:    xor a
+        ld (xr_n),a
+        ld (xr_more),a
+        dec a
+        ld (xr_dln),a           ; (0xFFFF: no line of a local to skip)
+        ld (xr_dln+1),a
+        call xr_decl            ; the declaration first
+        call xr_scan
+        jp xr_screen
+
+; xr_setop: A = area, C = index -> xr_area / xr_idx; C if it cannot be
+;      cross-referenced
+xr_setop:
         and AR_MASK
         cp AR_FBM               ; FB member -> its instance
         jr nz,.n1
@@ -165,14 +172,8 @@ xref_show:
         ld a,c
         ld (xr_idx),a
         ld a,(xr_area)
-        call xr_valid
-        jr nc,.ok
-        ld hl,txt_xr_noop
-        call ui_error
-        ld a,CMD_REOPEN
-        ret
-.ok:    call xr_scan
-        jp xr_screen
+        ; fall through
+
 
 ; xr_valid: A = area -> NC if it can be cross-referenced
 xr_valid:
@@ -199,11 +200,130 @@ xr_valid:
         scf
         ret
 
-; ---- xr_scan: fills xr_list (xr_n entries, xr_more = list full)
+; ---- xr_decl: the declaration of xr_area / xr_idx -> NC: one more entry
+;      [slot][line][0]['D'] (a symbol / global: slot SYM_SLOT, line = its
+;      row on the Global vars page; an ST local: its line in the VAR block
+;      of cur_pou, also in xr_dln; a POU: the POU, line 0); C: none
+xr_decl:
+        ld a,(xr_area)
+        cp AR_POU
+        jr nz,.n1
+        ld a,(xr_idx)
+        ld (xr_slot),a
+        ld de,0
+        jr .add
+.n1:    cp AR_LV
+        jr nz,.sym
+        ld a,(xr_idx)
+        inc a
+        ld a,AR_GV
+        jr nz,.sym
+        ld a,(cur_pou)          ; an ST local
+        ld (xr_slot),a
+        call pou_body
+        ld (ac_p),hl
+        add hl,bc
+        ld (ac_end),hl
+        call ac_line            ; line 0 must be "VAR"
+        ret c
+        ld hl,txt_ac_var
+        call ac_is
+        scf
+        ret nz
+        ld de,0
+.loc:   inc de
+        push de
+        call ac_line
+        jr c,.lnf
+        ld hl,txt_ac_endv
+        call ac_is
+        jr z,.lnf
+        call gd_isname
+        pop de
+        jr nz,.loc
+        ld (xr_dln),de
+        jr .add
+.lnf:   pop de
+        scf
+        ret
+.sym:   ld hl,xr_idx            ; A = area
+        ld c,(hl)
+        call sym_find_addr      ; NC: HL = its record
+        ret c
+        ex de,hl
+        call sym_first          ; its row = the records before it
+        ld bc,0
+.c:     or a
+        sbc hl,de
+        add hl,de
+        jr z,.cf
+        push de
+        call sym_next
+        pop de
+        inc bc
+        jr .c
+.cf:    ld d,b
+        ld e,c
+        ld a,SYM_SLOT
+        ld (xr_slot),a
+.add:   xor a
+        ld b,'D'
+        call xr_add
+        or a
+        ret
+
+; gd_isname: Z if the line text ac_lbuf starts with the name il_out (case
+;      ignored) as a whole word
+gd_isname:
+        ld hl,ac_lbuf
+        ld de,il_out
+.l:     ld a,(de)
+        or a
+        jr z,.e
+        call to_upper
+        ld c,a
+        ld a,(hl)
+        call to_upper
+        cp c
+        ret nz
+        inc hl
+        inc de
+        jr .l
+.e:     ld a,(hl)               ; the next char ends the word
+        call ac_wch
+        sbc a,a
+        or a
+        ret
+
+; ---- xr_goto: A = entry index -> opens that place: A = CMD_EDIT, or
+;      CMD_GLOBALS for a declaration on the Global vars page (xr_jl = row)
+xr_goto:
+        call xr_entry
+        ld b,(hl)
+        inc hl
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        inc hl
+        ld (xr_jl),de
+        ld a,(hl)
+        ld (xr_jp),a
+        ld a,1
+        ld (xr_jf),a
+        ld hl,0
+        ld (st_left),hl
+        ld a,b
+        cp SYM_SLOT
+        ld a,CMD_GLOBALS
+        ret z
+        ld a,b
+        ld (cur_pou),a
+        ld a,CMD_EDIT
+        ret
+
+; ---- xr_scan: adds the uses to xr_list (xr_n entries, xr_more = list full)
 xr_scan:
         xor a
-        ld (xr_n),a
-        ld (xr_more),a
         ld (xr_slot),a
 .slot:  ld a,(xr_slot)
         call pou_used
@@ -365,7 +485,15 @@ xr_match:
 
 ; xr_st: HL = first line record of an ST body (st_xr_line in the FBD
 ;      bank tells if the line uses the operand)
-xr_st:  ld de,0
+xr_st:  ld a,(xr_idx)            ; an ST local: only in its own POU
+        inc a
+        jr nz,.all
+        ld a,(xr_slot)
+        ld b,a
+        ld a,(cur_pou)
+        cp b
+        ret nz
+.all:   ld de,0
         ld (xr_line),de
 .l:     call xr_at_end
         ret nc
@@ -374,8 +502,13 @@ xr_st:  ld de,0
         ld c,a
         ld a,(xr_area)
         BCALL st_xr_line
-        call z,xr_add_il
-        ld hl,(xr_line)
+        jr nz,.n
+        ld hl,(xr_line)         ; (not the declaration of the local)
+        ld de,(xr_dln)
+        or a
+        sbc hl,de
+        call nz,xr_add_il
+.n:     ld hl,(xr_line)
         inc hl
         ld (xr_line),hl
         ld hl,(xr_rec)
@@ -546,7 +679,13 @@ xr_screen:
         ld a,(xr_area)
         cp AR_LV                ; a variable (the area kept without its bit 6)
         jr nz,.t1
+        ld a,(xr_idx)
+        inc a
         ld a,AR_GV
+        jr nz,.t1
+        ld hl,il_out            ; an ST local: its name
+        call put_str
+        jr .nt
 .t1:    ld hl,0
         ld b,0
         push af
@@ -649,23 +788,7 @@ xr_screen:
         call xr_inv
         jr .key
 .go:    ld a,(xr_sel)           ; open the POU at that place
-        call xr_entry
-        ld a,(hl)
-        ld (cur_pou),a
-        inc hl
-        ld e,(hl)
-        inc hl
-        ld d,(hl)
-        inc hl
-        ld (xr_jl),de
-        ld a,(hl)
-        ld (xr_jp),a
-        ld a,1
-        ld (xr_jf),a
-        ld hl,0
-        ld (st_left),hl
-        ld a,CMD_EDIT
-        ret
+        jp xr_goto
 .wait:  call kb_wait
         cp K_ENTER
         jr z,.back
@@ -712,14 +835,25 @@ xr_draw_entry:
         ld (xr_ep),hl
         ld a,(hl)               ; POU name
         push af
-        call pou_entry
+        ld de,rd_o
+        cp SYM_SLOT
+        jr nz,.pn
+        ld hl,txt_xr_gv         ; (a declaration on the Global vars page)
+        call put_str
+        xor a
+        ld (de),a
+        jr .pd
+.pn:    call pou_entry
         ld de,rd_o
         call name_unpad
-        ld a,3
+.pd:    ld a,3
         ld (pt_x),a
         ld hl,rd_o
         call pt_puts
         pop af
+        cp SYM_SLOT
+        ld de,rd_o
+        jr z,.ln
         call pou_lang
         ld de,rd_o              ; place
         cp LANG_IL
@@ -772,6 +906,9 @@ xr_draw_entry:
         ld hl,txt_xr_w
         cp 'W'
         jr z,.k
+        ld hl,txt_xr_d
+        cp 'D'
+        jr z,.k
         ld hl,txt_xr_c
 .k:     ld a,XR_X_KIND
         ld (pt_x),a
@@ -788,6 +925,9 @@ txt_xr_pos:   db ", pos ",0
 txt_xr_r:     db "Read",0
 txt_xr_w:     db "Write",0
 txt_xr_c:     db "Call",0
+txt_xr_d:     db "Declaration",0
+txt_xr_gv:    db "Globals",0
+txt_gd_none:  db "No declaration",0
 
 xr_area:  db 0
 xr_idx:   db 0
@@ -796,6 +936,7 @@ xr_lang:  db 0
 xr_end:   dw 0
 xr_rec:   dw 0
 xr_line:  dw 0
+xr_dln:   dw 0                  ; line of the ST local's declaration (skipped)
 xr_cls:   db 0
 xr_r:     db 0
 xr_p:     db 0
@@ -1542,8 +1683,11 @@ wt_add_op:
         jr z,.ok
         cp AR_FBM
         jr z,.ok
-        cp AR_LV                ; a global
-        jr z,.ok
+        cp AR_LV                ; a global (not an ST local: C = 0xFF)
+        jr nz,.bad
+        ld a,c
+        inc a
+        jr nz,.ok
 .bad:   ld hl,txt_xr_noop
 .err:   call ui_error
         ld a,CMD_REOPEN
@@ -2018,7 +2162,7 @@ txt_keys:
         db "SS+DELETE",PT_TAB,"delete right",0
         db "Letters",PT_TAB,"hotkeys",0
         db "SS+U  SS+Y",PT_TAB,"undo  redo",0
-        db "SS+X",PT_TAB,"cross references",0
+        db "SS+X  SS+G",PT_TAB,"cross refs  definition",0
         db "SS+W",PT_TAB,"add to watch",0
         db "SS+A D F",PT_TAB,"mark  copy  paste",0
         db "SS+I",PT_TAB,"LD: insert element",0

@@ -95,6 +95,8 @@ il_editor:
         jp z,.wak
         cp K_XREF
         jp z,.xrk
+        cp K_GODEF
+        jp z,.gdk
         cp K_UNDO
         jp z,.undk
         cp K_REDO
@@ -126,7 +128,7 @@ il_editor:
         cp 32
         jr c,.loop
         cp 128
-        jr nc,.loop
+        jp nc,.loop
         ld (il_ch),a
         ld a,(ed_field)
         cp F_MNEM
@@ -566,6 +568,8 @@ il_editor:
         jp .menu
 .redk:  ld a,CMD_REDO           ; SS+Y: redo through the menu path
         jr .undc
+.gdk:   ld a,CMD_GODEF          ; SS+G: go to the definition
+        jr .undc
 .undk:  ld a,CMD_UNDO           ; SS+U: undo through the menu path
 .undc:
         ld (mk_cmd),a
@@ -581,6 +585,8 @@ il_editor:
         call il_load
         jp .full
 .m1:    cp CMD_WADD
+        jr z,.x0
+        cp CMD_GODEF
         jr z,.x0
         cp CMD_XREF
         jr nz,.m2

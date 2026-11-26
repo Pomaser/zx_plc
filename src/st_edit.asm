@@ -123,6 +123,9 @@ st_editor:
         ld b,CMD_XREF
         cp K_XREF
         jp z,.mkc
+        ld b,CMD_GODEF
+        cp K_GODEF
+        jp z,.mkc
         ld b,CMD_UNDO
         cp K_UNDO
         jp z,.mkc
@@ -720,11 +723,27 @@ st_editor:
         jp .full
 .m1:    cp CMD_WADD
         jr z,.x0
+        cp CMD_GODEF
+        jr z,.x0
         cp CMD_XREF
         jr nz,.m2
 .x0:    ld (tl_cmd),a
         call st_word_at         ; the operand under the cursor
-        BCALL tl_run
+        push af
+        push bc
+        ld hl,st_tail           ; the word to fixed memory (a local: by name)
+        ld de,il_out
+        call put_str0
+        pop bc
+        pop af
+        or a
+        jr nz,.x1
+        ld a,(il_out)           ; no operand: an ST local (A = AR_LV, C = 0xFF)
+        or a
+        jr z,.x1
+        ld a,AR_LV
+        ld c,0xFF
+.x1:    BCALL tl_run
         ld hl,0
         ld (st_left),hl
         ret
@@ -2806,7 +2825,7 @@ st_sim_row:
 
 ; ---- st_xr_line: HL = ST line record (cross references, tools.asm, BCALL),
 ;      A = area, C = index of the operand searched (a member counts as its
-;      FB instance) -> Z if the line uses it, B = 'W' written (x :=,
+;      FB instance; AR_LV, 0xFF: the ST local named in il_out) -> Z if the line uses it, B = 'W' written (x :=,
 ;      => x), 'C' FB call, 'R' read
 st_xr_line:
         ld (xl_a),a
@@ -2826,8 +2845,16 @@ st_xr_line:
         jr nz,.nx
         ld hl,ste.lx_word
         call op_parse
-        jr c,.nx
-        and AR_MASK
+        jr nc,.op
+        ld a,(xl_i)             ; C = 0xFF: an ST local, by its name (il_out)
+        inc a
+        jr nz,.nx
+        ld hl,ste.lx_word
+        ld de,il_out
+        call str_ieq
+        jr nz,.nx
+        jr .fnd
+.op:    and AR_MASK
         cp AR_FBM
         jr nz,.a
         ld a,AR_FBI
@@ -2837,7 +2864,7 @@ st_xr_line:
         ld a,(xl_i)
         cp c
         jr nz,.nx
-        ld b,'W'                ; found: how is it used?
+.fnd:   ld b,'W'                ; found: how is it used?
         ld a,(xl_prev)
         cp S_OUT
         ret z
@@ -2963,10 +2990,10 @@ st_errk:   db 0                 ; 1: the compile error message is shown
 st_ac0:    db 0
 sn_inb:    db 0
 sn_name:   ds 32
-sd_text:   ds 48
+sd_text    EQU fs_span          ; 48 (fs_span: only the FBD drawing uses it)
 sf_l:      dw 0
 sf_out:    dw 0
-sf_buf:    ds 64
+sf_buf     EQU fs_span+48       ; 64
 bk_decl:   db 0
 bk_n:      db 0
 bk_aft:    db 0

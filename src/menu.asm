@@ -66,6 +66,7 @@ mi_view:
         db CMD_VIEW_SYM, 'S',"Symbols",0
         db CMD_VIEW_ADDR,'A',"Addresses",0
         db CMD_XREF,     'X',"Cross references",0
+        db CMD_GODEF,    'G',"Go to definition",0
         db 0
 mi_run:
         db CMD_LOGIN,'L',"Login",0

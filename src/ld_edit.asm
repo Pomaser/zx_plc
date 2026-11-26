@@ -1233,6 +1233,8 @@ ld_editor:
         jp z,.wak
         cp K_XREF
         jp z,.xrk
+        cp K_GODEF
+        jp z,.gdk
         cp K_UNDO
         jp z,.undk
         cp K_REDO
@@ -1655,6 +1657,8 @@ ld_editor:
         jp .menu
 .redk:  ld a,CMD_REDO           ; SS+Y: redo through the menu path
         jr .undc
+.gdk:   ld a,CMD_GODEF          ; SS+G: go to the definition
+        jr .undc
 .undk:  ld a,CMD_UNDO           ; SS+U: undo through the menu path
 .undc:
         ld (mk_cmd),a
@@ -1664,6 +1668,8 @@ ld_editor:
         cp CMD_REDRAW
         jp z,.full
         cp CMD_WADD
+        jr z,.x0
+        cp CMD_GODEF
         jr z,.x0
         cp CMD_XREF
         jr nz,.nx
