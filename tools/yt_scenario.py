@@ -20,8 +20,9 @@ PRONOUNCE = [
     (r"\bIL\b", "I L"),
     (r"\bAY\b", "A Y"),
     (r"\bUR-4\b", "U R four"),
-    (r"\bTON(\d)\b", r"T O N \1"),
-    (r"\bCTU(\d)\b", r"C T U \1"),
+    (r"\bLampT\b", "lamp T"),
+    (r"\bFanT\b", "fan T"),
+    (r"\bSvcTime\b", "service time"),
     (r"\bTON\b", "T O N"),
     (r"\bCTU\b", "C T U"),
     (r"\bCAL\b", "call"),
@@ -58,8 +59,11 @@ PRONOUNCE_EL = [
     (r"\bIL\b", "I L"),
     (r"\bLD\b", "L D"),
     (r"\bFBD\b", "F B D"),
-    (r"\bTON(\d)\b", r"T O N \1"),
-    (r"\bCTU(\d)\b", r"C T U \1"),
+    (r"\bLampT\b", "lamp T"),
+    (r"\bFanT\b", "fan T"),
+    (r"\bSvcTime\b", "service time"),
+    (r"\bTON\b", "T O N"),
+    (r"\bCTU\b", "C T U"),
     (r"\bCAL\b", "call"),
     (r"\bUR-4\b", "U R four"),
     (r"\b8255\b", "eighty-two fifty-five"),
@@ -136,8 +140,10 @@ NARRATION = {
         "Jeho operandem je výstup motoru Q0.0. Operandy jde psát v této krátké formě, "
         "editor je uloží v podobě podle IEC."),
     "ld6": (
-        "Next comes an on-delay timer, TON0, with a preset time of two seconds.",
-        "Dál přijde časovač se zpožděným zapnutím, TON0, s předvolbou dvě sekundy."),
+        "Next comes an on-delay timer with a preset time of two seconds. We call it "
+        "LampT; a new name on a timer box declares the instance at once.",
+        "Dál přijde časovač se zpožděným zapnutím s předvolbou dvě sekundy. Nazveme ho "
+        "LampT; nové jméno na bloku časovače rovnou deklaruje jeho instanci."),
     "ld7": (
         "And at the right end a coil: the running lamp, Q0.1. So the lamp lights up "
         "two seconds after the motor starts.",
@@ -152,20 +158,27 @@ NARRATION = {
         "first network is again the motor, Q0.0.",
         "Tady signály tečou bloky zleva doprava. Vstupem první sítě je opět motor Q0.0."),
     "fbd3": (
-        "It feeds a timer block, TON2, with three seconds. Its output switches the "
+        "It feeds a timer block, FanT, with three seconds. Its output switches the "
         "cooling fan, Q0.2.",
-        "Ten vede do bloku časovače TON2 se třemi sekundami. Jeho výstup spíná "
+        "Ten vede do bloku časovače FanT se třemi sekundami. Jeho výstup spíná "
         "chladicí ventilátor Q0.2."),
     "fbd4": (
         "The second network counts the parts. The part sensor, input I0.2, goes into "
-        "the count-up input of the counter CTU1, with a preset of three.",
+        "the count-up input of the counter Parts, with a preset of three.",
         "Druhá síť počítá díly. Čidlo dílu, vstup I0.2, vede do čítacího vstupu "
-        "čítače CTU1 s předvolbou tři."),
+        "čítače Parts s předvolbou tři."),
     "fbd5": (
         "The stop button, I0.1, resets it. When three parts have passed, output Q0.5 "
         "goes on.",
         "Tlačítko stop, I0.1, ho nuluje. Když projdou tři díly, zapne se výstup Q0.5."),
     # ---- IL
+    "il0": (
+        "MAIN will call a timer and a counter as well. In IL their instances are "
+        "declared first: Edit, Global vars is the list of all variables. LampT, FanT "
+        "and Parts are already there; we add SvcTime, a TON, and Starts, a CTU.",
+        "MAIN bude volat také časovač a čítač. V IL se jejich instance nejdřív "
+        "deklarují: Edit, Global vars je seznam všech proměnných. LampT, FanT a Parts "
+        "už v něm jsou; přidáme SvcTime typu TON a Starts typu CTU."),
     "il1": (
         "Now MAIN, in instruction list: a text language, one instruction per line, "
         "with a single accumulator.",
@@ -183,12 +196,14 @@ NARRATION = {
         "řádek se zkontroluje při stisku ENTER."),
     "il4": (
         "Timers and counters are called with CAL and named parameters, just like in "
-        "the standard. This one lights a service lamp after five seconds of running.",
+        "the standard. This one, SvcTime, lights a service lamp after five seconds of "
+        "running.",
         "Časovače a čítače se volají přes CAL s pojmenovanými parametry, přesně jako "
-        "v normě. Tenhle rozsvítí servisní kontrolku po pěti sekundách chodu."),
+        "v normě. Tenhle, SvcTime, rozsvítí servisní kontrolku po pěti sekundách chodu."),
     "il5": (
-        "A counter counts the starts of the motor, and after three starts it sets Q0.4.",
-        "Čítač počítá starty motoru a po třech startech nastaví Q0.4."),
+        "The counter Starts counts the starts of the motor, and after three starts it "
+        "sets Q0.4.",
+        "Čítač Starts počítá starty motoru a po třech startech nastaví Q0.4."),
     "il6": (
         "Finally MAIN calls the other two POUs, LAMP and FAN.",
         "Nakonec MAIN zavolá další dvě POU, LAMP a FAN."),
@@ -210,13 +225,13 @@ NARRATION = {
     # ---- Symbols
     "sym1": (
         "Addresses like I0.0 are hard to remember, so let's give them names. "
-        "Edit, Symbols opens the symbol table.",
+        "A name on an address is one more row of Global vars.",
         "Adresy jako I0.0 se špatně pamatují, tak jim dáme jména. "
-        "Edit, Symbols otevře tabulku symbolů."),
+        "Jméno na adrese je další řádek v Global vars."),
     "sym2": (
-        "Each row has a name, an address and a comment. Start button, stop button, "
-        "part sensor, then the outputs.",
-        "Každý řádek má jméno, adresu a komentář. Tlačítko start, tlačítko stop, "
+        "Each row has a name, its address after AT, and a comment. Start button, stop "
+        "button, part sensor, then the outputs.",
+        "Každý řádek má jméno, za AT adresu a komentář. Tlačítko start, tlačítko stop, "
         "čidlo dílu, potom výstupy."),
     "sym3": (
         "Back in MAIN, View, Symbols shows the program with the names instead of the "
@@ -226,9 +241,11 @@ NARRATION = {
         "řádek ukazuje symbol a komentář operandu pod kurzorem."),
     "sym4": (
         "Cross references find every use of an operand. Where is the motor used? "
-        "In MAIN, where it is read and written, and in LAMP and FAN.",
+        "First comes its declaration in Global vars, then MAIN, where it is read and "
+        "written, and LAMP and FAN.",
         "Křížové reference najdou každé použití operandu. Kde všude je motor? "
-        "V MAIN, kde se čte i zapisuje, a v LAMP a FAN."),
+        "Nejdřív jeho deklarace v Global vars, pak MAIN, kde se čte i zapisuje, "
+        "a LAMP a FAN."),
     "sym5": (
         "ENTER on an entry jumps straight to that place, here into the ladder of LAMP.",
         "ENTER na položce skočí přímo na to místo, tady do žebříčku LAMP."),
@@ -407,7 +424,7 @@ SCENARIO = [
     "go!:130,52 cl!:L w30 ws",
     "say:ld5 t:Q0.0 w10 k:ENTER w40 ws",
     "say:ld6 go:44,36 w15 cl:L w30 go!:130,100 cl!:L w30",
-    "t:TON0 w10 k:ENTER w40",
+    "t:LampT w10 k:ENTER w40",
     "k:CS+0 k:CS+0 t:2s w10 k:ENTER w40 ws",
     "say:ld7 go:236,36 w15 cl:L w30 cl:L w30",
     "go!:130,76 cl!:L w30 t:Q0.1 w10 k:ENTER w60 shot:ld go:200,150 ws",
@@ -420,15 +437,17 @@ SCENARIO = [
     "go:20,36 w15 cl:L w30",
     "go!:110,20 cl!:L w30 t:Q0.0 w10 k:ENTER w40 ws",
     "say:fbd3 go:44,36 w15 cl:L w30 go!:110,108 cl!:L w40",
-    "t:TON2 w10 k:ENTER w40 k:CS+0 k:CS+0 t:3s w10 k:ENTER w40",
+    "t:FanT w10 k:ENTER w40 k:CS+0 k:CS+0 t:3s w10 k:ENTER w40",
     "go:68,36 w15 cl:L w30 go!:110,164 cl!:L w30 t:Q0.2 w10 k:ENTER w50 shot:fbd1 ws",
     "say:fbd4 go:20,68 w15 cl:L w30 cl:L w30 go!:110,20 cl!:L w30 t:I0.2 w10 k:ENTER w40",
-    "go:44,68 w15 cl:L w30 go!:110,132 cl!:L w40 t:CTU1 w10 k:ENTER w40",
+    "go:44,68 w15 cl:L w30 go!:110,132 cl!:L w40 t:Parts w10 k:ENTER w40",
     "k:CS+0 k:CS+0 t:3 w10 k:ENTER w50 ws",
     "say:fbd5 go:20,84 w15 cl:L w30 cl:L w30 go!:110,28 cl!:L w30 t:I0.1 w10 k:ENTER w40",
     "go:68,68 w15 cl:L w30 cl:L w30 go!:110,164 cl!:L w30 t:Q0.5 w10 k:ENTER w60 shot:fbd go:200,150 ws",
     # ================================================================ IL
     "ch:Instruction~list",
+    "say:il0 w40 go!:60,3 cl!:L w30 go!:70,44 cl!:L w30 go:200,150 w20 k:SS+CS+6 w40",
+    "t:svcTime: w10 t:ton w10 k:ENTER w30 t:starts: w10 t:ctu w10 k:ENTER w40 shot:gv_fb ws",
     "say:il1 go!:36,3 cl!:L w30 go!:40,12 cl!:L w60",
     "go:20,28 w15 cl:L w30 cl:L w30 go:200,140 w30 ws",
     "say:il2 t://~Motor~start/stop w10 k:ENTER w20",
@@ -438,12 +457,12 @@ SCENARIO = [
     "t:ST~Q0.0 w10 k:ENTER w40 ws",
     "say:il3 w40 ws",
     "say:il4 t://~Service~lamp~after~5~s w10 k:ENTER w20",
-    "t:CAL~TON1(IN:=Q0.0,~PT:=T#5s) w10 k:ENTER w20",
-    "t:LD~TON1.Q w10 k:ENTER w20",
+    "t:CAL~SvcTime(IN:=Q0.0,~PT:=T#5s) w10 k:ENTER w20",
+    "t:LD~SvcTime.Q w10 k:ENTER w20",
     "t:ST~Q0.3 w10 k:ENTER w20 ws",
     "say:il5 t://~Count~the~starts w10 k:ENTER w20",
-    "t:CAL~CTU0(CU:=I0.0,~R:=I0.1,~PV:=3) w10 k:ENTER w20",
-    "t:LD~CTU0.Q w10 k:ENTER w20",
+    "t:CAL~Starts(CU:=I0.0,~R:=I0.1,~PV:=3) w10 k:ENTER w20",
+    "t:LD~Starts.Q w10 k:ENTER w20",
     "t:ST~Q0.4 w10 k:ENTER w20 ws",
     "say:il6 t:CAL~LAMP w10 k:ENTER w20",
     "t:CAL~FAN w10 k:ENTER w60 shot:il ws",
@@ -454,7 +473,7 @@ SCENARIO = [
     "w60 k:CS+0 k:CS+0 k:CS+0 k:CS+0 k:CS+0 k:CS+0 k:CS+0 k:CS+0 w10 k:CS+0 w60 shot:il_fixed ws",
     # ================================================================ Symbols
     "ch:Symbols~and~cross~references",
-    "say:sym1 w60 go!:60,3 cl!:L w30 go!:70,44 cl!:L w30 go:200,150 w20 ws",
+    "say:sym1 w60 go!:60,3 cl!:L w30 go!:70,44 cl!:L w30 go:200,150 w20 k:SS+CS+6 w20 ws",
     "say:sym2 t:start k:SPACE t:I0.0 k:SPACE t:start~button k:ENTER w20",
     "t:stop k:SPACE t:I0.1 k:SPACE t:stop~button k:ENTER w20",
     "t:sensor k:SPACE t:I0.2 k:SPACE t:part~sensor k:ENTER w20",
@@ -468,7 +487,7 @@ SCENARIO = [
     "go!:80,3 cl!:L w30 go!:90,12 cl!:L w30 go:200,150 w20",
     "go:40,44 w15 cl:L w60 shot:vsym ws",
     "say:sym4 w40 k:SS+X w100 shot:xref ws",
-    "say:sym5 k:CS+6 w20 k:CS+6 w20 k:CS+6 w30 k:ENTER w100 shot:xref_jump ws",
+    "say:sym5 k:CS+6 w20 k:CS+6 w20 k:CS+6 w20 k:CS+6 w30 k:ENTER w100 shot:xref_jump ws",
     # ================================================================ Editing
     "ch:Copy,~paste~and~undo",
     "go!:36,3 cl!:L w30 go!:40,12 cl!:L w60",
@@ -497,8 +516,8 @@ SCENARIO = [
     "ch:Watch~and~force",
     "say:w1 go:200,140 w20 k:W w60",
     "k:ENTER w30 t:motor w10 k:ENTER w40",
-    "k:CS+6 w10 k:ENTER w30 t:TON2.ET w10 k:ENTER w40",
-    "k:CS+6 w10 k:ENTER w30 t:CTU1.CV w10 k:ENTER w40",
+    "k:CS+6 w10 k:ENTER w30 t:FanT.ET w10 k:ENTER w40",
+    "k:CS+6 w10 k:ENTER w30 t:Parts.CV w10 k:ENTER w40",
     "k:CS+6 w10 k:ENTER w30 t:stop w10 k:ENTER w60 ws",
     "say:w2 k:CS+6 w10 k:ENTER w30 t:SW0 w10 k:ENTER w30",
     "k:CS+6 w10 k:ENTER w30 t:SW1 w10 k:ENTER w30",

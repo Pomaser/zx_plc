@@ -28,8 +28,11 @@ PRONOUNCE = [
     (r"\bVAR\b", "var"),
     (r"\bAY\b", "A Y"),
     (r"\bUR-4\b", "U R four"),
-    (r"\bTON(\d)\b", r"T O N \1"),
-    (r"\bCTU(\d)\b", r"C T U \1"),
+    (r"\bLampT\b", "lamp T"),
+    (r"\bFanT\b", "fan T"),
+    (r"\bSvcTime\b", "service time"),
+    (r"\bTON\b", "T O N"),
+    (r"\bCTU\b", "C T U"),
     (r"\bCAL\b", "call"),
     (r"\bPLC\b", "P L C"),
     (r"\bdivMMC\b", "div M M C"),
@@ -58,8 +61,11 @@ PRONOUNCE_EL = [
     (r"\bFBD\b", "F B D"),
     (r"\bST\b", "S T"),
     (r"\bEND_IF\b", "end if"),
-    (r"\bTON(\d)\b", r"T O N \1"),
-    (r"\bCTU(\d)\b", r"C T U \1"),
+    (r"\bLampT\b", "lamp T"),
+    (r"\bFanT\b", "fan T"),
+    (r"\bSvcTime\b", "service time"),
+    (r"\bTON\b", "T O N"),
+    (r"\bCTU\b", "C T U"),
     (r"\bCAL\b", "call"),
     (r"\bUR-4\b", "U R four"),
     (r"\bVS Code\b", "V S Code"),
@@ -90,7 +96,14 @@ PRONOUNCE_CS = [
     (r"\bLD\b", "el dé"),
     (r"\bIL\b", "í el"),
     (r"\bST\b", "es té"),
-    (r"\bTON(\d)\b", r"té ó en \1"),
+    (r"\bLampT\b", "lemp tý"),
+    (r"\bFanT\b", "fen tý"),
+    (r"\bParts\b", "párts"),
+    (r"\bSvcTime\b", "servis tajm"),
+    (r"\bStarts\b", "starts"),
+    (r"\bGlobal vars\b", "globl vars"),
+    (r"\bTON\b", "té ó en"),
+    (r"\bCTU\b", "cé té ú"),
     (r"\bUR-4\b", "u er čtyři"),
     (r"\bZ80\b", "zet osmdesát"),
     (r"\b128K\b", "sto dvacet osm ká"),
@@ -187,23 +200,30 @@ NARRATION = {
         "A click on a cell opens the element picker. A contact for the motor, Q0.0.",
         "Kliknutí na buňku otevře výběr prvků. Kontakt pro motor, Q0.0."),
     "ld3": (
-        "An on-delay timer, TON0, two seconds, and a coil for the running lamp, Q0.1.",
-        "Časovač se zpožděním, TON0, dvě sekundy, a cívka kontrolky chodu, Q0.1."),
+        "An on-delay timer, LampT, two seconds: the new name declares the instance. "
+        "And a coil for the running lamp, Q0.1.",
+        "Časovač se zpožděním, LampT, dvě sekundy: nové jméno rovnou deklaruje instanci. "
+        "A cívka kontrolky chodu, Q0.1."),
     "ld4": (
         "So the lamp lights up two seconds after the motor starts.",
         "Kontrolka se tedy rozsvítí dvě sekundy po rozběhu motoru."),
     # ---- FBD
     "fbd1": (
-        "The next POU, FAN, in function block diagram: the motor feeds a timer, three "
-        "seconds, and the timer switches the fan.",
-        "Další POU, FAN, ve funkčních blocích: motor vede do časovače, tři sekundy, "
+        "The next POU, FAN, in function block diagram: the motor feeds a timer, FanT, "
+        "three seconds, and the timer switches the fan.",
+        "Další POU, FAN, ve funkčních blocích: motor vede do časovače FanT, tři sekundy, "
         "a časovač spíná ventilátor."),
     "fbd2": (
-        "A second network counts parts: the sensor drives a counter, the stop button "
+        "A second network counts parts: the sensor drives a counter, Parts, the stop button "
         "resets it, and after three parts output Q0.5 goes on.",
-        "Druhá síť počítá díly: čidlo pohání čítač, tlačítko stop ho nuluje a po "
+        "Druhá síť počítá díly: čidlo pohání čítač Parts, tlačítko stop ho nuluje a po "
         "třech dílech se zapne výstup Q0.5."),
     # ---- IL
+    "il0": (
+        "MAIN calls a timer and a counter too. In IL they are declared first, on the "
+        "Global vars page, the list of all variables: SvcTime, a TON, and Starts, a CTU.",
+        "MAIN volá také časovač a čítač. V IL se nejdřív deklarují na stránce Global "
+        "vars, v seznamu všech proměnných: SvcTime typu TON a Starts typu CTU."),
     "il1": (
         "MAIN is in instruction list. Let's speed up the typing: the motor latch, a "
         "service timer, a counter of starts, and the calls of LAMP and FAN.",
@@ -221,16 +241,18 @@ NARRATION = {
         "Jednu za chvíli uvidíme ve strukturovaném textu."),
     # ---- Symbols
     "sym1": (
-        "Addresses are hard to remember, so we name them in the symbol table.",
-        "Adresy se špatně pamatují, tak jim dáme jména v tabulce symbolů."),
+        "Addresses are hard to remember, so we name them in Global vars too.",
+        "Adresy se špatně pamatují, tak jim dáme jména, také v Global vars."),
     "sym2": (
         "View, Symbols shows the names everywhere, and the status bar shows the "
         "comment of the operand at the cursor.",
         "View, Symbols ukáže jména všude a stavový řádek ukazuje komentář operandu "
         "pod kurzorem."),
     "sym3": (
-        "Cross references find every use of the motor, and ENTER jumps right there.",
-        "Křížové reference najdou každé použití motoru a ENTER tam rovnou skočí."),
+        "Cross references show the declaration of the motor and every use, and ENTER "
+        "jumps right there.",
+        "Křížové reference ukážou deklaraci motoru a každé jeho použití a ENTER tam "
+        "rovnou skočí."),
     # ---- ST
     "st1": (
         "Now the new language: Structured Text. The palette again: new POU, RAMP, "
@@ -356,7 +378,7 @@ SCENARIO = [
     "say:ld2 go:20,36 w10 cl:L w15 cl:L w40 go:20,36 w10 cl:L w20",
     "go!:130,52 cl!:L w20 t:Q0.0 w10 k:ENTER w30 ws",
     "say:ld3 go:44,36 w10 cl:L w20 go!:130,100 cl!:L w20",
-    "t:TON0 w10 k:ENTER w30 k:CS+0 k:CS+0 t:2s w10 k:ENTER w30",
+    "t:LampT w10 k:ENTER w30 k:CS+0 k:CS+0 t:2s w10 k:ENTER w30",
     "go:236,36 w10 cl:L w20 cl:L w20",
     "go!:130,76 cl!:L w20 t:Q0.1 w10 k:ENTER w40 shot:ld go:200,150 ws",
     "say:ld4 ws",
@@ -368,33 +390,35 @@ SCENARIO = [
     "go:20,44 w10 cl:L w15 cl:L w40 go:20,36 w10 cl:L w20",
     "go!:110,20 cl!:L w20 t:Q0.0 w10 k:ENTER w30",
     "go:44,36 w10 cl:L w20 go!:110,108 cl!:L w30",
-    "t:TON2 w10 k:ENTER w30 k:CS+0 k:CS+0 t:3s w10 k:ENTER w30",
+    "t:FanT w10 k:ENTER w30 k:CS+0 k:CS+0 t:3s w10 k:ENTER w30",
     "go:68,36 w10 cl:L w20 go!:110,164 cl!:L w20 t:Q0.2 w10 k:ENTER w40 shot:fbd1 ws",
     "say:fbd2 go:20,68 w10 cl:L w20 cl:L w20 go!:110,20 cl!:L w20 t:I0.2 w10 k:ENTER w30",
-    "go:44,68 w10 cl:L w20 go!:110,132 cl!:L w30 t:CTU1 w10 k:ENTER w30",
+    "go:44,68 w10 cl:L w20 go!:110,132 cl!:L w30 t:Parts w10 k:ENTER w30",
     "k:CS+0 k:CS+0 t:3 w10 k:ENTER w40",
     "go:20,84 w10 cl:L w20 cl:L w20 go!:110,28 cl!:L w20 t:I0.1 w10 k:ENTER w30",
     "go:68,68 w10 cl:L w20 cl:L w20 go!:110,164 cl!:L w20 t:Q0.5 w10 k:ENTER w40 shot:fbd go:200,150 ws",
     # ================================================================ IL
     "ch:Instruction~list",
+    "say:il0 go!:60,3 cl!:L w20 go!:70,44 cl!:L w30 go:200,150 w10 k:SS+CS+6 w20 " + T3 +
+    "t:svcTime: w10 t:ton w10 k:ENTER w20 t:starts: w10 t:ctu w10 k:ENTER w30 " + T1 + "shot:gv_fb ws",
     "say:il1 go!:36,3 cl!:L w20 go!:40,12 cl!:L w40",
     "go:20,28 w10 cl:L w20 cl:L w30 go:200,140 " + T3 +
     "t://~Motor~start/stop w6 k:ENTER w10 "
     "t:LD~I0.0 w6 k:ENTER w10 t:OR~Q0.0 w6 k:ENTER w10 "
     "t:ANDN~I0.1 w6 k:ENTER w10 t:ST~Q0.0 w6 k:ENTER w10 "
     "t://~Service~lamp~after~5~s w6 k:ENTER w10 "
-    "t:CAL~TON1(IN:=Q0.0,~PT:=T#5s) w6 k:ENTER w10 "
-    "t:LD~TON1.Q w6 k:ENTER w10 t:ST~Q0.3 w6 k:ENTER w10 "
+    "t:CAL~SvcTime(IN:=Q0.0,~PT:=T#5s) w6 k:ENTER w10 "
+    "t:LD~SvcTime.Q w6 k:ENTER w10 t:ST~Q0.3 w6 k:ENTER w10 "
     "t://~Count~the~starts w6 k:ENTER w10 "
-    "t:CAL~CTU0(CU:=I0.0,~R:=I0.1,~PV:=3) w6 k:ENTER w10 "
-    "t:LD~CTU0.Q w6 k:ENTER w10 t:ST~Q0.4 w6 k:ENTER w10 "
+    "t:CAL~Starts(CU:=I0.0,~R:=I0.1,~PV:=3) w6 k:ENTER w10 "
+    "t:LD~Starts.Q w6 k:ENTER w10 t:ST~Q0.4 w6 k:ENTER w10 "
     "t:CAL~LAMP w6 k:ENTER w10 t:CAL~FAN w6 k:ENTER w10 " + T1 + "shot:il ws",
     "say:il2 w20 t:LD~I9.9 w10 k:ENTER w60 shot:il_err",
     "k:ENTER w15 " + T3 + "k:CS+0 k:CS+0 k:CS+0 k:CS+0 k:CS+0 k:CS+0 k:CS+0 w10 k:CS+0 w10 " + T1 + "ws",
     "say:il3 ws",
     # ================================================================ Symbols
     "ch:Symbols",
-    "say:sym1 go!:60,3 cl!:L w20 go!:70,44 cl!:L w30 go:200,150 " + T3 +
+    "say:sym1 go!:60,3 cl!:L w20 go!:70,44 cl!:L w30 go:200,150 w10 k:SS+CS+6 w20 " + T3 +
     "t:start k:SPACE t:I0.0 k:SPACE t:start~button k:ENTER w10 "
     "t:stop k:SPACE t:I0.1 k:SPACE t:stop~button k:ENTER w10 "
     "t:sensor k:SPACE t:I0.2 k:SPACE t:part~sensor k:ENTER w10 "
@@ -407,7 +431,7 @@ SCENARIO = [
     "say:sym2 go!:60,3 cl!:L w20 go!:70,12 cl!:L w30 go:200,150 w40",
     "go!:80,3 cl!:L w20 go!:90,12 cl!:L w20 go:200,150 w10",
     "go:40,44 w10 cl:L w50 shot:vsym ws",
-    "say:sym3 w20 k:SS+X w80 shot:xref k:CS+6 w15 k:CS+6 w15 k:CS+6 w20 k:ENTER w80 ws",
+    "say:sym3 w20 k:SS+X w80 shot:xref k:CS+6 w15 k:CS+6 w15 k:CS+6 w15 k:CS+6 w20 k:ENTER w80 ws",
     # ================================================================ ST
     "ch:Structured~Text",
     "say:st1 w20 k:SS+E w30 t:new w20 k:CS+6 w15 k:ENTER w40",
@@ -440,8 +464,8 @@ SCENARIO = [
     # ================================================================ Watch, force, trend
     "ch:Watch,~force~and~trend",
     "say:w1 go:200,140 w10 k:W w50 " + T3 +
-    "k:ENTER w10 t:motor w6 k:ENTER w20 k:CS+6 w6 k:ENTER w10 t:TON2.ET w6 k:ENTER w20 "
-    "k:CS+6 w6 k:ENTER w10 t:CTU1.CV w6 k:ENTER w20 k:CS+6 w6 k:ENTER w10 t:stop w6 k:ENTER w30 " + T1 +
+    "k:ENTER w10 t:motor w6 k:ENTER w20 k:CS+6 w6 k:ENTER w10 t:FanT.ET w6 k:ENTER w20 "
+    "k:CS+6 w6 k:ENTER w10 t:Parts.CV w6 k:ENTER w20 k:CS+6 w6 k:ENTER w10 t:stop w6 k:ENTER w30 " + T1 +
     "go:6,174 w15 cl:L w20 cl:L w40 k:F w80 shot:watch k:F w40 k:F w40 ws",
     "say:w2 k:T w40 go:6,174 w15 cl:L w20 cl:L w60 go:38,174 w15 cl:L w20 cl:L w30 cl:L w20 cl:L w30",
     "go:22,174 w15 cl:L w20 cl:L w60 shot:trend ws k:G w40",
@@ -454,7 +478,7 @@ SCENARIO = [
     "w150 x:12 w1200 x:1 w20 shot:saved k:ENTER w30",
     "sd",
     "say:hw3 go!:8,3 cl!:L w20 go!:30,52 cl!:L w30 k:CS+0 k:CS+0 k:CS+0 k:CS+0 k:CS+0 k:CS+0 k:CS+0 w10 t:TOUR w10 k:ENTER w80 k:ENTER w20",
-    "go!:8,3 cl!:L w20 go!:30,44 cl!:L w30 go:85,100 w10 cl:L w80 shot:sdlist k:ENTER w80 ws",
+    "go!:8,3 cl!:L w20 go!:30,44 cl!:L w30 go:85,100 w10 cl:L w80 shot:sdlist k:ENTER w80 shot:sdloaded k:ENTER w40 ws",
     # ================================================================ Help
     "ch:Help~and~About",
     "say:hp1 go!:165,3 cl!:L w30 go!:168,12 cl!:L w80 shot:controls w60 k:ENTER w20",
