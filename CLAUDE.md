@@ -170,9 +170,10 @@ editor and key for users.
   also sets `xr_jt` = the top row the editor shows (ST: the column `xr_jp` via `st_jpos`).
 - The way back after Go to definition (`src/nav.asm`, DATA bank): `gd_run` calls `nav_save` (cur_pou,
   line, top, pos of its editor, read with `bank_copy` into `nav_rec`, core) and sets `nav_arm`. While
-  armed, `kb_get` marks BREAK with `pal_req` = 2, `menu_run` returns CMD_BACK instead of opening the
-  menu and `menu_cmd` calls `nav_back` (-> CMD_EDIT, xr_jf / xr_jl / xr_jt / xr_jp). Any other way
-  into the menu or the palette clears `nav_arm`. The xref.py hits of nav.asm (il_cur, st_cur...) are
+  armed, `kb_get` marks BREAK, EDIT (a key, not a title click) and SS+G (made K_EDIT) with `pal_req`
+  = 2, `menu_run` returns CMD_BACK instead of opening the menu and `menu_cmd` calls `nav_back`
+  (-> CMD_EDIT, xr_jf / xr_jl / xr_jt / xr_jp). Any other way into the menu or the palette clears
+  `nav_arm`; `sy_hint` adds "BREAK Back" after the Global vars filters while it is set. The xref.py hits of nav.asm (il_cur, st_cur...) are
   these bank_copy reads.
 - Kempston mouse: `src/mouse.asm` (DEMO bank), state in the RT area (`ms_*`, vm.asm). `kb_get` polls it
   while waiting and returns `K_MOUSE` (position `ms_cx` / `ms_cy`, button `ms_btn`); a click on a menu

@@ -576,9 +576,9 @@ def t_palmouse(ui):
 
 def t_godef(ui):
     """SS+G (Go to definition): an ST local -> its VAR line, a global -> its row
-    on the Global vars page, an address without a name -> refused; BREAK goes
-    back (until the menu is opened); SS+X lists the declaration first, ENTER on
-    it goes there"""
+    on the Global vars page, an address without a name -> refused; BREAK, EDIT
+    or SS+G go back (until the menu / palette is opened, "BREAK Back" after the
+    filters); SS+X lists the declaration first, ENTER on it goes there"""
     scr = lambda: ui.mem(ui.sym("cur_screen"))[0]
     xr = lambda: [tuple(ui.z.bank_bytes(3, ui.sym("xr_list") + 5 * i, 5))
                   for i in range(ui.z.bank_bytes(3, ui.sym("xr_n"), 1)[0])]
@@ -600,9 +600,14 @@ def t_godef(ui):
     ui.play(HOME + R * 6 + "k:SS+G w80 shot:gd_global ")
     sc = int.from_bytes(ui.z.bank_bytes(0, ui.sym("sy_cur"), 2), "little")
     check("godef: global -> Global vars row", scr() == 3 and sc == row, (scr(), sc, row))
+    hint = ui.status_left()
     ui.play(BRK + "shot:gd_back2 ")
     check("godef: BREAK back from Global vars", scr() == 1 and ui.st_cur() == 3 and pos() == 6,
           (scr(), ui.st_cur(), pos()))
+    check("godef: hint after the filters", hint.endswith("VARs BREAK Back"), hint)
+    for key in ("CS+1", "SS+G"):                        # EDIT, SS+G: back too
+        ui.play("k:SS+G w80 k:%s w60 " % key)
+        check("godef: %s back from Global vars" % key, scr() == 1 and ui.st_cur() == 3, (scr(), ui.st_cur()))
     ui.play(to_list() + "k:CS+6 w4 " * slot + "k:ENTER w80 ")
     ui.play(D + HOME + "k:SS+G w80 shot:gd_none k:ENTER w30 ")
     check("godef: unnamed address refused", scr() == 1 and ui.st_cur() == 4, (scr(), ui.st_cur()))
@@ -619,8 +624,8 @@ def t_godef(ui):
     check("godef: xref ENTER -> Global vars row", scr() == 3 and sc == row, (scr(), sc))
     # the menu opened after SS+G: BREAK is the menu key again
     ui.play(to_list() + "k:CS+6 w4 " * slot + "k:ENTER w80 " + HOME + "k:SS+G w80 ")
-    ui.play(MENU + BRK + BRK + "shot:gd_disarm " + BRK)
-    check("godef: menu used -> BREAK opens the menu", scr() == 1 and ui.st_cur() == 1, ui.st_cur())
+    ui.play("k:SS+E w40 " + BRK + BRK + "shot:gd_disarm " + BRK)
+    check("godef: palette used -> BREAK opens the menu", scr() == 1 and ui.st_cur() == 1, ui.st_cur())
 
 
 TESTS = {"long": t_long, "edit": t_edit, "clip": t_clip, "autodecl": t_autodecl,

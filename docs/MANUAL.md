@@ -734,9 +734,10 @@ itself. ENTER opens the editor at that place (for a global: Global vars on its r
 **Go to definition (SS+G, View > Go to definition)** jumps straight to that declaration: an ST local to
 its line in the VAR block, a global variable, an FB instance or a named address to its row on the Global
 vars page, a called POU to its editor. An address without a name has no declaration ("No declaration").
-Right after the jump, BREAK goes back to where you were (the same line, position and scroll), even
-after you have changed the declaration. Opening the menu (EDIT) or the command palette ends this,
-and BREAK opens the menu again.
+Right after the jump, BREAK, EDIT or SS+G go back to where you were (the same line, position and
+scroll), as in the cross references, even after you have changed the declaration; the status bar of
+Global vars says "BREAK Back" after the filters. Opening the menu with the mouse or the command
+palette ends this, and BREAK / EDIT open the menu again.
 
 ![Cross references of S_Red](img/xref.png)
 

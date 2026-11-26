@@ -169,11 +169,13 @@ kb_get:
         jr z,.k
         BCALL ms_hide
 .k:     pop af
+        ld c,1                  ; (from the keyboard)
         jr .arm
 .none:  ld a,(ms_on)            ; no key: the mouse (A = K_MOUSE or 0)
         or a
         ret z
         BCALL ms_poll
+        ld c,0
 .arm:   or a                    ; a key or click: the next change of the
         ret z                   ; project starts a new undo step
         push af
@@ -186,12 +188,21 @@ kb_get:
         inc b
         ld a,K_EDIT
         jr .ap
-.bk:    cp K_BREAK              ; BREAK after Go to definition: the menu
-        jr nz,.ap               ; goes back instead (pal_req 2)
-        ld a,(nav_arm)
-        add a,a
-        ld b,a
-        ld a,K_BREAK
+.bk:    ld e,a                  ; after Go to definition BREAK, EDIT (keys,
+        ld a,(nav_arm)          ; not a click on a title) and SS+G go back
+        or a                    ; as in the cross references: the screen
+        ld a,e                  ; opens "the menu", menu_run returns
+        jr z,.ap                ; CMD_BACK (pal_req 2)
+        cp K_BREAK
+        jr z,.bb
+        cp K_GODEF
+        jr z,.be
+        cp K_EDIT
+        jr nz,.ap
+        dec c
+        jr nz,.ap
+.be:    ld a,K_EDIT
+.bb:    ld b,2
 .ap:    push af
         ld a,b
         ld (pal_req),a

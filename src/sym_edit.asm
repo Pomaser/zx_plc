@@ -447,6 +447,9 @@ scr_sym:
         call nz,sy_redraw_all
         call sy_draw_cur
         call menu_key
+        push af
+        call sy_hint            ; (the menu ended the way back)
+        pop af
         jp z,.loop
         cp CMD_REDRAW
         jp z,.full
@@ -641,14 +644,20 @@ sy_hint:
         ld a,c
         cp 4
         jr c,.l
-        xor a
+        ld a,(nav_arm)          ; after Go to definition: the way back
+        or a
+        jr z,.e
+        ld hl,txt_sy_back
+        call put_str
+.e:     xor a
         ld (de),a
         ld hl,sy_hbuf
         ld (st_left),hl
         jp status_left
 txt_sy_flt: db "SS+F Filter: ",0,"All",0,"IOs",0,"FBs",0,"VARs",0
+txt_sy_back: db "BREAK Back",0
 sy_filt:    db 0
-sy_hbuf:    ds 40                ; (the hint: 34 B)
+sy_hbuf:    ds 48                ; (the hint: 34 B + 11 B BREAK Back)
 
 ; ---- sy_count: il_n = number of symbols + 1 (empty row for a new one)
 sy_count:
