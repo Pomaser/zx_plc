@@ -134,9 +134,9 @@ Each menu title opens a drop-down list. The first letter of a title or item is i
 | Load SD... | loads a project from the SD card (divMMC) |
 | Save SD... | saves the project to the SD card (divMMC) |
 
-### POU
+### POUs
 
-![POU menu](img/menu_pou.png)
+![POUs menu](img/menu_pou.png)
 
 | Item | Function |
 |---|---|
@@ -213,7 +213,7 @@ Each menu title opens a drop-down list. The first letter of a title or item is i
 A project has up to 8 POUs (Program Organisation Units) and up to 12 KB of memory. **MAIN** always exists
 and is the only POU the scan cycle runs; it calls the other POUs (`CAL DEMO_IL`, up to 8 levels deep).
 
-**The POU list** (POU > Manage) shows the name, language, size in bytes and comment of every POU.
+**The POU list** (POUs > Manage) shows the name, language, size in bytes and comment of every POU.
 UP / DOWN select a POU and ENTER opens it. `N` (new), `R` (rename / comment), `L` (language) and `D`
 (delete) work directly.
 
@@ -721,7 +721,7 @@ the same language. The status bar shows what was copied or pasted.
   (a new instance is declared) if it needs its own.
 * Paste is one step for Undo.
 
-**Duplicate a POU (POU > Duplicate..., `U` in the POU list)** makes a copy of the selected POU with its
+**Duplicate a POU (POUs > Duplicate..., `U` in the POU list)** makes a copy of the selected POU with its
 language and comment under a new name.
 
 **Cross references (SS+X, View > Cross references)** list every use of the operand at the cursor. It

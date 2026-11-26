@@ -231,9 +231,10 @@ editor and key for users.
   - Menu tables (src/menu.asm): `command, hotkey, label`. The hotkey is not shown; it must match the
     item name (normally its first letter; the user rejected unrelated letters). The open drop-down takes
     item hotkeys first, so an item key equal to a title letter (F P E V R O H) hides that title while
-    the menu is open (Online > Reset E, Edit > Paste P, POU > Rename R, Symbols / Save / Step S are
+    the menu is open (Online > Reset E, Edit > Paste P, POUs > Rename R, Symbols / Save / Step S are
     accepted). A new item must not take O in the File / Edit / View menus (EDIT, O, R starts the
-    program; EDIT opens File, hence File > Example X). Titles: File POU Edit View Online Setup Help;
+    program; EDIT opens File, hence File > Example X). Titles: File POUs Edit View Online Setup Help (MENU_GAP 6 px,
+    so that Help clears a long POU name at the right end);
     Online > Login (`CMD_LOGIN`) opens the simulation in STOP.
   - The menu bar title (`menu_pou`) shows the POU name, or Global vars / Watch / Trend (`mp_alt`).
   - SS+LEFT / SS+RIGHT (`K_HOME` / `K_END`) jump one word back / forward in texts (`word_l` / `word_r`,

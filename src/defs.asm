@@ -190,7 +190,7 @@ CMD_MARK        EQU 29          ; Edit > Mark (SS+A) - CMD_CUT: handled by clip.
 CMD_COPY        EQU 30          ;   in the order of K_MARK..K_PASTE
 CMD_PASTE       EQU 31
 CMD_CUT         EQU 32
-CMD_POU_DUP     EQU 33          ; POU > Duplicate... (executed by the POU screen)
+CMD_POU_DUP     EQU 33          ; POUs > Duplicate... (executed by the POU screen)
 CMD_MOUSE       EQU 34          ; Setup > Mouse (on / off)
 CMD_REDO        EQU 35
 CMD_UR4         EQU 36          ; Setup > UR-4 I/O (on / off)

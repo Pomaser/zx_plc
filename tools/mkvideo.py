@@ -49,7 +49,7 @@ SCENARIO = [
     "go!:8,3 cl!:L w30 go!:30,12 cl!:L w40",
     "go:85,100 w20 cl:L w40",
     "go:140,92 w20 cl:L w60 shot:new hold:20",
-    # ---- POU > New...: LAMP in LD
+    # ---- POUs > New...: LAMP in LD
     "go!:36,3 cl!:L w30 go!:40,20 cl!:L w30",
     "t:LAMP w15 k:ENTER w30",
     "go!:140,100 cl!:L w30",
@@ -63,7 +63,7 @@ SCENARIO = [
     "k:CS+0 k:CS+0 t:2s w10 k:ENTER w40",
     "go:236,36 w15 cl:L w30 cl:L w30",
     "go!:130,76 cl!:L w30 t:Q0.1 w10 k:ENTER w60 shot:ld go:200,150 hold:120",
-    # ---- POU > New...: FAN in FBD
+    # ---- POUs > New...: FAN in FBD
     "go!:36,3 cl!:L w30 go!:40,20 cl!:L w30",
     "t:FAN w15 k:ENTER w30 go!:140,108 cl!:L w30",
     "t:cooling~fan w15 k:ENTER w60",

@@ -167,7 +167,7 @@ def new_st(name):
 
 
 def to_list():
-    """from an editor to the POU list (POU > Manage)"""
+    """from an editor to the POU list (POUs > Manage)"""
     return MENU + "k:H w8 k:P w10 k:M w60 "     # (H: no item has this hotkey)
 
 

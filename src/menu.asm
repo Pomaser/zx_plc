@@ -8,7 +8,7 @@
 ; ============================================================
 MENU_N      EQU 7           ; number of top items
 MENU_X0     EQU 3           ; x of the first title (its inversion starts at x=0)
-MENU_GAP    EQU 7           ; gap between titles
+MENU_GAP    EQU 6           ; gap between titles
 ATTR_MENU   EQU 0x38        ; black ink, white paper
 WIN_MAXC    EQU 22*18       ; max cells of a saved window (largest: Help > Controls
                             ; 22 x 17, the FBD picker 13 x up to 22, the LD picker 14 x 14)
@@ -23,7 +23,7 @@ menu_top:
         dw mt_opt,  mi_opt
         dw mt_help, mi_help
 mt_file: db "File",0
-mt_pou:  db "POU",0
+mt_pou:  db "POUs",0
 mt_edit: db "Edit",0
 mt_view: db "View",0
 mt_run:  db "Online",0
