@@ -654,10 +654,10 @@ sy_hint:
         ld hl,sy_hbuf
         ld (st_left),hl
         jp status_left
-txt_sy_flt: db "SS+F Filter: ",0,"All",0,"IOs",0,"FBs",0,"VARs",0
+txt_sy_flt: db ST_INV,"SS+F",ST_INV," Filter: ",0,"All",0,"IOs",0,"FBs",0,"VARs",0
 txt_sy_back: db ST_INV,"BREAK",ST_INV," Back",0
 sy_filt:    db 0
-sy_hbuf:    ds 48                ; (the hint: 34 B + 11 B BREAK Back)
+sy_hbuf:    ds 52                ; (the hint: up to 47 B with BREAK Back)
 
 ; ---- sy_count: il_n = number of symbols + 1 (empty row for a new one)
 sy_count:
