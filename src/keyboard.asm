@@ -182,9 +182,16 @@ kb_get:
         pop af
         ld b,0                  ; SS+E: EDIT, the menu opens the palette
         cp K_PAL
-        jr nz,.ap
+        jr nz,.bk
         inc b
         ld a,K_EDIT
+        jr .ap
+.bk:    cp K_BREAK              ; BREAK after Go to definition: the menu
+        jr nz,.ap               ; goes back instead (pal_req 2)
+        ld a,(nav_arm)
+        add a,a
+        ld b,a
+        ld a,K_BREAK
 .ap:    push af
         ld a,b
         ld (pal_req),a

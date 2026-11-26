@@ -200,6 +200,7 @@ CMD_SAVE_SD     EQU 39          ; File > Save SD... (tape_save with A = this)
 CMD_GLOBALS     EQU 40          ; Edit > Globals: the symbol editor on the globals
 CMD_LOGIN       EQU 41          ; Online > Login: the simulation screen in STOP
 CMD_GODEF       EQU 42          ; View > Go to definition (SS+G): the declaration of the operand
+CMD_BACK        EQU 43          ; BREAK after Go to definition: back there (menu_run, nav.asm)
 
 ; ---- status bar text markers (st_left): symbol name shown inverted
 ST_SYM      EQU 1           ; start of the symbol name

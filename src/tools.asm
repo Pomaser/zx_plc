@@ -16,7 +16,11 @@ XR_X_KIND EQU 132
 menu_cmd:
         or a
         ret z
-        cp CMD_UNDO
+        cp CMD_BACK             ; BREAK after Go to definition (nav.asm)
+        jr nz,.nbk
+        BCALL nav_back
+        ret
+.nbk:        cp CMD_UNDO
         jr z,.undo
         cp CMD_REDO
         jr z,.redo
@@ -139,6 +143,7 @@ gd_run: call xr_setop
         call xr_decl
         ld hl,txt_gd_none
         jr c,xref_show.err
+        BCALL nav_save          ; BREAK will come back here
         xor a                   ; entry 0
         jp xr_goto
 
@@ -306,6 +311,7 @@ xr_goto:
         ld d,(hl)
         inc hl
         ld (xr_jl),de
+        ld (xr_jt),de
         ld a,(hl)
         ld (xr_jp),a
         ld a,1

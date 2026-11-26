@@ -512,6 +512,9 @@ ld_cbuf:  ds 40
 xr_jf:    db 0              ; cross reference jump: the editor opens at
 xr_jl:    dw 0              ;   line / row xr_jl, position xr_jp
 xr_jp:    db 0
+xr_jt:    dw 0              ;   and the top row of the screen xr_jt
+nav_arm:  db 0              ; 1: BREAK goes back to nav_rec (Go to definition)
+nav_rec:  ds 6              ;   [pou][line lo hi][top lo hi][pos] (nav.asm)
 xr_err:   db 0              ; 1: the editor shows il_err once (compile error)
 mk_a:     dw 0xFFFF         ; start line / row of the marked block, 0xFFFF = none
 clip_lang: db 0             ; clipboard: 0 empty, 1 IL, 2 LD, 3 FBD

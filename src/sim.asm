@@ -307,6 +307,7 @@ scr_run:
         jr z,.cj0
         dec hl
 .cj0:   ld (xr_jl),hl
+        ld (xr_jt),hl
         ld a,(cp_epos)
         ld (xr_jp),a
         ld a,1

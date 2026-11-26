@@ -36,6 +36,7 @@ scr_sym:
         ld (sy_filt),a          ; (the row number counts all records)
         ld hl,(xr_jl)
         ld (sy_cur),hl
+        ld hl,(xr_jt)
         ld (sy_top),hl
 .nj:    call sy_hint
         ; the IL editor state is borrowed while the symbol editor runs

@@ -98,7 +98,7 @@ editor and key for users.
   the build; run it after `make` when modules move or grow.
 - `python3 tools/fixjr.py main.asm`: builds and converts every out-of-range `jr` to `jp` in the source,
   then prints the remaining errors. Run it after edits that make code longer.
-- `python3 tools/xref.py --check "pou:R,app:E,il_edit:E,sym_edit:E,ld_edit:E,sim:E,st_view:E,demo:E,il_comp:R,vm:R,ld_comp:R,fbd_comp:R,st_comp:R,st_var:R,tape:R,tests:E,fbd_edit:F,st_edit:F,tools:D,clip:D,wexpr:D,mouse:D,undo:S,ur4:R,trend:D,sd:R,complete:D,il_check:A,globals:A"`:
+- `python3 tools/xref.py --check "pou:R,app:E,il_edit:E,sym_edit:E,ld_edit:E,sim:E,st_view:E,demo:E,il_comp:R,vm:R,ld_comp:R,fbd_comp:R,st_comp:R,st_var:R,tape:R,tests:E,fbd_edit:F,st_edit:F,tools:D,clip:D,wexpr:D,mouse:D,undo:S,ur4:R,trend:D,sd:R,complete:D,il_check:A,globals:A,nav:A"`:
   reports labels referenced across paged banks without `BCALL`. Unlisted modules are core. The
   `run_tests` / `demo_build` hits in main.asm are expected. Extend the map when a module moves.
 - Headless emulator: `.scratch/venv/bin/python tools/zxrun.py zxplc.sna -f 30 -s "<script>"`
@@ -118,7 +118,7 @@ editor and key for users.
 ## Memory architecture (128K)
 - **Fixed memory:**
   - 0x5B00 TEST_RES; the stack below 0x5E00.
-  - Core code at 0x5E00. The build prints the free space: about 110 B are left. New code goes into
+  - Core code at 0x5E00. The build prints the free space: about 80 B are left. New code goes into
     the banks; the menu tables and texts (src/menu.asm) are core too (the command dispatcher
     `menu_cmd` is in the DEMO bank, tools.asm).
   - RT runtime data at 0x8A00. These are EQUs in `src/vm.asm`: I/Q (2 bytes each, %IX0.0-1.7)/M/MW, FB instances, scratch bits,
@@ -135,7 +135,8 @@ editor and key for users.
     0xF800-0xFBFF the ST tokenizer of the compiler, 0xFC00 / 0xFD00 the ST locals (LV_INIT / LV_BASE).
   - DATA 1: `src/il_check.asm` (the IL line check `il_check` / `il_check_label`, called through
     `il_chk` / `il_chk_label` in il_edit.asm, which copy the texts to fixed memory first),
-    `src/globals.asm` (declarations of the global variables), the popup save buffer `win_save`
+    `src/globals.asm` (declarations of the global variables), `src/nav.asm` (BREAK back after Go to
+    definition), the popup save buffer `win_save`
     (WIN_MAXC cells x 9 B, menu.asm: it must hold the largest popup, Help > Controls 22 x 17; measure
     `win_cols` x `win_rows` after adding text to a popup) and the clipboard (`clip_buf`, the rest of the
     bank, CLIP_MAX ~11.4 KB, printed by the build; a larger block is refused by clip.asm).
@@ -144,10 +145,10 @@ editor and key for users.
     `src/wexpr.asm`, `src/mouse.asm`, `src/trend.asm` (its 256-aligned `tr_buf` is at the bank start,
     main.asm, so no ALIGN padding), `src/complete.asm` (ST name completion), `menu_cmd` (menu
     commands), the About box with twinkling stars and the top-border scroller (`tl_about`, `bd_*`)
-    and the demo image (only ~30 B free in the normal build). The demo
+    and the demo image (under 10 B free in the normal build). The demo
     image is ZX0 packed (`src/demo_proj.zx0`, made by make from the committed `src/demo_proj.bin`,
     git-ignored) and unpacked to PROJ by `demo_unpack` (main.asm, `dzx0_standard`).
-  - FBD 6: the FBD editor and the ST editor `src/st_edit.asm` (~50 B free; ST-only buffers such as
+  - FBD 6: the FBD editor and the ST editor `src/st_edit.asm` (~20 B free; ST-only buffers such as
     `sd_text` / `sf_buf` overlay the FBD drawing buffer `fs_span`).
   - SPARE 7: undo / redo (`src/undo.asm`): the code, the history records growing up from `UM_REC`, and
     the shadow copy of the project ending at the IM2 stub. The tape load copies the project to `UM_BAK`
@@ -165,7 +166,14 @@ editor and key for users.
   word as A = AR_LV, C = 0xFF (a local, its name in il_out; `st_xr_line` then matches by name).
   `xr_decl` makes the declaration entry ('D', first in the list): slot SYM_SLOT + the record's row on
   Global vars, an ST local's VAR line in cur_pou, or the called POU. `xr_goto` opens an entry; for
-  SYM_SLOT it returns CMD_GLOBALS and `scr_sym` puts the cursor on row `xr_jl` (filter All).
+  SYM_SLOT it returns CMD_GLOBALS and `scr_sym` puts the cursor on row `xr_jl` (filter All). A jump
+  also sets `xr_jt` = the top row the editor shows (ST: the column `xr_jp` via `st_jpos`).
+- The way back after Go to definition (`src/nav.asm`, DATA bank): `gd_run` calls `nav_save` (cur_pou,
+  line, top, pos of its editor, read with `bank_copy` into `nav_rec`, core) and sets `nav_arm`. While
+  armed, `kb_get` marks BREAK with `pal_req` = 2, `menu_run` returns CMD_BACK instead of opening the
+  menu and `menu_cmd` calls `nav_back` (-> CMD_EDIT, xr_jf / xr_jl / xr_jt / xr_jp). Any other way
+  into the menu or the palette clears `nav_arm`. The xref.py hits of nav.asm (il_cur, st_cur...) are
+  these bank_copy reads.
 - Kempston mouse: `src/mouse.asm` (DEMO bank), state in the RT area (`ms_*`, vm.asm). `kb_get` polls it
   while waiting and returns `K_MOUSE` (position `ms_cx` / `ms_cy`, button `ms_btn`); a click on a menu
   title becomes `K_EDIT` with `ms_menu`. The pointer is hidden before a key is returned. Screens handle

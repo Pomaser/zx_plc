@@ -38,7 +38,10 @@ st_editor:
         ld (st_pou),a
         ld hl,(xr_jl)
         ld (st_cur),hl
+        ld hl,(xr_jt)
         ld (st_top),hl
+        ld a,(xr_jp)            ; (the cursor column, set after st_load)
+        ld (st_jpos),a
         jr .same
 .nj:    ld a,(cur_pou)
         ld hl,st_pou
@@ -66,7 +69,14 @@ st_editor:
         dec hl
         ld (st_cur),hl
 .okc:   call st_load
-        call st_fix_top
+        ld hl,st_jpos           ; a jump: the cursor on its column (at most
+        ld a,(hl)               ; the line end)
+        ld (hl),0xFF
+        ld hl,st_pos
+        cp (hl)
+        jr nc,.jp0
+        ld (hl),a
+.jp0:   call st_fix_top
 .full:  call st_redraw_all
         ld a,(xr_err)           ; (after a jump to a compile error: its
         ld (st_errk),a          ; message stays until a key)
@@ -2961,6 +2971,7 @@ st_cur:    dw 0
 st_top:    dw 0
 st_end:    dw 0
 st_pos:    db 0
+st_jpos:   db 0xFF          ; column of a jump (xr_jp), 0xFF: none
 st_npos:   db 0
 st_ind:    db 0
 st_oldrow: db 0

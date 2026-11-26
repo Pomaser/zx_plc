@@ -46,6 +46,7 @@ il_editor:
         ld (il_pou),a
         ld hl,(xr_jl)
         ld (il_cur),hl
+        ld hl,(xr_jt)
         ld (il_top),hl
         jr .same
 .nj:    ld a,(cur_pou)

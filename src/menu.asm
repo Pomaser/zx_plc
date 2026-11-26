@@ -438,8 +438,18 @@ menu_inv_item:
 
 ; ---- menu_run: interactive menu. A = command or 0 (cancelled)
 menu_run:
-        ld a,(pal_req)          ; SS+E: the command palette (complete.asm)
-        or a
+        ld a,(pal_req)
+        cp 2                    ; BREAK after Go to definition: back there
+        jr nz,.n2
+        xor a
+        ld (pal_req),a
+        ld (nav_arm),a
+        ld a,CMD_BACK
+        ret
+.n2:    ld b,a
+        xor a
+        ld (nav_arm),a          ; the menu / palette: no way back any more
+        or b                    ; SS+E: the command palette (complete.asm)
         jr z,.np
         xor a
         ld (pal_req),a

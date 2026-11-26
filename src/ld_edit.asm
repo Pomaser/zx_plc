@@ -1159,6 +1159,7 @@ ld_editor:
         ld (ld_pou),a
         ld a,(xr_jl)
         ld (ld_row),a
+        ld a,(xr_jt)
         ld (ld_top),a
         ld a,(xr_jp)
         ld (ld_pos),a

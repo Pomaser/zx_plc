@@ -207,6 +207,7 @@ RUN2_END:
         MMU 3, BANK_DATA, BANKED
         INCLUDE "src/il_check.asm"  ; IL instruction check (BCALL)
         INCLUDE "src/globals.asm"   ; global variable declarations (BCALL)
+        INCLUDE "src/nav.asm"       ; the way back after Go to definition (BCALL)
 win_save: ds 9*WIN_MAXC     ; cells saved under a popup window
 DATA_END:
 clip_buf:                   ; the clipboard (clip.asm), up to the IM2 stub
